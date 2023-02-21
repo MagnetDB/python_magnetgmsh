@@ -1,0 +1,4 @@
+PyYAML
+lxml >= 4.9.2
+gmsh >= 4.8.4
+

@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "python_magnetgmsh"
+version = "0.1.0"
+description = "Python helpers to create HiFiMagnet cads and meshes with Gmsh"
+authors = ["Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
+           "Romain Vallet <romain.vallet@lncmi.cnrs.fr>",
+           "Jeremie Muzet <jeremie.muzet@lncmi.cnrs.fr>"
+          ]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+PyYAML = "^5"
+lxml = "^4.9.2"
+gmsh = "^4.9.5"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
