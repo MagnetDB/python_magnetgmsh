@@ -114,9 +114,7 @@ def Magnet_Gmsh(mname: str, cad, gname: str, is2D: bool, verbose: bool = False):
     elif isinstance(pcad, Insert):
         # keep pname
         # print(f'Insert: {pname}')
-        (_names, _NHelices, _Boxes, _Channels) = Insert_Gmsh(
-            mname, pcad, pname, is2D, verbose
-        )
+        (_names, _NHelices) = Insert_Gmsh(mname, pcad, pname, is2D, verbose)
         solid_names += _names
         NHelices.append(_NHelices)
         prefix = pname

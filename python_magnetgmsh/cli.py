@@ -1,5 +1,5 @@
 """Console script for python_magnetgeo."""
-from typing import List
+from typing import List, Optional
 
 import argparse
 import sys
@@ -15,6 +15,8 @@ from python_magnetgeo import Supra
 from python_magnetgeo import Supras
 from python_magnetgeo import MSite
 
+from .bcs import create_bcs
+
 MeshAlgo2D = {
     "MeshAdapt": 1,
     "Automatic": 2,
@@ -25,9 +27,7 @@ MeshAlgo2D = {
 }
 
 
-def gmsh_msh(
-    algo: str, boxes: list, lcs: List[float], air: bool = False, scaling: bool = False
-):
+def gmsh_msh(algo: str, lc: float, air: bool = False, scaling: bool = False):
     """
     create msh
 
@@ -42,7 +42,7 @@ def gmsh_msh(
     gmsh.model.occ.synchronize()
 
     # add Points
-    EndPoints_tags = [0]
+    EndPoints_tags = [Origin]
 
     # scaling
     unit = 1
@@ -50,48 +50,11 @@ def gmsh_msh(
         unit = 0.001
         gmsh.option.setNumber("Geometry.OCCScaling", unit)
 
+    print(f"Mesh Length Characteristics: lc={lc}")
+
     # Assign a mesh size to all the points:
-    lcar1 = 10 * unit
+    lcar1 = 5 * lc * unit
     gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lcar1)
-
-    if not lcs:
-        print("Mesh Length Characteristics:")
-        for box in boxes:
-            for item in box:
-                # print(f'{item}: box[item]={box[item]}')
-                cadtype, (r, z) = box[item]
-                r1 = float(r[1])
-                r0 = float(r[0])
-                lcs.append((r1 - r0) / 30.0)  # r,z are in mm in yaml files
-                print(f"\t{item}: {lcs[-1]}")
-        if air:
-            lcs.append(lcs[-1] * 20)
-            print(f"Air: {lcs[-1]}")
-    else:
-        # print(f'Boxes: {Boxes}')
-        nboxes = len(boxes)
-        if air:
-            assert (
-                nboxes == len(lcs) - 1
-            ), f"Wrong number of mesh length size: {len(boxes)} magnets whereas lcs contains {len(lcs)-1} mesh size"
-        else:
-            assert nboxes == len(
-                lcs
-            ), f"Wrong number of mesh length size: {len(boxes)} magnets whereas lcs contains {len(lcs)} mesh size"
-
-    # Get points from Physical volumes
-    # from volume name use correct lc characteristic
-    z_eps = 1.0e-6
-    for i, box in enumerate(boxes):
-        for key in box:
-            mtype = box[key][0]
-            # print(f'box[{i}]={key} mtype={mtype} lc={lcs[i]} boundingBox={box[key][1]}')
-            (r, z) = box[key][1]
-
-            ov = gmsh.model.getEntitiesInBoundingBox(
-                r[0], z[0], -z_eps, r[1], z[1], z_eps, 0
-            )
-            gmsh.model.mesh.setSize(ov, lcs[i])
 
     # LcMax -                         /------------------
     #                               /
@@ -155,11 +118,7 @@ def main():
         "--scaling", help="scale to m (default unit is mm)", action="store_true"
     )
     parser.add_argument(
-        "--lc",
-        help="specify characteristic lengths (Magnet1, Magnet2, ..., Air (aka default))",
-        type=float,
-        nargs="+",
-        metavar="LC",
+        "--lc", help="specify characteristic length", type=float, default=5
     )
 
     parser.add_argument("--show", help="display gmsh windows", action="store_true")
@@ -167,14 +126,11 @@ def main():
     parser.add_argument("--debug", help="activate debug mode", action="store_true")
 
     args = parser.parse_args()
-
     print(f"Arguments: {args}")
 
     cwd = os.getcwd()
     if args.wd:
         os.chdir(args.wd)
-
-    print(args.filename)
 
     AirData = ()
     if args.air:
@@ -194,7 +150,7 @@ def main():
     gmsh.option.setNumber("General.Terminal", 1)
     gmsh.option.setNumber("General.Verbosity", 0)
     if args.debug or args.verbose:
-        gmsh.option.setNumber("General.Verbosity", 2)
+        gmsh.option.setNumber("General.Verbosity", 5)
 
     gmsh.model.add(args.filename)
     gmsh.logger.start()
@@ -213,17 +169,25 @@ def main():
     MyObject = import_module(import_dict[type(Object)], package="python_magnetgmsh")
 
     ids = MyObject.gmsh_ids(Object, AirData, args.debug)
-    print(f"ids[{Object.name}]: {ids}")
+    # print(f"ids[{Object.name}]: {ids}")
     bcs = MyObject.gmsh_bcs(Object, "", ids, args.debug)
+    for key in bcs:
+        print(f"key={key}, bcs[{key}]={bcs[key]}")
+
+    vGroups = gmsh.model.getPhysicalGroups(-1)
+    for iGroup in vGroups:
+        dimGroup = iGroup[0]  # 1D, 2D or 3D
+        tagGroup = iGroup[1]
+        nameGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
+        print(f"{nameGroup}: dim={dimGroup}, tag={tagGroup}")
 
     # TODO set mesh characteristics here
     if args.mesh:
-        print("msh:", type(args.mesh))
         boxes = []  # get bounding box per object
         air = False
         if AirData:
             air = True
-        gmsh_msh(args.algo2d, boxes, args.lc, air, args.scaling)
+        gmsh_msh(args.algo2d, args.lc, air, args.scaling)
 
         gmsh.model.mesh.generate(2)
         meshfilename = args.filename.replace(".yaml", "-Axi")
@@ -246,4 +210,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())  # pragma: no cover
+    sys.exit(main())

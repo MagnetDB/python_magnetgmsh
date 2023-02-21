@@ -136,6 +136,7 @@ def insert_ids(
     returns gmsh ids depending on detail value
     ie. [dp_ids, isolation_ids]
     """
+    # print(f"insert_ids: {HTSinsert}")
 
     x0 = HTSInsert.r0
     y0 = HTSInsert.z0 - HTSInsert.getH() / 2.0
@@ -176,9 +177,9 @@ def insert_ids(
         #    print(f"i_ids[{i}]={ids}")
 
         # Perform BooleanFragment
-        print(f"Create BooleanFragments (detail={detail})")
+        # print(f"Create BooleanFragments (detail={detail})")
         for j, dp in enumerate(dp_ids):
-            print(f"HTSInsert gmsh: dp[{j}]")
+            # print(f"HTSInsert gmsh: dp[{j}]")
             if isinstance(dp, list):
                 for p in dp:
                     # print(f"HTSInsert gmsh: dp[{j}] p={p}")
@@ -242,7 +243,7 @@ def insert_ids(
 
             for j, dp in enumerate(dp_ids):
                 # dp = [ [p0, p1], isolation ]
-                print(f"HTSInsert with Air: dp[{j}] detail={detail} dp={dp}")
+                # print(f"HTSInsert with Air: dp[{j}] detail={detail} dp={dp}")
                 if isinstance(dp, list):
                     # detail == pancake|tape
                     # print(_id, flatten(dp))
@@ -277,7 +278,7 @@ def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = Fals
     prefix = ""
     if name:
         prefix = f"{name}_"
-    print("Set Physical Volumes")
+    # print("Set Physical Volumes")
     if isinstance(gmsh_ids, list):
         dp_ids = gmsh_ids[0]
         i_ids = gmsh_ids[1]
@@ -286,7 +287,7 @@ def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = Fals
             gmsh.model.setPhysicalName(2, ps, f"{prefix}i_dp{i}")
             defs[f"{prefix}i_dp{i}"] = ps
         for i, dp in enumerate(dp_ids):
-            print(f"dp[{i}]")
+            # print(f"dp[{i}] = {dp}")
             if detail == "dblpancake":
                 ps = gmsh.model.addPhysicalGroup(2, [dp])
                 gmsh.model.setPhysicalName(2, ps, f"{prefix}dp{i}")
@@ -325,7 +326,7 @@ def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = Fals
                         ps = gmsh.model.addPhysicalGroup(2, [t])
                         gmsh.model.setPhysicalName(2, ps, f"{prefix}mandrin_p{0}_dp{i}")
                         defs[f"{prefix}mandrin_p{0}_dp{i}"] = ps
-                        print(f"HTSInsert/gmsh_bcs: mandrin {t}: {ps}")
+                        # print(f"HTSInsert/gmsh_bcs: mandrin {t}: {ps}")
                 for t in dp[0][1]:
                     # print("p1:", t)
                     if isinstance(t, list):
@@ -344,7 +345,7 @@ def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = Fals
                         ps = gmsh.model.addPhysicalGroup(2, [t])
                         gmsh.model.setPhysicalName(2, ps, f"{prefix}mandrin_p{1}_dp{i}")
                         defs[f"{prefix}mandrin_p{1}_dp{i}"] = ps
-                        print(f"HTSInsert/gmsh_bcs: mandrin {t}: {ps}")
+                        # print(f"HTSInsert/gmsh_bcs: mandrin {t}: {ps}")
     else:
         ps = gmsh.model.addPhysicalGroup(2, [gmsh_ids])
         gmsh.model.setPhysicalName(2, ps, f"{name}")

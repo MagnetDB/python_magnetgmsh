@@ -14,6 +14,12 @@ from .Ring import gmsh_ids as ring_ids
 from .Ring import gmsh_bcs as ring_bcs
 
 
+def flatten(S: list) -> list:
+    from pandas.core.common import flatten as pd_flatten
+
+    return list(pd_flatten(S))
+
+
 def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:
     """
     create gmsh geometry
@@ -44,7 +50,7 @@ def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:
         if i % 2 != 0:
             y -= Ring.z[-1] - Ring.z[0]
 
-        _id = ring_ids(Ring, z[i], debug)
+        _id = ring_ids(Ring, y, debug)
         R_ids.append(_id)
         # fragment
         if i % 2 != 0:
@@ -55,6 +61,7 @@ def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:
             ov, ovv = gmsh.model.occ.fragment(
                 [(2, _id)], [(2, H_ids[i][-1]), (2, H_ids[i + 1][-1])]
             )
+        gmsh.model.occ.synchronize()
 
         if debug:
             print(
@@ -66,19 +73,25 @@ def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:
     # Now create air
     if AirData:
         (r, z) = Insert.boundingBox()
+        # print(f"Insert: boundingbox= r={r}, z={z}")
         r0_air = 0
         dr_air = r[1] * AirData[0]
         z0_air = z[0] * AirData[1]
         dz_air = abs(z[1] - z[0]) * AirData[1]
         _id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
-        flat_list = []
-        for sublist in H_ids:
-            for item in sublist:
-                flat_list.append(item)
+        flat_list = flatten(H_ids)
         flat_list += R_ids
-        print("flat_list:", flat_list)
+
+        """
+        vGroups = [id[1] for id in gmsh.model.getEntities(2)]
+        for i in flat_list:
+            if not i in vGroups:
+                raise RuntimeError(f"{i} is not in VGroups")
+        """
+
         ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, i) for i in flat_list])
+
         # need to account for changes
         gmsh.model.occ.synchronize()
         return (H_ids, R_ids, (_id, dr_air, z0_air, dz_air))
@@ -96,7 +109,7 @@ def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dic
     import gmsh
 
     (H_ids, R_ids, AirData) = ids
-    print(f"Insert/gmsh_bcs: H_ids={H_ids}")
+    # print(f"Insert/gmsh_bcs: H_ids={H_ids}")
 
     eps = 1.0e-3
     defs = {}

@@ -52,9 +52,7 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
         return (gmsh_ids, (_id, dr_air, z0_air, dz_air))
 
     if debug:
-        print("gmsh_ids:", len(gmsh_ids))
-        for i in gmsh_ids:
-            print(i)
+        print(f"Helix/gmsh_ids: {gmsh_ids} ({len(gmsh_ids)})")
 
     # need to account for changes
     gmsh.model.occ.synchronize()
@@ -65,7 +63,7 @@ def gmsh_bcs(Helix: Helix, mname: str, ids: tuple, debug: bool = False) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
-    print(f"Helix/gmsh_ids: ids={ids}")
+    # print(f"Helix/gmsh_ids: ids={ids}")
     defs = {}
     (H_ids, Air_data) = ids
 

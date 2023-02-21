@@ -24,6 +24,7 @@ def gmsh_ids(Supra: Supra, AirData: tuple, debug: bool = False):
     """
 
     # TODO: how to specify detail level to actually connect gmsh with struct data
+    # print(f"Supra/gmsh_ids: Supra={Supra}")
 
     if not Supra.struct:
         _id = gmsh.model.occ.addRectangle(
@@ -69,7 +70,7 @@ def gmsh_bcs(Supra: Supra, mname: str, ids: tuple, debug: bool = False) -> dict:
     if mname:
         prefix = f"{mname}_"
 
-    print(f"Supra: name={Supra.name}, struct={Supra.struct}")
+    # print(f"Supra: name={Supra.name}, struct={Supra.struct}")
     if not Supra.struct:
 
         (id, Air_data) = ids
@@ -78,7 +79,7 @@ def gmsh_bcs(Supra: Supra, mname: str, ids: tuple, debug: bool = False) -> dict:
         ps = gmsh.model.addPhysicalGroup(2, [id])
         gmsh.model.setPhysicalName(2, ps, f"{Supra.name}")
         defs[f"{Supra.name}"] = ps
-        print(f"{Supra.name}: {id}")
+        # print(f"{Supra.name}: {id}")
 
         # get BC ids
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)

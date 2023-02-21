@@ -26,16 +26,16 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
     for i, (n, pitch) in enumerate(zip(Bitter.axi.turns, Bitter.axi.pitch)):
         dz = n * pitch
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, dz)
-        print(f"B[{i}]={_id}")
+        # print(f"B[{i}]={_id}")
         gmsh_ids.append(_id)
 
         y += dz
-    print(f"gmsh_ids: {gmsh_ids}")
+    # print(f"gmsh_ids: {gmsh_ids}")
 
     # Cooling Channels
     if len(Bitter.coolingslits) > 0:
         slits = []
-        print(f"CoolingSlits[r]: {Bitter.coolingslits[0]['r']}")
+        # print(f"CoolingSlits[r]: {Bitter.coolingslits[0]['r']}")
         for r in Bitter.coolingslits[0]["r"]:
             x = float(r)
             pt1 = gmsh.model.occ.addPoint(x, Bitter.z[0], 0)
@@ -101,10 +101,10 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
     else:
         for i, id in enumerate(B_ids):
             if isinstance(id, int):
-                print(f"B{i+1}: {id}")
+                # print(f"B{i+1}: {id}")
                 ps = gmsh.model.addPhysicalGroup(2, [id])
             else:
-                print(f"B{i+1}: {id}")
+                # print(f"B{i+1}: {id}")
                 ps = gmsh.model.addPhysicalGroup(2, id)
             gmsh.model.setPhysicalName(2, ps, f"{Bitter.name}_B{i+1}")
             defs[f"{prefix}B{i+1}"] = ps
@@ -142,7 +142,7 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
     }
     # Cooling Channels
     if len(Bitter.coolingslits) > 0:
-        print(f"CoolingSlits[r]: {Bitter.coolingslits[0]['r']}")
+        # print(f"CoolingSlits[r]: {Bitter.coolingslits[0]['r']}")
         for i, r in enumerate(Bitter.coolingslits[0]["r"]):
             bcs_defs[f"{prefix}slit{i}"] = [
                 r * (1 - eps),
@@ -214,7 +214,9 @@ if __name__ == "__main__":
 
     ids = gmsh_ids(Bitter=Object, AirData=(), debug=args.debug)
     if args.mesh:
-        defs = gmsh_bcs(Bitter=Object, ids=ids, debug=args.debug)
+        defs = gmsh_bcs(Bitter=Object, mname="", ids=ids, debug=args.debug)
+        for key in defs:
+            defs[key] = create_bcs(key, defs[key], 1)
         gmsh_msh(defs=defs, lc=[])
 
     # Creates  graphical user interface

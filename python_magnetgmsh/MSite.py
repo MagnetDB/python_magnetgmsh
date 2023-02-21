@@ -21,6 +21,12 @@ import_dict = {
 }
 
 
+def flatten(S: list) -> list:
+    from pandas.core.common import flatten as pd_flatten
+
+    return list(pd_flatten(S))
+
+
 def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
     """
     create gmsh geometry
@@ -31,9 +37,6 @@ def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
 
     def magnet_ids(f):
         Magnet = yaml.load(f, Loader=yaml.FullLoader)
-
-        if type(Magnet) in import_dict:
-            print(import_dict[type(Magnet)])
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
@@ -41,36 +44,28 @@ def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
         return ids
 
     if isinstance(MSite.magnets, str):
-        print(f"msite/gmsh/{MSite.magnets} (str)")
+        # print(f"msite/gmsh/{MSite.magnets} (str)")
         with open(f"{MSite.magnets}.yaml", "r") as f:
             ids = magnet_ids(f)
             gmsh_ids.append(ids)
 
-    elif isinstance(MSite.magnets, list):
-        for mname in MSite.magnets:
-            print(f"msite/gmsh/{mname} (list)")
-            with open(f"{mname}.yaml", "r") as f:
-                ids = magnet_ids(f)
-                gmsh_ids.append(ids)
-                print(f"ids[{mname}]: {ids} (type={type(ids)})")
-
     elif isinstance(MSite.magnets, dict):
         for key in MSite.magnets:
-            print(f"msite/gmsh/{key} (dict)")
+            # print(f"msite/gmsh/{key} (dict)")
             if isinstance(MSite.magnets[key], str):
-                print(f"msite/gmsh/{MSite.magnets[key]} (dict/str)")
+                # print(f"msite/gmsh/{MSite.magnets[key]} (dict/str)")
                 with open(f"{MSite.magnets[key]}.yaml", "r") as f:
                     ids = magnet_ids(f)
                     gmsh_ids.append(ids)
-                    print(f"ids[{key}]: {ids} (type={type(ids)})")
+                    # print(f"ids[{key}]: {ids} (type={type(ids)})")
 
             if isinstance(MSite.magnets[key], list):
                 for mname in MSite.magnets[key]:
-                    print(f"msite/gmsh/{mname} (dict/list)")
+                    # print(f"msite/gmsh/{mname} (dict/list)")
                     with open(f"{mname}.yaml", "r") as f:
                         ids = magnet_ids(f)
                         gmsh_ids.append(ids)
-                        print(f"ids[{mname}]: {ids} (type={type(ids)})")
+                        # print(f"ids[{mname}]: {ids} (type={type(ids)})")
 
     else:
         raise Exception(f"magnets: unsupported type {type(MSite.magnets)}")
@@ -79,30 +74,37 @@ def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
     if AirData:
         ([r_min, r_max], [z_min, z_max]) = MSite.boundingBox()
         r0_air = 0
-        dr_air = (r_min - r_max) * AirData[0]
+        dr_air = abs(r_min - r_max) * AirData[0]
         z0_air = z_min * AirData[1]
-        dz_air = (z_max - z_min) * AirData[1]
+        dz_air = abs(z_max - z_min) * AirData[1]
         A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
         flat_list = []
-        print("flat_list:", len(gmsh_ids))
+        # print("list:", gmsh_ids)
+        # print("flat_list:", len(gmsh_ids))
         for sublist in gmsh_ids:
             if not isinstance(sublist, tuple):
                 raise Exception(
                     f"python_magnetgeo/gmsh: flat_list: expect a tuple got a {type(sublist)}"
                 )
             for elem in sublist:
-                print("elem:", elem, type(elem))
+                # print("elem:", elem, type(elem))
                 if isinstance(elem, list):
                     for item in elem:
-                        print("item:", elem, type(item))
+                        # print("item:", elem, type(item))
                         if isinstance(item, list):
-                            flat_list += item
+                            flat_list += flatten(item)
                         elif isinstance(item, int):
                             flat_list.append(item)
 
-        print("flat_list:", flat_list)
-        ov, ovv = gmsh.model.occ.fragment([(2, A_id)], [(2, i) for i in flat_list])
+        start = 0
+        end = len(flat_list)
+        step = 10
+        for i in range(start, end, step):
+            x = i
+            ov, ovv = gmsh.model.occ.fragment(
+                [(2, A_id)], [(2, j) for j in flat_list[x : x + step]]
+            )
 
         # need to account for changes
         gmsh.model.occ.synchronize()
@@ -120,14 +122,12 @@ def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
     import gmsh
 
     (gmsh_ids, Air_data) = ids
-    print("MSite/gmsh_bcs:", ids)
+    # print("MSite/gmsh_bcs:", ids)
 
     defs = {}
     bcs_defs = {}
 
     def load_defs(Magnet, name, ids):
-        if type(Magnet) in import_dict:
-            print(import_dict[type(Magnet)])
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
@@ -135,33 +135,30 @@ def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
         return tdefs
 
     if isinstance(MSite.magnets, str):
-        print(f"msite/gmsh/{MSite.magnets} (str)")
+        # print(f"msite/gmsh/{MSite.magnets} (str)")
         with open(f"{MSite.magnets}.yaml", "r") as f:
             Object = yaml.load(f, Loader=yaml.FullLoader)
         defs.update(load_defs(Object, "", gmsh_ids))
 
-    elif isinstance(MSite.magnets, list):
-        for i, mname in enumerate(MSite.magnets):
-            print(f"msite/gmsh/{mname} (list)")
-            with open(f"{mname}.yaml", "r") as f:
-                Object = yaml.load(f, Loader=yaml.FullLoader)
-            defs.update(load_defs(Object, "", gmsh_ids[i]))
-
     elif isinstance(MSite.magnets, dict):
+        num = 0
         for i, key in enumerate(MSite.magnets):
-            print(f"msite/gmsh/{key} (dict)")
-            print(f"gmsh_ids[{key}: {gmsh_ids[i]}")
+            # print(f"msite/gmsh/{key} (dict)")
             if isinstance(MSite.magnets[key], str):
-                print(f"msite/gmsh/{MSite.magnets[key]} (dict/str)")
+                # print(f"gmsh_ids[{key}]: {gmsh_ids[i]}")
+                # print(f"msite/gmsh/{MSite.magnets[key]} (dict/str)")
                 with open(f"{MSite.magnets[key]}.yaml", "r") as f:
                     Object = yaml.load(f, Loader=yaml.FullLoader)
-                defs.update(load_defs(Object, "", gmsh_ids[i]))
+                defs.update(load_defs(Object, "", gmsh_ids[num]))
+                num += 1
             if isinstance(MSite.magnets[key], list):
                 for j, mname in enumerate(MSite.magnets[key]):
-                    print(f"msite/gmsh/{mname} (dict/list)")
+                    # print(f"msite/gmsh/{mname} (dict/list)")
+                    # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
                     with open(f"{mname}.yaml", "r") as f:
                         Object = yaml.load(f, Loader=yaml.FullLoader)
-                    defs.update(load_defs(Object, "", gmsh_ids[i + j]))
+                    defs.update(load_defs(Object, "", gmsh_ids[num]))
+                    num += 1
 
     """
     for compound in [MSite.magnets, MSite.screens]:
