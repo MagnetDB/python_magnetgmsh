@@ -19,26 +19,40 @@ echo_failure() {
   return 1
 }
 
+echo_skip() {
+  echo -en "[\033[30m SKIP \033[39m]"
+  echo 
+  return 0
+}
+
 echo "Axi Mesh generation with Gmsh"
 for test in ${TestsAxi}; do
-    echo -en "${test} : " 
-    python -m python_magnetgmsh.xao2msh ${test}-Axi.xao --geo ${test}.yaml --wd ${TestWD} mesh --group CoolingChannels > ${test}_mesh.log 2>&1
-    status=$?
-    if [ "$status" != "0" ]; then
-	    echo_failure
+    echo -en "${test} : "
+    if [ -f ${TestWD}/${test}-Axi.xao ]; then  
+        python -m python_magnetgmsh.xao2msh ${test}-Axi.xao --geo ${test}.yaml --wd ${TestWD} mesh --group CoolingChannels > ${test}_mesh.log 2>&1
+        status=$?
+        if [ "$status" != "0" ]; then
+	        echo_failure
+        else
+	        echo_success
+        fi
     else
-	    echo_success
+        echo_skip
     fi
 done
 
 echo "Axi Mesh generation with Gmsh (with Air)"
 for test in ${TestsAxi}; do
     echo -en "${test} : " 
-    python -m python_magnetgmsh.xao2msh ${test}-Axi_withAir.xao --geo ${test}.yaml --wd ${TestWD} mesh --group CoolingChannels > ${test}_withAir_mesh.log 2>&1
-    status=$?
-    if [ "$status" != "0" ]; then
-	    echo_failure
+    if [ -f ${TestWD}/${test}-Axi_withAir.xao ]; then  
+        python -m python_magnetgmsh.xao2msh ${test}-Axi_withAir.xao --geo ${test}.yaml --wd ${TestWD} mesh --group CoolingChannels > ${test}_withAir_mesh.log 2>&1
+        status=$?
+        if [ "$status" != "0" ]; then
+	        echo_failure
+        else
+	        echo_success
+        fi
     else
-	    echo_success
+        echo_skip
     fi
 done
