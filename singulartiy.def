@@ -1,0 +1,47 @@
+Bootstrap: docker
+From: ubuntu:focal
+
+%environment
+
+# export PYTHONPATH=/usr/local/lib/python3:/usr/local/lib/python3/dist-packages
+export LC_ALL="C"
+
+%labels
+AUTHOR christophe.trophime@lncmi.cnrs.fr
+Maintainer: Christophe Trophime
+Maintainer_email: christophe.trophime@lncmi.cnrs.fr
+Version 1.0
+
+%post
+
+# Add specific package for magnet
+apt-get update
+apt-get -y install python3-pint python3-yaml python3-psutil python3-memory-profiler
+apt-get -y install python3-tabulate python3-pandas python3-matplotlib
+apt-get -y install debian-keyring
+apt-get -y install python3-venv python3-pytest
+ln -sf /usr/share/keyrings/debian-maintainers.gpg /etc/apt/trusted.gpg.d/
+echo "deb http://euler.grenoble.lncmi.local/~trophime/debian/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/lncmi.list
+apt-get update
+apt-get -y install python3-magnetgeo python3-magnetgmsh
+
+# create custom motd
+# Install figlet!
+apt update
+apt install -y figlet python-is-python3
+
+cat > /.singularity.d/env/99-motd.sh <<EOF   
+case \$0 in
+    /.singularity.d/actions/shell)
+        figlet MagnetGmsh
+        echo
+        echo "Hello \$USER from shell" ;;
+    /.singularity.d/actions/exec)
+        echo "Hello \$USER from exec" ;;
+    /.singularity.d/actions/run)
+        echo "Hello \$USER from run" ;;
+    /.singularity.d/actions/test)
+        echo "Hello \$USER from test" ;;
+esac
+EOF
+
