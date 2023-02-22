@@ -98,21 +98,6 @@ def main():
     ids = MyObject.gmsh_ids(Object, AirData, args.debug)
     # print(f"ids[{Object.name}]: {ids}")
     bcs = MyObject.gmsh_bcs(Object, "", ids, args.debug)
-    """
-    for key in bcs:
-        print(f"key={key}, bcs[{key}]={bcs[key]}")
-    
-    print("List VGroups")
-    vGroups = gmsh.model.getPhysicalGroups(-1)
-    for iGroup in vGroups:
-        dimGroup = iGroup[0]  # 1D, 2D or 3D
-        tagGroup = iGroup[1]
-        nameGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
-        print(f"{nameGroup}: dim={dimGroup}, tag={tagGroup}")
-        vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
-        for tagEntity in vEntities:
-            print(f"{nameGroup}: {tagEntity}")
-    """
 
     # TODO set mesh characteristics here
     if args.mesh:

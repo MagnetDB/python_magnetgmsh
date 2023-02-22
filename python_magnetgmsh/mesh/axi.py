@@ -17,6 +17,10 @@ def get_allowed_algo() -> list:
     return list(MeshAlgo2D.keys())
 
 
+def get_algo(name: str):
+    return MeshAlgo2D[name]
+
+
 def gmsh_msh(algo: str, lc: float, air: bool = False, scaling: bool = False):
     """
     create Axi msh

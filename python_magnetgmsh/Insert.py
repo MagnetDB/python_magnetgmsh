@@ -133,14 +133,14 @@ def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dic
         defs.update(hdefs)
 
         if i == 0:
-            bcs_defs["H1_BP"] = [
+            bcs_defs["{prefix}H1_BP"] = [
                 Helix.r[0] - eps,
                 Helix.z[0] - eps,
                 Helix.r[1] + eps,
                 Helix.z[0] + eps,
             ]
         if i == NHelices - 1:
-            bcs_defs["H_BP"] = [
+            bcs_defs["{prefix}H_BP"] = [
                 Helix.r[0] - eps,
                 Helix.z[0] - eps,
                 Helix.r[1] + eps,

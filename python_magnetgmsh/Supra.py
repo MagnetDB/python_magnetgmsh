@@ -76,9 +76,10 @@ def gmsh_bcs(Supra: Supra, mname: str, ids: tuple, debug: bool = False) -> dict:
         (id, Air_data) = ids
 
         # set physical name
+        psname = f"{prefix[0:len(prefix)-1]}"
         ps = gmsh.model.addPhysicalGroup(2, [id])
-        gmsh.model.setPhysicalName(2, ps, f"{Supra.name}")
-        defs[f"{Supra.name}"] = ps
+        gmsh.model.setPhysicalName(2, ps, psname)
+        defs[psname] = ps
         # print(f"{Supra.name}: {id}")
 
         # get BC ids

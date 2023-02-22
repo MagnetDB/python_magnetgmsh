@@ -58,11 +58,11 @@ def create_physicalgroups(
     # Physical Volumes
     if debug:
         print("Solidtags:")
-    for stag in stags:
-        pgrp = gmsh.model.addPhysicalGroup(GeomParams["Solid"][0], stags[stag])
-        gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, stag)
+    for sname in stags:
+        pgrp = gmsh.model.addPhysicalGroup(GeomParams["Solid"][0], stags[sname])
+        gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, sname)
         if debug:
-            print(f"{stag}: {stags[stag]}, pgrp={pgrp}")
+            print(f"{sname}: {stags[sname]}, pgrp={pgrp}")
 
     return stags
 
@@ -132,6 +132,7 @@ def create_physicalbcs(
                     if num != NHelices:
                         skip = True
 
+            """
             # groupCoolingChannels option (see Tools_SMESH::CreateChannelSubMeshes for HL and for HR ??) + watch out when hideIsolant is True
             # TODO case of HR: group HChannel and muChannel per Helix
             if groupCoolingChannels:
@@ -140,21 +141,35 @@ def create_physicalbcs(
                     for key in Channels:
                         if key in sname:
                             for j, channel in enumerate(Channels[key]):
-                                for cname in channel:
-                                    if sname.endswith(cname):
-                                        print(
-                                            f"sname={sname}, cname={cname}, channel={channel}, key={key} dictcase"
-                                        )
-                                        sname = f"{key}_Channel{j}"
-                                        break
+                                print(f"Channels[{key}][{j}]: {channel}")
+                                if isinstance(channel, str):
+                                    for cname in channel:
+                                        if sname.endswith(cname):
+                                            sname = f"{key}_Channel{j}"
+                                            print(
+                                                f"sname={sname}, cname={cname}, channel={channel}, key={key} dictcase/str"
+                                            )
+                                            break
+                                else:
+                                    for l, schannel in enumerate(channel):
+                                        for cname in schannel:
+                                            if sname.endswith(cname):
+                                                sname = (
+                                                    f"{key}_{schannel}"
+                                                )  # TODO check name
+                                                print(
+                                                    f"sname={sname}, cname={cname}, channel={schannel}, key={key} dictcase/list"
+                                                )
+                                                break
+
                 elif isinstance(Channels, list):
                     print(f"Channels]: {Channels}")
                     for j, channel in enumerate(Channels):
                         print(f"Channel[{j}]: {channel}")
                         for cname in channel:
                             if sname.endswith(cname):
-                                print(f"sname={sname}, cname={cname} listcase")
                                 sname = f"Channel{j}"
+                                print(f"sname={sname}, cname={cname} listcase")
                                 break
 
                 # TODO make it more general
@@ -174,6 +189,7 @@ def create_physicalbcs(
                         skip = True
                     if "_iRint" in sname or "_iRext" in sname:
                         skip = True
+            """
 
             # if hideIsolant remove "iRint"|"iRext" in Bcs otherwise sname: do not record physical surface for Interface
             if hideIsolant:
@@ -208,6 +224,44 @@ def create_physicalbcs(
                 else:
                     for index in indices:
                         bctags[sname].append(index)
+
+            if sname in bctags:
+                print(f"bctags[{sname}] = {bctags[sname]}")
+
+    if groupCoolingChannels:
+        print(f"group cooling channels: {Channels}")
+        print(f"registred bctags: {bctags.keys()}")
+        if isinstance(Channels, dict):
+            for key in Channels:
+                print(f"Channels[{key}]]: {Channels[key]}")
+                for i, channel in enumerate(Channels[key]):
+                    if isinstance(channel[0], str):
+                        print(f"{channel} strcase")
+                        for bc in channel:
+                            tags = []
+                            for bc in channel:
+                                if bc in bctags:
+                                    tags += bctags[bc]
+                                    del bctags[bc]
+                            if tags:
+                                print(f"{key}_Channel{i}: tags={tags}")
+                                bctags[f"{key}_Channel{i}"] = tags
+
+                    elif isinstance(channel[0], list):
+                        for schannel in channel:
+                            print(f"{schannel}, listcase")
+
+        elif isinstance(Channels, list):
+            for i, channel in enumerate(Channels):
+                print(f"Channel[{i}]: {channel}")
+                tags = []
+                for bc in channel:
+                    if bc in bctags:
+                        tags += bctags[bc]
+                        del bctags[bc]
+                if tags:
+                    print(f"Channel{i}: tags={tags}")
+                    bctags[f"Channel{i}"] = tags
 
     # Physical Surfaces
     if debug:

@@ -140,24 +140,24 @@ def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
         for i, key in enumerate(MSite.magnets):
             # print(f"msite/gmsh/{key} (dict)")
             if isinstance(MSite.magnets[key], str):
-                # print(f"gmsh_ids[{key}]: {gmsh_ids[i]}")
+                print(f"gmsh_ids[{key}]: {gmsh_ids[i]}")
                 # print(f"msite/gmsh/{MSite.magnets[key]} (dict/str)")
                 with open(f"{MSite.magnets[key]}.yaml", "r") as f:
                     Object = yaml.load(f, Loader=yaml.FullLoader)
-                pname = f"{key}_{MSite.magnets[key]}"
-                if isinstance(Object, Insert.Insert):
-                    pname = ""
+                pname = f"{key}"
+                # if isinstance(Object, Insert.Insert):
+                #    pname = ""
                 defs.update(load_defs(Object, pname, gmsh_ids[num]))
                 num += 1
             if isinstance(MSite.magnets[key], list):
                 for j, mname in enumerate(MSite.magnets[key]):
-                    # print(f"msite/gmsh/{mname} (dict/list)")
+                    print(f"msite/gmsh/{mname} (dict/list)")
                     # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
                     with open(f"{mname}.yaml", "r") as f:
                         Object = yaml.load(f, Loader=yaml.FullLoader)
                     pname = f"{key}_{mname}"
-                    if isinstance(Object, Insert.Insert):
-                        pname = ""
+                    # if isinstance(Object, Insert.Insert):
+                    #     pname = ""
                     defs.update(load_defs(Object, pname, gmsh_ids[num]))
                     num += 1
 
