@@ -13,11 +13,7 @@ from .Helix import gmsh_bcs as helix_bcs
 from .Ring import gmsh_ids as ring_ids
 from .Ring import gmsh_bcs as ring_bcs
 
-
-def flatten(S: list) -> list:
-    from pandas.core.common import flatten as pd_flatten
-
-    return list(pd_flatten(S))
+from .utils.lists import flatten
 
 
 def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:

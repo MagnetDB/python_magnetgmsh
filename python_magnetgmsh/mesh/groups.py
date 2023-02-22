@@ -67,7 +67,7 @@ def create_physicalgroups(
     return stags
 
 
-def create_bcs(
+def create_physicalbcs(
     tree,
     gname,
     GeomParams,

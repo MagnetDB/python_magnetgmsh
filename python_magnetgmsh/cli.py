@@ -15,7 +15,7 @@ from python_magnetgeo import Supra
 from python_magnetgeo import Supras
 from python_magnetgeo import MSite
 
-from .bcs import create_bcs
+from .mesh.bcs import create_bcs
 
 MeshAlgo2D = {
     "MeshAdapt": 1,
@@ -55,6 +55,16 @@ def gmsh_msh(algo: str, lc: float, air: bool = False, scaling: bool = False):
     # Assign a mesh size to all the points:
     lcar1 = 5 * lc * unit
     gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lcar1)
+
+    """
+    if "Air" in defs:
+        gmsh.model.mesh.setSize(
+            gmsh.model.getEntitiesForPhysicalGroup(0, defs["ZAxis"]), lc[1]
+        )
+        gmsh.model.mesh.setSize(
+            gmsh.model.getEntitiesForPhysicalGroup(0, defs["Infty"]), lc[1]
+        )
+    """
 
     # LcMax -                         /------------------
     #                               /

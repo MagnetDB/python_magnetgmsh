@@ -30,8 +30,8 @@ from python_magnetgeo.Bitters import Bitters
 from python_magnetgeo.Supras import Supras
 from python_magnetgeo.MSite import MSite
 
-from .utils import load_Xao
-from .volumes import create_physicalgroups, create_bcs
+from .utils.files import load_Xao
+from .mesh.groups import create_physicalbcs, create_physicalgroups
 
 
 def Supra_Gmsh(mname: str, cad: Supra, gname: str, is2D: bool, verbose: bool = False):
@@ -434,7 +434,7 @@ def main():
     )
 
     # get groups
-    bctags = create_bcs(
+    bctags = create_physicalbcs(
         tree,
         gname,
         GeomParams,

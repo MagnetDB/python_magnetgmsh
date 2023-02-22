@@ -12,19 +12,14 @@ from python_magnetgeo import Insert
 from python_magnetgeo import Bitter
 from python_magnetgeo import Supra
 from python_magnetgeo import Screen
-from .bcs import create_bcs
+from .mesh.bcs import create_bcs
+from .utils.lists import flatten
 
 import_dict = {
     Insert.Insert: ".Insert",
     Bitter.Bitter: ".Bitter",
     Supra.Supra: ".Supra",
 }
-
-
-def flatten(S: list) -> list:
-    from pandas.core.common import flatten as pd_flatten
-
-    return list(pd_flatten(S))
 
 
 def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
@@ -215,17 +210,3 @@ def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
 
     return defs
 
-
-def gmsh_msh(MSite, defs: dict, lc: list):
-    import gmsh
-
-    print("gmsh_msh: set characteristic lengths")
-
-    gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lc[0])
-    if "Air" in defs:
-        gmsh.model.mesh.setSize(
-            gmsh.model.getEntitiesForPhysicalGroup(0, defs["ZAxis"]), lc[1]
-        )
-        gmsh.model.mesh.setSize(
-            gmsh.model.getEntitiesForPhysicalGroup(0, defs["Infty"]), lc[1]
-        )

@@ -8,7 +8,7 @@ Provides definition for Ring:
 from typing import List
 from python_magnetgeo.Ring import Ring
 import gmsh
-from .bcs import create_bcs
+from .mesh.bcs import create_bcs
 
 
 def gmsh_ids(Ring: Ring, y: float, debug: bool = False) -> int:

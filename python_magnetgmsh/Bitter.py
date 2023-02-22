@@ -5,13 +5,10 @@ from typing import List, Union
 
 import gmsh
 from python_magnetgeo.Bitter import Bitter
-from .bcs import create_bcs
+from .mesh.bcs import create_bcs
 
 
-def flatten(S: list) -> list:
-    from pandas.core.common import flatten as pd_flatten
-
-    return list(pd_flatten(S))
+from .utils.lists import flatten
 
 
 def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:

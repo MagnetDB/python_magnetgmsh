@@ -9,7 +9,7 @@ Provides definition for Screen:
 from python_magnetgeo.Screen import Screen
 
 import gmsh
-from .bcs import create_bcs
+from .mesh.bcs import create_bcs
 
 
 def gmsh_ids(Screen: Screen, AirData: tuple, debug: bool = False) -> tuple:

@@ -14,7 +14,7 @@ import gmsh
 from python_magnetgeo.Supra import Supra
 from python_magnetgeo.SupraStructure import HTSinsert
 
-from .bcs import create_bcs
+from .mesh.bcs import create_bcs
 from .SupraStructure import insert_ids, insert_bcs
 
 

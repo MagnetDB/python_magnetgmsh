@@ -12,7 +12,7 @@ Provides definition for Helix:
 from python_magnetgeo.Helix import Helix
 
 import gmsh
-from .bcs import create_bcs
+from .mesh.bcs import create_bcs
 
 
 def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
