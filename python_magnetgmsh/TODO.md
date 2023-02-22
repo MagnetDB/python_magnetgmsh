@@ -1,6 +1,4 @@
-- implements CAD for:
-Bitters
-Supras
+- MSite: add Screens
 
 - fix mesh generation in cli (Axi only)
 - fix 3D mesh in Xao
