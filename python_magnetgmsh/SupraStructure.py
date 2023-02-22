@@ -228,9 +228,9 @@ def insert_ids(
         if AirData:
             y0 = HTSInsert.z0 - HTSInsert.getH() / 2.0  # need to force y0 to init value
             r0_air = 0
-            dr_air = (HTSInsert.r1 - HTSInsert.r0) * 2
-            z0_air = y0 * 1.2
-            dz_air = (2 * abs(y0)) * 1.2
+            dr_air = HTSInsert.r1 * AirData[0]
+            z0_air = y0 * AirData[1]
+            dz_air = (2 * abs(y0)) * AirData[1]
             _id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
             # TODO fragment _id with dp_ids, i_ids
