@@ -33,23 +33,13 @@ def gmsh_ids(Supras: Supras, AirData: tuple, debug: bool = False) -> tuple:
             ids = magnet_ids(f)
             gmsh_ids.append(ids)
 
-    elif isinstance(Supras.magnets, dict):
-        for key in Supras.magnets:
-            # print(f"Supras/gmsh/{key} (dict)")
-            if isinstance(Supras.magnets[key], str):
-                # print(f"Supras/gmsh/{Supras.magnets[key]} (dict/str)")
-                with open(f"{Supras.magnets[key]}.yaml", "r") as f:
-                    ids = magnet_ids(f)
-                    gmsh_ids.append(ids)
-                    # print(f"ids[{key}]: {ids} (type={type(ids)})")
-
-            if isinstance(Supras.magnets[key], list):
-                for mname in Supras.magnets[key]:
-                    # print(f"Supras/gmsh/{mname} (dict/list)")
-                    with open(f"{mname}.yaml", "r") as f:
-                        ids = magnet_ids(f)
-                        gmsh_ids.append(ids)
-                        # print(f"ids[{mname}]: {ids} (type={type(ids)})")
+    elif isinstance(Supras.magnets, list):
+        for mname in Supras.magnets:
+            # print(f"Supras/gmsh/{mname} (dict/list)")
+            with open(f"{mname}.yaml", "r") as f:
+                ids = magnet_ids(f)
+                gmsh_ids.append(ids)
+                # print(f"ids[{mname}]: {ids} (type={type(ids)})")
 
     else:
         raise Exception(f"magnets: unsupported type {type(Supras.magnets)}")
@@ -124,24 +114,15 @@ def gmsh_bcs(Supras, mname: str, ids: tuple, debug: bool = False) -> dict:
             Object = yaml.load(f, Loader=yaml.FullLoader)
         defs.update(load_defs(Object, "", gmsh_ids))
 
-    elif isinstance(Supras.magnets, dict):
+    elif isinstance(Supras.magnets, list):
         num = 0
-        for i, key in enumerate(Supras.magnets):
-            # print(f"Supras/gmsh/{key} (dict)")
-            if isinstance(Supras.magnets[key], str):
-                # print(f"gmsh_ids[{key}]: {gmsh_ids[i]}")
-                # print(f"Supras/gmsh/{Supras.magnets[key]} (dict/str)")
-                with open(f"{Supras.magnets[key]}.yaml", "r") as f:
-                    Object = yaml.load(f, Loader=yaml.FullLoader)
-                defs.update(load_defs(Object, "", gmsh_ids[num]))
-                num += 1
-            if isinstance(Supras.magnets[key], list):
-                for j, mname in enumerate(Supras.magnets[key]):
-                    # print(f"Supras/gmsh/{mname} (dict/list)")
-                    # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
-                    with open(f"{mname}.yaml", "r") as f:
-                        Object = yaml.load(f, Loader=yaml.FullLoader)
-                    defs.update(load_defs(Object, "", gmsh_ids[num]))
-                    num += 1
+        for i, mname in enumerate(Supras.magnets):
+            # print(f"Supras/gmsh/{mname} (dict/list)")
+            # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
+            with open(f"{mname}.yaml", "r") as f:
+                Object = yaml.load(f, Loader=yaml.FullLoader)
+            defs.update(load_defs(Object, mname, gmsh_ids[num]))
+            num += 1
+
     return defs
 

@@ -13,6 +13,7 @@ from .Helix import gmsh_bcs as helix_bcs
 from .Ring import gmsh_ids as ring_ids
 from .Ring import gmsh_bcs as ring_bcs
 
+from .mesh.bcs import create_bcs
 from .utils.lists import flatten
 
 
@@ -124,9 +125,7 @@ def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dic
         with open(f"{name}.yaml", "r") as f:
             Helix = yaml.load(f, Loader=yaml.FullLoader)
 
-        hdefs = helix_bcs(
-            Helix, f"{prefix}H{i+1}", (H_ids[i], ()), debug
-        )  # Helix.gmsh_bcs(hname, H_ids[i], debug)
+        hdefs = helix_bcs(Helix, f"{prefix}H{i+1}", (H_ids[i], ()), debug)
         if i % 2 == 0:
             z.append(Helix.z[1])
         else:
@@ -134,7 +133,14 @@ def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dic
         defs.update(hdefs)
 
         if i == 0:
-            bcs_defs["H1_HP"] = [
+            bcs_defs["H1_BP"] = [
+                Helix.r[0] - eps,
+                Helix.z[0] - eps,
+                Helix.r[1] + eps,
+                Helix.z[0] + eps,
+            ]
+        if i == NHelices - 1:
+            bcs_defs["H_BP"] = [
                 Helix.r[0] - eps,
                 Helix.z[0] - eps,
                 Helix.r[1] + eps,
@@ -156,6 +162,59 @@ def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dic
         rdefs = ring_bcs(Ring, f"{prefix}R{i+1}", (i % 2 != 0), y, R_ids[i], debug)
         defs.update(rdefs)
 
+    if AirData:
+        (Air_id, dr_air, z0_air, dz_air) = AirData
+
+        ps = gmsh.model.addPhysicalGroup(2, [Air_id])
+        gmsh.model.setPhysicalName(2, ps, "Air")
+        defs["Air"] = ps
+        # TODO: Axis, Inf
+        gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
+
+        eps = 1.0e-6
+
+        bcs_defs[f"ZAxis"] = [-eps, z0_air - eps, +eps, z0_air + dz_air + eps]
+        bcs_defs[f"Infty"] = [
+            [-eps, z0_air - eps, dr_air + eps, z0_air + eps],
+            [dr_air - eps, z0_air - eps, dr_air + eps, z0_air + dz_air + eps],
+            [-eps, z0_air + dz_air - eps, dr_air + eps, z0_air + dz_air + eps],
+        ]
+
+    for key in bcs_defs:
+        defs[key] = create_bcs(key, bcs_defs[key], 1)
+    gmsh.model.occ.synchronize()
+
+    # Group bcs by Channels
+    Channels = Insert.get_channels(mname, False, debug)
+    for i, channel in enumerate(Channels):
+        tags = []
+        for bc in channel:
+            if bc in defs:
+                # print(f"{bc}: {defs[bc]}")
+                vEntities = gmsh.model.getEntitiesForPhysicalGroup(1, defs[bc])
+                # print(f"{bc}: {vEntities.tolist()}")
+                tags += vEntities.tolist()
+        # print(f"{channel}: {tags}")
+        ps = gmsh.model.addPhysicalGroup(1, tags)
+        gmsh.model.setPhysicalName(1, ps, f"{prefix}Channel{i}")
+        defs[f"{prefix}Channel{i}"] = ps
+
+    for channel in Channels:
+        for bc in channel:
+            if bc in defs:
+                gmsh.model.removePhysicalGroups([(1, defs[bc])])
+                del defs[bc]
+
+    """              
+    vGroups = gmsh.model.getPhysicalGroups(1)
+    for iGroup in vGroups:
+        dimGroup = iGroup[0]  # 1D, 2D or 3D
+        tagGroup = iGroup[1]
+        nameGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
+        print(f"{nameGroup}: dim={dimGroup}, tag={tagGroup}")
+        vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
+        print(f"{nameGroup}: {vEntities.tolist()} (type={type(vEntities.tolist()[0])})")
+    """
     """
     # TODO group bcs by Channels
     num = 0
@@ -188,23 +247,5 @@ def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dic
         gmsh.model.setPhysicalName(1, ps, "Channel%d" % i)
         defs["Channel%d" % i] = ps
     """
-
-    if AirData:
-        (Air_id, dr_air, z0_air, dz_air) = AirData
-
-        ps = gmsh.model.addPhysicalGroup(2, [Air_id])
-        gmsh.model.setPhysicalName(2, ps, "Air")
-        defs["Air"] = ps
-        # TODO: Axis, Inf
-        gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
-
-        eps = 1.0e-6
-
-        bcs_defs[f"ZAxis"] = [-eps, z0_air - eps, +eps, z0_air + dz_air + eps]
-        bcs_defs[f"Infty"] = [
-            [-eps, z0_air - eps, dr_air + eps, z0_air + eps],
-            [dr_air - eps, z0_air - eps, dr_air + eps, z0_air + dz_air + eps],
-            [-eps, z0_air + dz_air - eps, dr_air + eps, z0_air + dz_air + eps],
-        ]
 
     return defs

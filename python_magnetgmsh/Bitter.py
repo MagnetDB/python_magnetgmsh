@@ -114,9 +114,9 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
     bcs_defs = {
         f"{prefix}HP": [
             Bitter.r[0] * (1 - eps),
-            Bitter.z[0] * (1 - eps),
-            Bitter.r[-1] * (1 + eps),
             Bitter.z[0] * (1 + eps),
+            Bitter.r[-1] * (1 + eps),
+            Bitter.z[0] * (1 - eps),
         ],
         f"{prefix}BP": [
             Bitter.r[0] * (1 - eps),

@@ -26,7 +26,7 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
     dr = Helix.r[1] - Helix.r[0]
     y = -Helix.axi.h
 
-    _id = gmsh.model.occ.addRectangle(Helix.r[0], Helix.z[0], 0, dr, y - Helix.z[0])
+    _id = gmsh.model.occ.addRectangle(x, Helix.z[0], 0, dr, abs(y - Helix.z[0]))
     gmsh_ids.append(_id)
 
     for i, (n, pitch) in enumerate(zip(Helix.axi.turns, Helix.axi.pitch)):
@@ -36,7 +36,7 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
 
         y += dz
 
-    _id = gmsh.model.occ.addRectangle(Helix.r[0], y, 0, dr, Helix.z[1] - y)
+    _id = gmsh.model.occ.addRectangle(x, y, 0, dr, abs(Helix.z[1] - y))
     gmsh_ids.append(_id)
 
     # Now create air
@@ -80,14 +80,14 @@ def gmsh_bcs(Helix: Helix, mname: str, ids: tuple, debug: bool = False) -> dict:
     # get BC ids
     gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-    eps = 1.0e-3
+    eps = 1.0e-6
     # TODO: if z[xx] < 0 multiply by 1+eps to get a min by 1-eps to get a max
     zmin = Helix.z[0] * (1 + eps)
     zmax = Helix.z[1] * (1 + eps)
 
     bcs_defs = {
-        f"{prefix}Rint": [Helix.r[0] * (1 - eps), zmin, Helix.r[0] * (1 + eps), zmax],
-        f"{prefix}Rext": [Helix.r[1] * (1 - eps), zmin, Helix.r[1] * (1 + eps), zmax],
+        f"{prefix}rInt": [Helix.r[0] * (1 - eps), zmin, Helix.r[0] * (1 + eps), zmax],
+        f"{prefix}rExt": [Helix.r[1] * (1 - eps), zmin, Helix.r[1] * (1 + eps), zmax],
     }
 
     for key in bcs_defs:

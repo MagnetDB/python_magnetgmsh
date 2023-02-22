@@ -144,7 +144,10 @@ def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
                 # print(f"msite/gmsh/{MSite.magnets[key]} (dict/str)")
                 with open(f"{MSite.magnets[key]}.yaml", "r") as f:
                     Object = yaml.load(f, Loader=yaml.FullLoader)
-                defs.update(load_defs(Object, "", gmsh_ids[num]))
+                pname = f"{key}_{MSite.magnets[key]}"
+                if isinstance(Object, Insert.Insert):
+                    pname = ""
+                defs.update(load_defs(Object, pname, gmsh_ids[num]))
                 num += 1
             if isinstance(MSite.magnets[key], list):
                 for j, mname in enumerate(MSite.magnets[key]):
@@ -152,7 +155,10 @@ def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
                     # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
                     with open(f"{mname}.yaml", "r") as f:
                         Object = yaml.load(f, Loader=yaml.FullLoader)
-                    defs.update(load_defs(Object, "", gmsh_ids[num]))
+                    pname = f"{key}_{mname}"
+                    if isinstance(Object, Insert.Insert):
+                        pname = ""
+                    defs.update(load_defs(Object, pname, gmsh_ids[num]))
                     num += 1
 
     """

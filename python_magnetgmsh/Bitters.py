@@ -33,23 +33,13 @@ def gmsh_ids(Bitters: Bitters, AirData: tuple, debug: bool = False) -> tuple:
             ids = magnet_ids(f)
             gmsh_ids.append(ids)
 
-    elif isinstance(Bitters.magnets, dict):
-        for key in Bitters.magnets:
-            # print(f"Bitters/gmsh/{key} (dict)")
-            if isinstance(Bitters.magnets[key], str):
-                # print(f"Bitters/gmsh/{Bitters.magnets[key]} (dict/str)")
-                with open(f"{Bitters.magnets[key]}.yaml", "r") as f:
-                    ids = magnet_ids(f)
-                    gmsh_ids.append(ids)
-                    # print(f"ids[{key}]: {ids} (type={type(ids)})")
-
-            if isinstance(Bitters.magnets[key], list):
-                for mname in Bitters.magnets[key]:
-                    # print(f"Bitters/gmsh/{mname} (dict/list)")
-                    with open(f"{mname}.yaml", "r") as f:
-                        ids = magnet_ids(f)
-                        gmsh_ids.append(ids)
-                        # print(f"ids[{mname}]: {ids} (type={type(ids)})")
+    elif isinstance(Bitters.magnets, list):
+        for mname in Bitters.magnets:
+            # print(f"Bitters/gmsh/{mname} (dict/list)")
+            with open(f"{mname}.yaml", "r") as f:
+                ids = magnet_ids(f)
+                gmsh_ids.append(ids)
+                # print(f"ids[{mname}]: {ids} (type={type(ids)})")
 
     else:
         raise Exception(f"magnets: unsupported type {type(Bitters.magnets)}")
@@ -124,24 +114,15 @@ def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
             Object = yaml.load(f, Loader=yaml.FullLoader)
         defs.update(load_defs(Object, "", gmsh_ids))
 
-    elif isinstance(Bitters.magnets, dict):
+    elif isinstance(Bitters.magnets, list):
         num = 0
-        for i, key in enumerate(Bitters.magnets):
-            # print(f"Bitters/gmsh/{key} (dict)")
-            if isinstance(Bitters.magnets[key], str):
-                # print(f"gmsh_ids[{key}]: {gmsh_ids[i]}")
-                # print(f"Bitters/gmsh/{Bitters.magnets[key]} (dict/str)")
-                with open(f"{Bitters.magnets[key]}.yaml", "r") as f:
-                    Object = yaml.load(f, Loader=yaml.FullLoader)
-                defs.update(load_defs(Object, "", gmsh_ids[num]))
-                num += 1
-            if isinstance(Bitters.magnets[key], list):
-                for j, mname in enumerate(Bitters.magnets[key]):
-                    # print(f"Bitters/gmsh/{mname} (dict/list)")
-                    # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
-                    with open(f"{mname}.yaml", "r") as f:
-                        Object = yaml.load(f, Loader=yaml.FullLoader)
-                    defs.update(load_defs(Object, "", gmsh_ids[num]))
-                    num += 1
+        for i, mname in enumerate(Bitters.magnets):
+            # print(f"Bitters/gmsh/{mname} (dict/list)")
+            # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
+            with open(f"{mname}.yaml", "r") as f:
+                Object = yaml.load(f, Loader=yaml.FullLoader)
+            defs.update(load_defs(Object, mname, gmsh_ids[num]))
+            num += 1
+
     return defs
 
