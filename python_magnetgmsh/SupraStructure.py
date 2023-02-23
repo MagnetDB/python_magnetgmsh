@@ -291,56 +291,48 @@ def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = Fals
             elif detail == "pancake":
                 # print("dp:", dp)
                 ps = gmsh.model.addPhysicalGroup(2, [dp[0][0]])
-                gmsh.model.setPhysicalName(2, ps, f"{prefix}p{0}_dp{i}")
-                defs[f"{prefix}p{0}_dp{i}"] = ps
+                gmsh.model.setPhysicalName(2, ps, f"{prefix}p0_dp{i}")
+                defs[f"{prefix}p0_dp{i}"] = ps
                 ps = gmsh.model.addPhysicalGroup(2, [dp[0][1]])
-                gmsh.model.setPhysicalName(2, ps, f"{prefix}p{1}_dp{i}")
-                defs[f"{prefix}p{1}_dp{i}"] = ps
+                gmsh.model.setPhysicalName(2, ps, f"{prefix}p1_dp{i}")
+                defs[f"{prefix}p1_dp{i}"] = ps
                 ps = gmsh.model.addPhysicalGroup(2, [dp[1]])
                 gmsh.model.setPhysicalName(2, ps, f"{prefix}i_dp{i}")
                 defs[f"{prefix}i_p{i}"] = ps
             elif detail == "tape":
                 # print("HTSInsert/gsmh_bcs (tape):", dp)
                 ps = gmsh.model.addPhysicalGroup(2, [dp[1]])
-                gmsh.model.setPhysicalName(2, ps, f"{prefix}i_p{i}")
+                gmsh.model.setPhysicalName(2, ps, f"{prefix}i_dp{i}")
                 defs[f"{prefix}i_p{i}"] = ps
                 for t in dp[0][0]:
                     # print("p0:", t)
                     if isinstance(t, list):
                         for l, t_id in enumerate(t):
                             ps = gmsh.model.addPhysicalGroup(2, [t_id[0]])
-                            gmsh.model.setPhysicalName(
-                                2, ps, f"{prefix}sc{l}_p{0}_dp{i}"
-                            )
-                            defs[f"{prefix}sc{l}_p{0}_dp{i}"] = ps
+                            gmsh.model.setPhysicalName(2, ps, f"{prefix}sc{l}_p0_dp{i}")
+                            defs[f"{prefix}sc{l}_p0_dp{i}"] = ps
                             ps = gmsh.model.addPhysicalGroup(2, [t_id[1]])
-                            gmsh.model.setPhysicalName(
-                                2, ps, f"{prefix}du{l}_p{0}_dp{i}"
-                            )
-                            defs[f"{prefix}du{l}_p{0}_dp{i}"] = ps
+                            gmsh.model.setPhysicalName(2, ps, f"{prefix}du{l}_p0_dp{i}")
+                            defs[f"{prefix}du{l}_p0_dp{i}"] = ps
                     else:
                         ps = gmsh.model.addPhysicalGroup(2, [t])
-                        gmsh.model.setPhysicalName(2, ps, f"{prefix}mandrin_p{0}_dp{i}")
-                        defs[f"{prefix}mandrin_p{0}_dp{i}"] = ps
+                        gmsh.model.setPhysicalName(2, ps, f"{prefix}mandrin_p0_dp{i}")
+                        defs[f"{prefix}mandrin_p0_dp{i}"] = ps
                         # print(f"HTSInsert/gmsh_bcs: mandrin {t}: {ps}")
                 for t in dp[0][1]:
                     # print("p1:", t)
                     if isinstance(t, list):
                         for l, t_id in enumerate(t):
                             ps = gmsh.model.addPhysicalGroup(2, [t_id[0]])
-                            gmsh.model.setPhysicalName(
-                                2, ps, f"{prefix}sc{l}_p{1}_dp{i}"
-                            )
-                            defs[f"{prefix}sc{l}_p{1}_dp{i}"] = ps
+                            gmsh.model.setPhysicalName(2, ps, f"{prefix}sc{l}_p1_dp{i}")
+                            defs[f"{prefix}sc{l}_p1_dp{i}"] = ps
                             ps = gmsh.model.addPhysicalGroup(2, [t_id[1]])
-                            gmsh.model.setPhysicalName(
-                                2, ps, f"{prefix}du{l}_p{1}_dp{i}"
-                            )
-                            defs[f"{prefix}du{l}_p{1}_dp{i}"] = ps
+                            gmsh.model.setPhysicalName(2, ps, f"{prefix}du{l}_p1_dp{i}")
+                            defs[f"{prefix}du{l}_p1_dp{i}"] = ps
                     else:
                         ps = gmsh.model.addPhysicalGroup(2, [t])
                         gmsh.model.setPhysicalName(2, ps, f"{prefix}mandrin_p{1}_dp{i}")
-                        defs[f"{prefix}mandrin_p{1}_dp{i}"] = ps
+                        defs[f"{prefix}mandrin_p1_dp{i}"] = ps
                         # print(f"HTSInsert/gmsh_bcs: mandrin {t}: {ps}")
     else:
         ps = gmsh.model.addPhysicalGroup(2, [gmsh_ids])
@@ -351,36 +343,196 @@ def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = Fals
 
     print("TODO: Set Physical Surfaces")
     # Select the corner point by searching for it geometrically:
-    eps = 1e-3
     gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-    bcs_defs[f"{prefix}HP"] = [
-        HTSInsert.getR0() * (1 - eps),
-        (HTSInsert.z0 - HTSInsert.getH() / 2.0) * (1 - eps),
-        HTSInsert.getR1() * (1 + eps),
-        (HTSInsert.z0 - HTSInsert.getH() / 2.0) * (1 + eps),
-    ]
+    if isinstance(gmsh_ids, list):
+        dp_ids = gmsh_ids[0]
+        i_ids = gmsh_ids[1]
+        z = HTSInsert.z1
+        for i, isol in enumerate(i_ids):
+            z += HTSInsert.dblpancakes[i].getH()
 
-    bcs_defs[f"{prefix}BP"] = [
-        HTSInsert.getR0() * (1 - eps),
-        (HTSInsert.z0 + HTSInsert.getH() / 2.0) * (1 - eps),
-        HTSInsert.getR1() * (1 + eps),
-        (HTSInsert.z0 + HTSInsert.getH() / 2.0) * (1 + eps),
-    ]
+        n_dp = HTSInsert.getN()
+        z = HTSInsert.z1
+        for i, dp in enumerate(dp_ids):
+            # print(f"dp[{i}] = {dp}")
+            dp = HTSInsert.dblpancakes[i]
+            isolant = HTSInsert.isolations[i]
+            if detail == "dblpancake":
+                bcs_defs[f"{prefix}dp{i}_rInt"] = [
+                    dp.getR0(),
+                    z,
+                    dp.getR0(),
+                    z + dp.getH(),
+                ]
 
-    bcs_defs[f"{prefix}rInt"] = [
-        HTSInsert.getR0() * (1 - eps),
-        (HTSInsert.z0 - HTSInsert.getH() / 2.0) * (1 - eps),
-        HTSInsert.getR0() * (1 + eps),
-        (HTSInsert.z0 + HTSInsert.getH() / 2.0) * (1 + eps),
-    ]
+                bcs_defs[f"{prefix}dp{i}_rExt"] = [
+                    dp.getR1(),
+                    z,
+                    dp.getR1(),
+                    z + dp.getH(),
+                ]
+                # not yet z += dp.getH()
+            elif detail == "pancake":
+                # print("dp:", dp)
+                p = dp.pancake
+                dp_i = dp.isolation
+                bcs_defs[f"{prefix}p0_dp{i}_rInt"] = [
+                    p.getR0(),
+                    z,
+                    p.getR0(),
+                    (z + p.getH()),
+                ]
 
-    bcs_defs[f"{prefix}rExt"] = [
-        HTSInsert.getR1() * (1 - eps),
-        (HTSInsert.z0 - HTSInsert.getH() / 2.0) * (1 - eps),
-        HTSInsert.getR1() * (1 + eps),
-        (HTSInsert.z0 + HTSInsert.getH() / 2.0) * (1 + eps),
-    ]
+                bcs_defs[f"{prefix}p0_dp{i}_rExt"] = [
+                    p.getR1(),
+                    z,
+                    p.getR1(),
+                    (z + p.getH() + isolant.getH()),
+                ]
+
+                z += p.getH()
+
+                bcs_defs[f"{prefix}i_dp{i}_rInt"] = [
+                    p.getR0(),
+                    (z),
+                    p.getR0(),
+                    (z + dp_i.getH()),
+                ]
+
+                bcs_defs[f"{prefix}i_dp{i}_rExt"] = [
+                    p.getR1(),
+                    (z),
+                    p.getR1(),
+                    (z + dp_i.getW()),
+                ]
+                z += dp_i.getH()
+
+                bcs_defs[f"{prefix}p1_dp{i}_rInt"] = [p.getR0(), (z), p.getR0(), (z)]
+
+                bcs_defs[f"{prefix}p1_dp{i}_rExt"] = [
+                    p.getR1(),
+                    z,
+                    p.getR1(),
+                    (z + dp_i.getH()),
+                ]
+
+            elif detail == "tape":
+                # print("HTSInsert/gsmh_bcs (tape):", dp)
+                p = dp.pancake
+                dp_i = dp.isolation
+                tape = dp.pancake.tape
+                r0 = p.getR0()
+                for l in range(p.getN()):
+                    bcs_defs[f"{prefix}sc{l}_p0_dp{i}_rInt"] = [
+                        r0,
+                        z,
+                        r0,
+                        (z + tape.getH()),
+                    ]
+
+                    bcs_defs[f"{prefix}sc{l}_p0_dp{i}_rExt"] = [
+                        r0 + tape.getW_Sc(),
+                        z,
+                        r0 + tape.getW_Sc(),
+                        (z + tape.getH()),
+                    ]
+                    r0 += tape.getW()
+
+                bcs_defs[f"{prefix}mandrin_p0_dp{i}_rInt"] = [
+                    p.getMandrin(),
+                    z,
+                    p.getMandrin(),
+                    z + p.getH(),
+                ]
+                z += tape.getH()
+
+                # add isolant here
+                bcs_defs[f"{prefix}i_dp{i}_rInt"] = [
+                    dp_i.getR0(),
+                    z,
+                    dp_i.getR0(),
+                    (z + dp_i.getH()),
+                ]
+
+                bcs_defs[f"{prefix}i_dp{i}_rExt"] = [
+                    dp_i.getR0() + dp_i.getW(),
+                    z,
+                    dp_i,
+                    z + dp_i.getH(),
+                ]
+                z += dp_i.getH()
+
+                r0 = p.getR0()
+                for l in range(p.getN()):
+                    bcs_defs[f"{prefix}sc{l}_p1_dp{i}_rInt"] = [
+                        r0,
+                        z,
+                        r0,
+                        z + tape.getH(),
+                    ]
+
+                    bcs_defs[f"{prefix}sc{l}_p1_dp{i}_rExt"] = [
+                        r0 + tape.getW_Sc(),
+                        z,
+                        r0 + tape.getW_Sc(),
+                        z + tape.getH(),
+                    ]
+                    r0 += tape.getW()
+
+                bcs_defs[f"{prefix}mandrin_p1_dp{i}_rInt"] = [
+                    p.getMandrin(),
+                    z,
+                    p.getMandrin(),
+                    z + p.getH(),
+                ]
+
+            # update z
+            z += dp.getH()
+            if i < n_dp - 1:
+                isolant = HTSInsert.isolations[i]
+                bcs_defs[f"{prefix}i_dp{i}_rInt"] = [
+                    isolant.getR0(),
+                    z,
+                    isolant.getR0(),
+                    (z + isolant.getH()),
+                ]
+
+                bcs_defs[f"{prefix}i_dp{i}_rExt"] = [
+                    isolant.getR0() + isolant.getW(),
+                    z,
+                    HTSInsert.getR1(),
+                    (z + isolant.getH()),
+                ]
+                z += isolant.getW()
+    else:
+        bcs_defs[f"{prefix}HP"] = [
+            HTSInsert.getR0(),
+            (HTSInsert.z0 - HTSInsert.getH() / 2.0),
+            HTSInsert.getR1(),
+            (HTSInsert.z0 - HTSInsert.getH() / 2.0),
+        ]
+
+        bcs_defs[f"{prefix}BP"] = [
+            HTSInsert.getR0(),
+            (HTSInsert.z0 + HTSInsert.getH() / 2.0),
+            HTSInsert.getR1(),
+            (HTSInsert.z0 + HTSInsert.getH() / 2.0),
+        ]
+
+        bcs_defs[f"{prefix}rInt"] = [
+            HTSInsert.getR0(),
+            (HTSInsert.z0 - HTSInsert.getH() / 2.0),
+            HTSInsert.getR0(),
+            (HTSInsert.z0 + HTSInsert.getH() / 2.0),
+        ]
+
+        bcs_defs[f"{prefix}rExt"] = [
+            HTSInsert.getR1(),
+            (HTSInsert.z0 - HTSInsert.getH() / 2.0),
+            HTSInsert.getR1(),
+            (HTSInsert.z0 + HTSInsert.getH() / 2.0),
+        ]
 
     # Air
     if Air_data:
@@ -392,13 +544,11 @@ def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = Fals
         # TODO: Axis, Inf
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-        eps = 1.0e-6
-
-        bcs_defs[f"ZAxis"] = [-eps, z0_air - eps, +eps, z0_air + dz_air + eps]
+        bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
         bcs_defs[f"Infty"] = [
-            [-eps, z0_air - eps, dr_air + eps, z0_air + eps],
-            [dr_air - eps, z0_air - eps, dr_air + eps, z0_air + dz_air + eps],
-            [-eps, z0_air + dz_air - eps, dr_air + eps, z0_air + dz_air + eps],
+            [0, z0_air, dr_air, z0_air],
+            [dr_air, z0_air, dr_air, z0_air + dz_air],
+            [0, z0_air + dz_air, dr_air, z0_air + dz_air],
         ]
 
     return defs
