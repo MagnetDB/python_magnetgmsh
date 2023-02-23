@@ -6,21 +6,45 @@ from typing import List, Union
 import gmsh
 
 
-def create_bcs(name: str, box: Union[List[float], List[List[float]]], dim: int = 1):
+def minmax(box: List[float], eps: float):
+    rmin = box[0] * (1 - eps)
+    if box[0] < 0:
+        rmin = box[0] * (1 + eps)
+
+    zmin = box[1] * (1 - eps)
+    if box[1] < 0:
+        zmin = box[1] * (1 + eps)
+
+    rmax = box[2] * (1 + eps)
+    if box[2] < 0:
+        rmax = box[2] * (1 - eps)
+
+    zmax = box[3] * (1 + eps)
+    if box[3] < 0:
+        zmax = box[3] * (1 - eps)
+
+    # print(rmin, rmax, zmin, zmax)
+    return (rmin, rmax, zmin, zmax)
+
+
+def create_bcs(
+    name: str,
+    box: Union[List[float], List[List[float]]],
+    dim: int = 1,
+    eps: float = 1.0e-6,
+):
     """
     """
 
     gmsh.model.occ.synchronize()
     ov = []
     if isinstance(box[0], float) or isinstance(box[0], int):
-        ov += gmsh.model.getEntitiesInBoundingBox(
-            box[0], box[1], 0, box[2], box[3], 0, dim
-        )
+        (rmin, rmax, zmin, zmax) = minmax(box, eps)
+        ov += gmsh.model.getEntitiesInBoundingBox(rmin, zmin, 0, rmax, zmax, 0, dim)
     else:
         for item in box:
-            ov += gmsh.model.getEntitiesInBoundingBox(
-                item[0], item[1], 0, item[2], item[3], 0, dim
-            )
+            (rmin, rmax, zmin, zmax) = minmax(item, eps)
+            gmsh.model.getEntitiesInBoundingBox(rmin, rmax, 0, zmin, zmax, 0, dim)
 
     ps = gmsh.model.addPhysicalGroup(1, [tag for (dim, tag) in ov])
     gmsh.model.setPhysicalName(1, ps, name)

@@ -80,14 +80,12 @@ def gmsh_bcs(Helix: Helix, mname: str, ids: tuple, debug: bool = False) -> dict:
     # get BC ids
     gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-    eps = 1.0e-6
-    # TODO: if z[xx] < 0 multiply by 1+eps to get a min by 1-eps to get a max
-    zmin = Helix.z[0] * (1 + eps)
-    zmax = Helix.z[1] * (1 + eps)
+    zmin = Helix.z[0]
+    zmax = Helix.z[1]
 
     bcs_defs = {
-        f"{prefix}rInt": [Helix.r[0] * (1 - eps), zmin, Helix.r[0] * (1 + eps), zmax],
-        f"{prefix}rExt": [Helix.r[1] * (1 - eps), zmin, Helix.r[1] * (1 + eps), zmax],
+        f"{prefix}rInt": [Helix.r[0], zmin, Helix.r[0], zmax],
+        f"{prefix}rExt": [Helix.r[1], zmin, Helix.r[1], zmax],
     }
 
     for key in bcs_defs:

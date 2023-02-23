@@ -85,34 +85,15 @@ def gmsh_bcs(Supra: Supra, mname: str, ids: tuple, debug: bool = False) -> dict:
         # get BC ids
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-        eps = 1.0e-3
-
-        # TODO: if z[xx] < 0 multiply by 1+eps to get a min by 1-eps to get a max
-
-        bcs_defs[f"{prefix}HP"] = [
-            Supra.r[0] * (1 - eps),
-            Supra.z[0] * (1 + eps),
-            Supra.r[-1] * (1 + eps),
-            Supra.z[0] * (1 - eps),
-        ]
+        bcs_defs[f"{prefix}HP"] = [Supra.r[0], Supra.z[0], Supra.r[-1], Supra.z[0]]
         bcs_defs[f"{prefix}BP"] = [
-            Supra.r[0] * (1 - eps),
-            (Supra.z[-1]) * (1 - eps),
-            Supra.r[-1] * (1 + eps),
-            (Supra.z[-1]) * (1 + eps),
+            Supra.r[0],
+            (Supra.z[-1]),
+            Supra.r[-1],
+            (Supra.z[-1]),
         ]
-        bcs_defs[f"{prefix}Rint"] = [
-            Supra.r[0] * (1 - eps),
-            Supra.z[0] * (1 + eps),
-            Supra.r[0] * (1 + eps),
-            Supra.z[1] * (1 + eps),
-        ]
-        bcs_defs[f"{prefix}Rext"] = [
-            Supra.r[1] * (1 - eps),
-            Supra.z[0] * (1 + eps),
-            Supra.r[1] * (1 + eps),
-            Supra.z[1] * (1 + eps),
-        ]
+        bcs_defs[f"{prefix}Rint"] = [Supra.r[0], Supra.z[0], Supra.r[0], Supra.z[1]]
+        bcs_defs[f"{prefix}Rext"] = [Supra.r[1], Supra.z[0], Supra.r[1], Supra.z[1]]
 
         # Air
         if Air_data:
@@ -124,13 +105,11 @@ def gmsh_bcs(Supra: Supra, mname: str, ids: tuple, debug: bool = False) -> dict:
             # TODO: Axis, Inf
             gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-            eps = 1.0e-6
-
-            bcs_defs[f"ZAxis"] = [-eps, z0_air - eps, +eps, z0_air + dz_air + eps]
+            bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
             bcs_defs[f"Infty"] = [
-                [-eps, z0_air - eps, dr_air + eps, z0_air + eps],
-                [dr_air - eps, z0_air - eps, dr_air + eps, z0_air + dz_air + eps],
-                [-eps, z0_air + dz_air - eps, dr_air + eps, z0_air + dz_air + eps],
+                [0, z0_air, dr_air, z0_air],
+                [dr_air, z0_air, dr_air, z0_air + dz_air],
+                [0, z0_air + dz_air, dr_air, z0_air + dz_air],
             ]
 
     else:

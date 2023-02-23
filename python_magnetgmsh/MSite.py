@@ -202,13 +202,11 @@ def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
         # TODO: Axis, Inf
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-        eps = 1.0e-6
-
-        bcs_defs[f"ZAxis"] = [-eps, z0_air - eps, +eps, z0_air + dz_air + eps]
+        bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
         bcs_defs[f"Infty"] = [
-            [-eps, z0_air - eps, dr_air + eps, z0_air + eps],
-            [dr_air - eps, z0_air - eps, dr_air + eps, z0_air + dz_air + eps],
-            [-eps, z0_air + dz_air - eps, dr_air + eps, z0_air + dz_air + eps],
+            [0, z0_air, dr_air, z0_air],
+            [dr_air, z0_air, dr_air, z0_air + dz_air],
+            [0, z0_air + dz_air, dr_air, z0_air + dz_air],
         ]
 
     for key in bcs_defs:

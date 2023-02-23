@@ -108,7 +108,6 @@ def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dic
     (H_ids, R_ids, AirData) = ids
     # print(f"Insert/gmsh_bcs: H_ids={H_ids}")
 
-    eps = 1.0e-3
     defs = {}
     bcs_defs = {}
 
@@ -133,19 +132,14 @@ def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dic
         defs.update(hdefs)
 
         if i == 0:
-            bcs_defs["{prefix}H1_BP"] = [
-                Helix.r[0] - eps,
-                Helix.z[0] - eps,
-                Helix.r[1] + eps,
-                Helix.z[0] + eps,
+            bcs_defs[f"{prefix}H1_BP"] = [
+                Helix.r[0],
+                Helix.z[0],
+                Helix.r[1],
+                Helix.z[0],
             ]
         if i == NHelices - 1:
-            bcs_defs["{prefix}H_BP"] = [
-                Helix.r[0] - eps,
-                Helix.z[0] - eps,
-                Helix.r[1] + eps,
-                Helix.z[0] + eps,
-            ]
+            bcs_defs[f"{prefix}H_BP"] = [Helix.r[0], Helix.z[0], Helix.r[1], Helix.z[0]]
 
     # loop over Rings
     R_Bc_ids = []
@@ -171,13 +165,11 @@ def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dic
         # TODO: Axis, Inf
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-        eps = 1.0e-6
-
-        bcs_defs[f"ZAxis"] = [-eps, z0_air - eps, +eps, z0_air + dz_air + eps]
+        bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
         bcs_defs[f"Infty"] = [
-            [-eps, z0_air - eps, dr_air + eps, z0_air + eps],
-            [dr_air - eps, z0_air - eps, dr_air + eps, z0_air + dz_air + eps],
-            [-eps, z0_air + dz_air - eps, dr_air + eps, z0_air + dz_air + eps],
+            [0, z0_air, dr_air, z0_air],
+            [dr_air, z0_air, dr_air, z0_air + dz_air],
+            [0, z0_air + dz_air, dr_air, z0_air + dz_air],
         ]
 
     for key in bcs_defs:

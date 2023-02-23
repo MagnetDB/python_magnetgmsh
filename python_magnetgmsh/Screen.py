@@ -60,34 +60,11 @@ def gmsh_bcs(Screen: Screen, ids: tuple, debug: bool = False) -> dict:
     # get BC ids
     gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-    eps = 1.0e-3
-
-    # TODO: if z[xx] < 0 multiply by 1+eps to get a min by 1-eps to get a max
     bcs_defs = {
-        f"{Screen.name}_HP": [
-            Screen.r[0] * (1 - eps),
-            Screen.z[0] * (1 + eps),
-            Screen.r[-1] * (1 + eps),
-            Screen.z[0] * (1 - eps),
-        ],
-        f"{Screen.name}_BP": [
-            Screen.r[0] * (1 - eps),
-            Screen.z[-1] * (1 - eps),
-            Screen.r[-1] * (1 + eps),
-            Screen.z[-1] * (1 + eps),
-        ],
-        f"{Screen.name}_Rint": [
-            Screen.r[0] * (1 - eps),
-            Screen.z[0] * (1 + eps),
-            Screen.r[0] * (1 + eps),
-            Screen.z[1] * (1 + eps),
-        ],
-        f"{Screen.name}_Rext": [
-            Screen.r[1] * (1 - eps),
-            Screen.z[0] * (1 + eps),
-            Screen.r[1] * (1 + eps),
-            Screen.z[1] * (1 + eps),
-        ],
+        f"{Screen.name}_HP": [Screen.r[0], Screen.z[0], Screen.r[-1], Screen.z[0]],
+        f"{Screen.name}_BP": [Screen.r[0], Screen.z[-1], Screen.r[-1], Screen.z[-1]],
+        f"{Screen.name}_Rint": [Screen.r[0], Screen.z[0], Screen.r[0], Screen.z[1]],
+        f"{Screen.name}_Rext": [Screen.r[1], Screen.z[0], Screen.r[1], Screen.z[1]],
     }
 
     # Air
@@ -100,13 +77,11 @@ def gmsh_bcs(Screen: Screen, ids: tuple, debug: bool = False) -> dict:
         # TODO: Axis, Inf
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-        eps = 1.0e-6
-
-        bcs_defs[f"ZAxis"] = [-eps, z0_air - eps, +eps, z0_air + dz_air + eps]
+        bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
         bcs_defs[f"Infty"] = [
-            [-eps, z0_air - eps, dr_air + eps, z0_air + eps],
-            [dr_air - eps, z0_air - eps, dr_air + eps, z0_air + dz_air + eps],
-            [-eps, z0_air + dz_air - eps, dr_air + eps, z0_air + dz_air + eps],
+            [0, z0_air, dr_air, z0_air],
+            [dr_air, z0_air, dr_air, z0_air + dz_air],
+            [0, z0_air + dz_air, dr_air, z0_air + dz_air],
         ]
 
     for key in bcs_defs:

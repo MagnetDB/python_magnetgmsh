@@ -112,46 +112,18 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
 
     # get BC ids
     gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
-    # TODO: if z[xx] < 0 multiply by 1+eps to get a min by 1-eps to get a max
-    eps = 1.0e-3
 
     bcs_defs = {
-        f"{prefix}HP": [
-            Bitter.r[0] * (1 - eps),
-            Bitter.z[0] * (1 + eps),
-            Bitter.r[-1] * (1 + eps),
-            Bitter.z[0] * (1 - eps),
-        ],
-        f"{prefix}BP": [
-            Bitter.r[0] * (1 - eps),
-            Bitter.z[-1] * (1 - eps),
-            Bitter.r[-1] * (1 + eps),
-            Bitter.z[-1] * (1 + eps),
-        ],
-        f"{prefix}Rint": [
-            Bitter.r[0] * (1 - eps),
-            Bitter.z[0] * (1 + eps),
-            Bitter.r[0] * (1 + eps),
-            Bitter.z[1] * (1 + eps),
-        ],
-        f"{prefix}Rext": [
-            Bitter.r[1] * (1 - eps),
-            Bitter.z[0] * (1 + eps),
-            Bitter.r[1] * (1 + eps),
-            Bitter.z[1] * (1 + eps),
-        ],
+        f"{prefix}HP": [Bitter.r[0], Bitter.z[0], Bitter.r[-1], Bitter.z[0]],
+        f"{prefix}BP": [Bitter.r[0], Bitter.z[-1], Bitter.r[-1], Bitter.z[-1]],
+        f"{prefix}Rint": [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]],
+        f"{prefix}Rext": [Bitter.r[1], Bitter.z[0], Bitter.r[1], Bitter.z[1]],
     }
     # Cooling Channels
     if len(Bitter.coolingslits) > 0:
         # print(f"CoolingSlits[r]: {Bitter.coolingslits[0]['r']}")
         for i, r in enumerate(Bitter.coolingslits[0]["r"]):
-            bcs_defs[f"{prefix}slit{i}"] = [
-                r * (1 - eps),
-                Bitter.z[0] * (1 + eps),
-                r * (1 + eps),
-                Bitter.z[1] * (1 + eps),
-                1,
-            ]
+            bcs_defs[f"{prefix}slit{i}"] = [r, Bitter.z[0], r, Bitter.z[1], 1]
 
     # Air
     if Air_data:
@@ -163,13 +135,11 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
         # TODO: Axis, Inf
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-        eps = 1.0e-6
-
-        bcs_defs[f"ZAxis"] = [-eps, z0_air - eps, +eps, z0_air + dz_air + eps]
+        bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
         bcs_defs[f"Infty"] = [
-            [-eps, z0_air - eps, dr_air + eps, z0_air + eps],
-            [dr_air - eps, z0_air - eps, dr_air + eps, z0_air + dz_air + eps],
-            [-eps, z0_air + dz_air - eps, dr_air + eps, z0_air + dz_air + eps],
+            [0, z0_air, dr_air, z0_air],
+            [dr_air, z0_air, dr_air, z0_air + dz_air],
+            [0, z0_air + dz_air, dr_air, z0_air + dz_air],
         ]
 
     for key in bcs_defs:

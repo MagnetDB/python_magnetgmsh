@@ -48,64 +48,63 @@ def gmsh_bcs(
     # get BC (TODO review to keep on BP or HP)
     gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-    eps = 1.0e-3
     bcs_defs = {}
     if hp:
         bcs_defs[f"{prefix}HP"] = [
-            Ring.r[0] * (1 - eps),
-            (y + Ring.z[0]) * (1 + eps),
-            Ring.r[-1] * (1 + eps),
-            (y + Ring.z[0]) * (1 - eps),
+            Ring.r[0],
+            (y + Ring.z[0]),
+            Ring.r[-1],
+            (y + Ring.z[0]),
         ]
         bcs_defs[f"{prefix}R0n"] = [
-            Ring.r[0] * (1 - eps),
-            (y + Ring.z[0]) * (1 + eps),
-            Ring.r[0] * (1 + eps),
-            (y + Ring.z[1]) * (1 - eps),
+            Ring.r[0],
+            (y + Ring.z[0]),
+            Ring.r[0],
+            (y + Ring.z[1]),
         ]
 
         bcs_defs[f"{prefix}R1n"] = [
-            Ring.r[-1] * (1 - eps),
-            (y + Ring.z[0]) * (1 + eps),
-            Ring.r[-1] * (1 + eps),
-            (y + Ring.z[1]) * (1 - eps),
+            Ring.r[-1],
+            (y + Ring.z[0]),
+            Ring.r[-1],
+            (y + Ring.z[1]),
         ]
 
         # TODO cooling
         bcs_defs[f"{prefix}CoolingSlits"] = [
-            Ring.r[1] * (1 - eps),
-            (y + Ring.z[0]) * (1 + eps),
-            Ring.r[2] * (1 + eps),
-            (y + Ring.z[-1]) * (1 - eps),
+            Ring.r[1],
+            (y + Ring.z[0]),
+            Ring.r[2],
+            (y + Ring.z[-1]),
         ]
     else:
         bcs_defs[f"{prefix}BP"] = [
-            Ring.r[0] * (1 - eps),
-            (y + Ring.z[1]) * (1 - eps),
-            Ring.r[-1] * (1 + eps),
-            (y + Ring.z[1]) * (1 + eps),
+            Ring.r[0],
+            (y + Ring.z[1]),
+            Ring.r[-1],
+            (y + Ring.z[1]),
         ]
 
         bcs_defs[f"{prefix}R0n"] = [
-            Ring.r[0] * (1 - eps),
-            (y + Ring.z[0]) * (1 - eps),
-            Ring.r[0] * (1 + eps),
-            (y + Ring.z[1]) * (1 + eps),
+            Ring.r[0],
+            (y + Ring.z[0]),
+            Ring.r[0],
+            (y + Ring.z[1]),
         ]
 
         bcs_defs[f"{prefix}R1n"] = [
-            Ring.r[-1] * (1 - eps),
-            (y + Ring.z[0]) * (1 - eps),
-            Ring.r[-1] * (1 + eps),
-            (y + Ring.z[1]) * (1 + eps),
+            Ring.r[-1],
+            (y + Ring.z[0]),
+            Ring.r[-1],
+            (y + Ring.z[1]),
         ]
 
         # TODO cooling
         bcs_defs[f"{prefix}CoolingSlits"] = [
-            Ring.r[1] * (1 - eps),
-            (y + Ring.z[0]) * (1 - eps),
-            Ring.r[2] * (1 + eps),
-            (y + Ring.z[-1]) * (1 + eps),
+            Ring.r[1],
+            (y + Ring.z[0]),
+            Ring.r[2],
+            (y + Ring.z[-1]),
         ]
 
     for key in bcs_defs:
