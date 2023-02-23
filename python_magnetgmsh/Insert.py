@@ -80,13 +80,6 @@ def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:
         flat_list = flatten(H_ids)
         flat_list += R_ids
 
-        """
-        vGroups = [id[1] for id in gmsh.model.getEntities(2)]
-        for i in flat_list:
-            if not i in vGroups:
-                raise RuntimeError(f"{i} is not in VGroups")
-        """
-
         ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, i) for i in flat_list])
 
         # need to account for changes

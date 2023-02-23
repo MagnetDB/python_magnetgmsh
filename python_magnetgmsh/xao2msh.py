@@ -22,156 +22,12 @@ import yaml
 
 import gmsh
 
-from python_magnetgeo.Helix import Helix
-from python_magnetgeo.Insert import Insert
-from python_magnetgeo.Bitter import Bitter
-from python_magnetgeo.Supra import Supra
-from python_magnetgeo.Bitters import Bitters
-from python_magnetgeo.Supras import Supras
-from python_magnetgeo.MSite import MSite
-
-CADType = Union[Insert, Bitter, Supra, Bitters, Supras]
 
 from .utils.files import load_Xao
 from .mesh.groups import create_physicalbcs, create_physicalgroups
 from .mesh.axi import get_allowed_algo as get_allowed_algo2D
-from .mesh.axi import get_algo as get_algo2D
+from .mesh.axi import gmsh_msh
 from .mesh.m3d import get_allowed_algo as get_allowed_algo3D
-from .mesh.m3d import get_algo as get_algo3D
-
-
-def Supra_Gmsh(mname: str, cad: Supra, gname: str, is2D: bool, verbose: bool = False):
-    """ Load Supra cad """
-    print(f"Supra_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
-    return cad.get_names(mname, is2D, verbose)
-
-
-def Bitter_Gmsh(mname: str, cad: Bitter, gname: str, is2D: bool, verbose: bool = False):
-    """ Load Bitter cad """
-    print(f"Bitter_Gmsh: cad={cad.name}, gname={gname}")
-    return cad.get_names(mname, is2D, verbose)
-
-
-def Helix_Gmsh(mname: str, cad: Helix, gname: str, is2D: bool, verbose: bool = False):
-    """ Load Helix cad """
-    print(f"Helix_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
-    return cad.get_names(mname, is2D, verbose)
-
-
-def Bitters_Gmsh(
-    mname: str, cad: Bitters, gname: str, is2D: bool, verbose: bool = False
-):
-    """ Load Bitters """
-    print(f"Bitters_Gmsh: mname={mname}, gname={gname}")
-    solid_names = []
-    for magnet in cad.magnets:
-        pcad = None
-        with open(magnet + ".yaml", "r") as f:
-            pcad = yaml.load(f, Loader=yaml.FullLoader)
-
-        solid_names += Bitter_Gmsh(mname, pcad, gname, is2D, verbose)
-    return solid_names
-
-
-def Supras_Gmsh(mname: str, cad: Supras, gname: str, is2D: bool, verbose: bool = False):
-    """ Load Supras """
-    print(f"Supras_Gmsh: mname={mname}, gname={gname}")
-    solid_names = []
-    for magnet in cad.magnets:
-        pcad = None
-        with open(magnet + ".yaml", "r") as f:
-            pcad = yaml.load(f, Loader=yaml.FullLoader)
-
-        solid_names += Supra_Gmsh(mname, pcad, gname, is2D, verbose)
-    return solid_names
-
-
-def Insert_Gmsh(mname: str, cad: Insert, gname: str, is2D: bool, verbose: bool = False):
-    """ Load Insert """
-    print(f"Insert_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
-    solid_names = cad.get_names(mname, is2D, verbose)
-    NHelices = cad.get_nhelices()
-    return solid_names
-
-
-action_dict = {
-    Bitter: {"run": Bitter_Gmsh, "msg": "Bitter"},
-    Supra: {"run": Supra_Gmsh, "msg": "Supra"},
-    Insert: {"run": Insert_Gmsh, "msg": "Insert"},
-}
-
-
-def Magnet_Gmsh(mname: str, cad: str, gname: str, is2D: bool, verbose: bool = False):
-    """ Load Magnet cad """
-    print(f"Magnet_Gmsh: mname={mname}, cad={cad}, gname={gname}")
-    solid_names = []
-    NHelices = []
-    Boxes = {}
-
-    cfgfile = f"{cad}.yaml"
-    with open(cfgfile, "r") as cfgdata:
-        pcad = yaml.load(cfgdata, Loader=yaml.FullLoader)
-        pname = pcad.name
-
-    # print('pcad: {pcad} type={type(pcad)}')
-    solid_names += action_dict[type(pcad)]["run"](mname, pcad, pname, is2D, verbose)
-    if isinstance(pcad, Insert):
-        # solid_names += action_dict[type(pcad)]["run"]("", pcad, pname, is2D, verbose)
-        NHelices.append(pcad.get_nhelices())
-    else:
-        NHelices.append(0)
-    Boxes[pname] = (action_dict[type(pcad)]["msg"], pcad.boundingBox())
-    if verbose:
-        print(f"Magnet_Gmsh: {cad} Done [solids {len(solid_names)}]")
-        print(f"Magnet_Gmsh: Boxes={Boxes}")
-    return (pname, solid_names, NHelices, Boxes)
-
-
-def MSite_Gmsh(cad: MSite, gname: str, is2D: bool, verbose: bool = False):
-    """
-    Load MSite cad
-    """
-
-    print(f"MSite_Gmsh: gname={gname}, cad={cad}")
-    # print("MSite_Gmsh Channels:", cad.get_channels())
-
-    compound = []
-    solid_names = []
-    NHelices = []
-    Channels = cad.get_channels("")
-    Isolants = cad.get_isolants("")
-    Boxes = []
-
-    def ddd(mname, cad_data, solid_names, NHelices):
-        # print(f"ddd: mname={mname}, cad_data={cad_data}")
-        (pname, _names, _NHelices, _Boxes) = Magnet_Gmsh(
-            mname, cad_data, gname, is2D, verbose
-        )
-        compound.append(cad_data)
-        solid_names += _names
-        NHelices += _NHelices
-        Boxes.append(_Boxes)
-        if verbose:
-            print(
-                f"MSite_Gmsh: cad_data={cad_data}, pname={pname}, _names={len(solid_names)}, solids={len(solid_names)}"
-            )
-
-    if isinstance(cad.magnets, str):
-        print(f"magnet={cad.magnets}, type={type(cad.magnets)}")
-        ddd("", cad.magnets, solid_names, NHelices)
-    elif isinstance(cad.magnets, dict):
-        for key in cad.magnets:
-            print(f"magnet={key}, dict")
-            if isinstance(cad.magnets[key], str):
-                ddd(key, cad.magnets[key], solid_names, NHelices)
-            elif isinstance(cad.magnets[key], list):
-                for mpart in cad.magnets[key]:
-                    ddd(key, mpart, solid_names, NHelices)
-
-    print(f"Channels: {Channels}")
-    if verbose:
-        print(f"MSite_Gmsh: {cad} Done [solids {len(solid_names)}]")
-    return (compound, solid_names, NHelices, Channels, Isolants, Boxes)
 
 
 def main():
@@ -307,7 +163,6 @@ def main():
     outerLead_exist = False
     NHelices = 0
     Channels = None
-    Boxes = []
 
     if args.geo != "None":
         cfgfile = args.geo
@@ -315,70 +170,9 @@ def main():
         cfgfile = gname + ".yaml"
     print("cfgfile:", cfgfile)
 
-    compound = []
-    cad = None
-    with open(cfgfile, "r") as cfgdata:
-        cad = yaml.load(cfgdata, Loader=yaml.FullLoader)
+    from .cfg import loadcfg
 
-        print(f"cfgfile: {cad}")
-        # TODO get solid names (see Salome HiFiMagnet plugin)
-        if isinstance(cad, MSite):
-            if args.verbose:
-                print("load cfg MSite")
-            (compound, _names, NHelices, Channels, Isolants, _Boxes) = MSite_Gmsh(
-                cad, gname, is2D, args.verbose
-            )
-            # print(f'_Boxes: {_Boxes}, {len(_Boxes)}')
-            Boxes = _Boxes
-            solid_names += _names
-        elif isinstance(cad, Bitters):
-            if args.verbose:
-                print("load cfg Bitters")
-            mname = ""
-            solid_names += Bitters_Gmsh(mname, cad, gname, is2D, args.verbose)
-            Boxes.append({cad.name: ("Bitters", cad.boundingBox())})
-            _Channels = cad.get_channels(mname)
-            if mname:
-                Channels[mname] = _Channels
-            else:
-                Channels = _Channels
-
-        elif isinstance(cad, Supras):
-            if args.verbose:
-                print("load cfg Supras")
-            mname = ""
-            solid_names += Supras_Gmsh(mname, cad, gname, is2D, args.verbose)
-            Boxes.append({cad.name: ("Supras", cad.boundingBox())})
-        elif isinstance(cad, Helix):
-            if args.verbose:
-                print("load cfg Helix")
-            mname = ""
-            solid_names += Helix_Gmsh(mname, cad, gname, is2D, args.verbose)
-            Boxes.append({cad.name: ("Helix", cad.boundingBox())})
-        else:
-            if not type(cad) in action_dict:
-                raise Exception(f"unsupported type of cad {type(cad)}")
-            else:
-                if args.verbose:
-                    print("load cfg {type(cad)}")
-                mname = ""
-                _names = action_dict[type(cad)]["run"](
-                    mname, cad, gname, is2D, args.verbose
-                )
-                Boxes.append(
-                    {cad.name: (action_dict[type(cad)]["msg"], cad.boundingBox())}
-                )
-                if isinstance(cad, Insert):
-                    _Channels = cad.get_channels("")
-                    NHelices = cad.get_nhelices()
-                else:
-                    _Channels = cad.get_channels(mname)
-                if mname:
-                    Channels[mname] = _Channels
-                else:
-                    Channels = _Channels
-                print(f"_Channels: {_Channels}")
-                solid_names += _names
+    (solid_names, NHelices, Channels, lcs) = loadcfg(cfgfile, gname, is2D, args.verbose)
 
     if "Air" in args.input_file:
         solid_names.append("Air")
@@ -386,16 +180,15 @@ def main():
             raise Exception(
                 "--hide Isolants cannot be used since cad contains Air region"
             )
+        lcs["Air"] = 30
 
     nsolids = len(gmsh.model.getEntities(GeomParams["Solid"][0]))
     assert (
         len(solid_names) == nsolids
     ), f"Wrong number of solids: in yaml {len(solid_names)} in gmsh {nsolids}"
 
-    print(f"compound = {compound}")
     print(f"NHelices = {NHelices}")
     print(f"Channels = {Channels}")
-    print(f"Boxes = {Boxes}")
 
     # use yaml data to identify solids id...
     # Insert solids: H1_Cu, H1_Glue0, H1_Glue1, H2_Cu, ..., H14_Glue1, R1, R2, ..., R13, InnerLead, OuterLead, Air
@@ -407,180 +200,29 @@ def main():
     # get groups
     bctags = create_physicalbcs(
         tree,
-        gname,
         GeomParams,
         NHelices,
         innerLead_exist,
         outerLead_exist,
         groupCoolingChannels,
         Channels,
-        compound,
         hideIsolant,
         groupIsolant,
         args.debug,
     )
 
-    # Generate the mesh and write the mesh file
-    Origin = gmsh.model.occ.addPoint(0, 0, 0, 0.1, 0)
-    gmsh.model.occ.synchronize()
-
-    # TODO write a template geo gmsh file for later use(gname + ".geo")
-
-    # TODO: get solid id for glue
-    # Get Helical cuts EndPoints
-    EndPoints_tags = [Origin]
-    VPoints_tags = []
-
-    if isinstance(cad, Insert) or isinstance(cad, Helix):
-        # TODO: loop over tag from Glue or Kaptons (here [2, 3])
-        glue_tags = [
-            i + 1
-            for i, name in enumerate(solid_names)
-            if ("Isolant" in name or ("Glue" in name or "Kapton" in name))
-        ]
-        if args.verbose:
-            print("glue_tags: ", glue_tags)
-        for tag in glue_tags:
-            if args.verbose:
-                print(
-                    f"BC glue[{tag}:",
-                    gmsh.model.getBoundary([(GeomParams["Solid"][0], tag)]),
-                )
-            for (dim, tag) in gmsh.model.getBoundary([(GeomParams["Solid"][0], tag)]):
-                gtype = gmsh.model.getType(dim, tag)
-                if gtype == "Plane":
-                    Points = gmsh.model.getBoundary(
-                        [(GeomParams["Face"][0], tag)], recursive=True
-                    )
-                    for p in Points:
-                        EndPoints_tags.append(p[1])
-            print("EndPoints:", EndPoints_tags)
-
-        """
-        # TODO: get solid id for Helix (here [1])
-        cu_tags = [i  for i,name in enumerate(solid_names) if name.startswith('H') and "Cu" in name]
-        # TODO: for shape force also the mesh to be finer near shapes
-        # How to properly detect shapes in brep ???
-        # Get V0/V1 EndPoints
-        # Eventually add point from V probes see: https://www.pygimli.org/_examples_auto/1_meshing/plot_cad_tutorial.html
-        for (dim, tag) in gmsh.model.getBoundary([(3,1)]):
-            type = gmsh.model.getType(dim, tag)
-            if type == "Plane":
-                Points = gmsh.model.getBoundary([(2, tag)], recursive=True)
-                    for p in Points:
-                        if not p[1] in EndPoints_tags:
-                            VPoints_tags.append(p[1])
-        """
-        print("VPoints:", VPoints_tags)
-
     if args.command == "mesh" and not args.dry_run:
 
-        lcs = []
-        if args.debug:
-            print("args.lc={args.lc}")
+        if args.lc is None:
+            print(f"Overwrite lcs def for MeshCarateristics")
 
-        # if not mesh characteristic length is given
-        if not args.lc is None:
-            if not isinstance(args.lc, list):
-                lcs.append(args.lc)
-            else:
-                lcs = args.lc
-
-        unit = 1
-        # load brep file into gmsh
-        if args.scaling:
-            unit = 0.001
-            gmsh.option.setNumber("Geometry.OCCScaling", unit)
-
-        if not lcs:
-            print("Mesh Length Characteristics:")
-            # print(f'Boxes: {Boxes}, type={type(Boxes)}')
-            for box in Boxes:
-                for item in box:
-                    # print(f'{item}: box[item]={box[item]}')
-                    cadtype, (r, z) = box[item]
-                    r1 = float(r[1])
-                    r0 = float(r[0])
-                    lcs.append((r1 - r0) / 30.0)  # r,z are in mm in yaml files
-                    print(f"\t{item}: {lcs[-1]}")
-            if "Air" in args.input_file:
-                lcs.append(lcs[-1] * 20)
-                print(f"Air: {lcs[-1]}")
+        air = False
+        if "Air" in args.input_file:
+            air = True
+        if is2D:
+            gmsh_msh(args.alog2d, lcs, air, args.scaling)
         else:
-            # print(f'Boxes: {Boxes}')
-            nboxes = len(Boxes)
-            if "Air" in args.input_file:
-                assert (
-                    nboxes == len(lcs) - 1
-                ), f"Wrong number of mesh length size: {len(Boxes)} magnets whereas lcs contains {len(lcs)-1} mesh size"
-            else:
-                assert nboxes == len(
-                    lcs
-                ), f"Wrong number of mesh length size: {len(Boxes)} magnets whereas lcs contains {len(lcs)} mesh size"
-
-        # load brep file into gmsh
-        if args.scaling:
-            unit = 0.001
-            gmsh.option.setNumber("Geometry.OCCScaling", unit)
-
-        # Assign a mesh size to all the points:
-        lcar1 = lcs[-1]
-        gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lcar1)
-
-        # Get points from Physical volumes
-        # from volume name use correct lc characteristic
-        z_eps = 1.0e-6
-        for i, box in enumerate(Boxes):
-            for key in box:
-                mtype = box[key][0]
-                # print(f'box[{i}]={key} mtype={mtype} lc={lcs[i]} boundingBox={box[key][1]}')
-                (r, z) = box[key][1]
-                if mtype == "Supra":
-                    z[0] *= 1.1
-                    z[1] *= 1.1
-
-                ov = gmsh.model.getEntitiesInBoundingBox(
-                    r[0], z[0], -z_eps, r[1], z[1], z_eps, 0
-                )
-                gmsh.model.mesh.setSize(ov, lcs[i])
-
-        # LcMax -                         /------------------
-        #                               /
-        #                             /
-        #                           /
-        # LcMin -o----------------/
-        #        |                |       |
-        #      Point           DistMin DistMax
-        # Field 1: Distance to electrodes
-
-        if EndPoints_tags:
-            gmsh.model.mesh.field.add("Distance", 1)
-            gmsh.model.mesh.field.setNumbers(1, "NodesList", EndPoints_tags)
-
-            # Field 2: Threshold that dictates the mesh size of the background field
-            gmsh.model.mesh.field.add("Threshold", 2)
-            gmsh.model.mesh.field.setNumber(2, "IField", 1)
-            gmsh.model.mesh.field.setNumber(2, "LcMin", lcar1 / 20.0)
-            gmsh.model.mesh.field.setNumber(2, "LcMax", lcar1)
-            gmsh.model.mesh.field.setNumber(2, "DistMin", 5 * unit)
-            gmsh.model.mesh.field.setNumber(2, "DistMax", 10 * unit)
-            gmsh.model.mesh.field.setNumber(2, "StopAtDistMax", 15 * unit)
-            gmsh.model.mesh.field.setAsBackgroundMesh(2)
-
-        if args.algo2d != "BAMG":
-            gmsh.option.setNumber("Mesh.Algorithm", get_algo2D(args.algo2d))
-        else:
-            # # They can also be set for individual surfaces, e.g. for using `MeshAdapt' on
-            gindex = len(stags) + len(bctags)
-            for tag in range(len(stags), gindex):
-                print(f"Apply BAMG on tag={tag}")
-                gmsh.model.mesh.setAlgorithm(2, tag, get_algo2D(args.algo2d))
-
-        if args.algo3d != "None":
-            gmsh.option.setNumber("Mesh.Algorithm3D", get_algo3D(args.algo3d))
-            gmsh.model.mesh.generate(3)
-        else:
-            gmsh.model.mesh.generate(2)
+            print("xao2msh: gmsh_msh for 3D not implemented")
 
         meshname = gname
         if is2D:

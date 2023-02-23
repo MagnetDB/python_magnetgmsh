@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-from typing import List, Union
+from typing import Type, List, Union
 
 import gmsh
 
@@ -38,7 +38,7 @@ def create_bcs(
 
     gmsh.model.occ.synchronize()
     ov = []
-    if isinstance(box[0], float) or isinstance(box[0], int):
+    if isinstance(box[0], float):
         (rmin, rmax, zmin, zmax) = minmax(box, eps)
         ov += gmsh.model.getEntitiesInBoundingBox(rmin, zmin, 0, rmax, zmax, 0, dim)
     else:

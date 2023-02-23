@@ -21,7 +21,7 @@ def get_algo(name: str):
     return MeshAlgo2D[name]
 
 
-def gmsh_msh(algo: str, lc: float, air: bool = False, scaling: bool = False):
+def gmsh_msh(algo: str, lcs: dict, air: bool = False, scaling: bool = False):
     """
     create Axi msh
 
@@ -44,21 +44,29 @@ def gmsh_msh(algo: str, lc: float, air: bool = False, scaling: bool = False):
         unit = 0.001
         gmsh.option.setNumber("Geometry.OCCScaling", unit)
 
-    print(f"Mesh Length Characteristics: lc={lc}")
+    print(f"Mesh Length Characteristics: lcs={lcs}")
 
     # Assign a mesh size to all the points:
-    lcar1 = 5 * lc * unit
+    lcar1 = 30 * unit
     gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lcar1)
 
-    """
-    if "Air" in defs:
-        gmsh.model.mesh.setSize(
-            gmsh.model.getEntitiesForPhysicalGroup(0, defs["ZAxis"]), lc[1]
-        )
-        gmsh.model.mesh.setSize(
-            gmsh.model.getEntitiesForPhysicalGroup(0, defs["Infty"]), lc[1]
-        )
-    """
+    vGroups = gmsh.model.getPhysicalGroups()
+    for iGroup in vGroups:
+        dimGroup = iGroup[0]  # 1D, 2D or 3D
+        tagGroup = iGroup[1]
+        namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
+        if namGroup in lcs:
+            vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
+            for entity in vEntities:
+                print(entity)
+                (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(
+                    2, entity
+                )
+                ov = gmsh.model.getEntitiesInBoundingBox(
+                    xmin, ymin, zmin, xmax, ymax, zmax, 0
+                )
+                gmsh.model.mesh.setSize(ov, lcs[namGroup])
+                print(f"lcs[{namGroup}]: {lcs[namGroup]}]")
 
     # LcMax -                         /------------------
     #                               /

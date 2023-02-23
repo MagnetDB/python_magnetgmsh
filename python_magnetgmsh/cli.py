@@ -13,6 +13,7 @@ from python_magnetgeo import Bitter
 from python_magnetgeo import Bitters
 from python_magnetgeo import Supra
 from python_magnetgeo import Supras
+from python_magnetgeo import Screen
 from python_magnetgeo import MSite
 
 from .mesh.axi import get_allowed_algo, gmsh_msh
@@ -87,6 +88,7 @@ def main():
         Insert.Insert: ".Insert",
         Bitter.Bitter: ".Bitter",
         Supra.Supra: ".Supra",
+        Screen.Screen: ".Screen",
         Supras.Supras: ".Supras",
         Bitters.Bitters: ".Bitters",
         MSite.MSite: ".MSite",
@@ -101,11 +103,32 @@ def main():
 
     # TODO set mesh characteristics here
     if args.mesh:
-        boxes = []  # get bounding box per object
+        from .cfg import loadcfg
+
+        (solid_names, NHelices, Channels, lcs) = loadcfg(
+            args.filename, "", True, args.verbose
+        )
+        print(f"lcs: {lcs}")
+
         air = False
         if AirData:
             air = True
-        gmsh_msh(args.algo2d, args.lc, air, args.scaling)
+            lcs["Air"] = 30
+
+        from .MeshAxiData import MeshAxiData
+
+        meshAxiData = MeshAxiData(args.filename, args.algo2d)
+        try:
+            meshAxiData.load(air)
+            if args.ebug:
+                self._MeshAxiData.debug()
+        except:
+            AirDAta = None
+            # if air:
+            #     AirData = (self._zInfAir, self._zSupAir, self._radAir, self._radBiot)
+            mesh_dict = meshAxiData.default("", Object, AirData)
+
+        gmsh_msh(args.algo2d, lcs, air, args.scaling)
 
         gmsh.model.mesh.generate(2)
         meshfilename = args.filename.replace(".yaml", "-Axi")

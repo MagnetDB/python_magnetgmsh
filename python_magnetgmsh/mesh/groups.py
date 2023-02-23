@@ -69,14 +69,12 @@ def create_physicalgroups(
 
 def create_physicalbcs(
     tree,
-    gname,
     GeomParams,
     NHelices,
     innerLead_exist,
     outerLead_exist,
     groupCoolingChannels,
     Channels,
-    compound,
     hideIsolant,
     groupIsolant,
     debug: bool = False,
@@ -131,65 +129,6 @@ def create_physicalbcs(
                     num = int(sname.split("_")[0].replace("H", ""))
                     if num != NHelices:
                         skip = True
-
-            """
-            # groupCoolingChannels option (see Tools_SMESH::CreateChannelSubMeshes for HL and for HR ??) + watch out when hideIsolant is True
-            # TODO case of HR: group HChannel and muChannel per Helix
-            if groupCoolingChannels:
-                print(f"groupCoolingChannels: sname={sname} type={type(Channels)}")
-                if isinstance(Channels, dict):
-                    for key in Channels:
-                        if key in sname:
-                            for j, channel in enumerate(Channels[key]):
-                                print(f"Channels[{key}][{j}]: {channel}")
-                                if isinstance(channel, str):
-                                    for cname in channel:
-                                        if sname.endswith(cname):
-                                            sname = f"{key}_Channel{j}"
-                                            print(
-                                                f"sname={sname}, cname={cname}, channel={channel}, key={key} dictcase/str"
-                                            )
-                                            break
-                                else:
-                                    for l, schannel in enumerate(channel):
-                                        for cname in schannel:
-                                            if sname.endswith(cname):
-                                                sname = (
-                                                    f"{key}_{schannel}"
-                                                )  # TODO check name
-                                                print(
-                                                    f"sname={sname}, cname={cname}, channel={schannel}, key={key} dictcase/list"
-                                                )
-                                                break
-
-                elif isinstance(Channels, list):
-                    print(f"Channels]: {Channels}")
-                    for j, channel in enumerate(Channels):
-                        print(f"Channel[{j}]: {channel}")
-                        for cname in channel:
-                            if sname.endswith(cname):
-                                sname = f"Channel{j}"
-                                print(f"sname={sname}, cname={cname} listcase")
-                                break
-
-                # TODO make it more general
-                # so far assume only one insert and  insert is the 1st compound
-                if compound:
-                    if sname.startswith(compound[0]):
-                        if "_rInt" in sname or "_rExt" in sname:
-                            skip = True
-                        if "_IrInt" in sname or "_IrExt" in sname:
-                            skip = True
-                        if "_iRint" in sname or "_iRext" in sname:
-                            skip = True
-                else:
-                    if "_rInt" in sname or "_rExt" in sname:
-                        skip = True
-                    if "_IrInt" in sname or "_IrExt" in sname:
-                        skip = True
-                    if "_iRint" in sname or "_iRext" in sname:
-                        skip = True
-            """
 
             # if hideIsolant remove "iRint"|"iRext" in Bcs otherwise sname: do not record physical surface for Interface
             if hideIsolant:
