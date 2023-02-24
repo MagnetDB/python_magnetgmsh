@@ -10,41 +10,48 @@ def minmax(box: List[float], eps: float):
     rmin = box[0] * (1 - eps)
     if box[0] < 0:
         rmin = box[0] * (1 + eps)
+    if box[0] == 0:
+        rmin = -eps
 
     zmin = box[1] * (1 - eps)
     if box[1] < 0:
         zmin = box[1] * (1 + eps)
+    if box[1] == 0:
+        zmin = -eps
 
     rmax = box[2] * (1 + eps)
     if box[2] < 0:
         rmax = box[2] * (1 - eps)
+    if box[2] == 0:
+        rmax = eps
 
     zmax = box[3] * (1 + eps)
     if box[3] < 0:
         zmax = box[3] * (1 - eps)
+    if box[3] == 0:
+        zmax = eps
 
     # print(rmin, rmax, zmin, zmax)
     return (rmin, rmax, zmin, zmax)
 
 
-def create_bcs(
-    name: str,
-    box: Union[List[float], List[List[float]]],
-    dim: int = 1,
-    eps: float = 1.0e-6,
-):
+def create_bcs(name: str, box: list, dim: int = 1, eps: float = 1.0e-6):
     """
     """
 
     gmsh.model.occ.synchronize()
     ov = []
-    if isinstance(box[0], float):
+    if isinstance(box[0], float) or isinstance(box[0], int):
         (rmin, rmax, zmin, zmax) = minmax(box, eps)
         ov += gmsh.model.getEntitiesInBoundingBox(rmin, zmin, 0, rmax, zmax, 0, dim)
     else:
         for item in box:
             (rmin, rmax, zmin, zmax) = minmax(item, eps)
-            gmsh.model.getEntitiesInBoundingBox(rmin, rmax, 0, zmin, zmax, 0, dim)
+            _ov = gmsh.model.getEntitiesInBoundingBox(rmin, zmin, 0, rmax, zmax, 0, dim)
+            if len(_ov) == 0:
+                print(f"create_bs: name={name}, item={item} no surface detected")
+                print(f"minmax: {(rmin, rmax, zmin, zmax)}")
+            ov += _ov
 
     ps = gmsh.model.addPhysicalGroup(1, [tag for (dim, tag) in ov])
     gmsh.model.setPhysicalName(1, ps, name)

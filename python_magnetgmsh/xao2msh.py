@@ -69,11 +69,7 @@ def main():
         default="None",
     )
     parser_mesh.add_argument(
-        "--lc",
-        help="specify characteristic lengths (Magnet1, Magnet2, ..., Air (aka default))",
-        type=float,
-        nargs="+",
-        metavar="LC",
+        "--lc", help="load mesh size from file", action="store_true"
     )
     parser_mesh.add_argument(
         "--scaling", help="scale to m (default unit is mm)", action="store_true"
@@ -172,7 +168,7 @@ def main():
 
     from .cfg import loadcfg
 
-    (solid_names, NHelices, Channels, lcs) = loadcfg(cfgfile, gname, is2D, args.verbose)
+    (solid_names, Channels) = loadcfg(cfgfile, gname, is2D, args.verbose)
 
     if "Air" in args.input_file:
         solid_names.append("Air")
@@ -180,14 +176,12 @@ def main():
             raise Exception(
                 "--hide Isolants cannot be used since cad contains Air region"
             )
-        lcs["Air"] = 30
 
     nsolids = len(gmsh.model.getEntities(GeomParams["Solid"][0]))
     assert (
         len(solid_names) == nsolids
     ), f"Wrong number of solids: in yaml {len(solid_names)} in gmsh {nsolids}"
 
-    print(f"NHelices = {NHelices}")
     print(f"Channels = {Channels}")
 
     # use yaml data to identify solids id...
@@ -197,13 +191,18 @@ def main():
         tree, solid_names, GeomParams, hideIsolant, groupIsolant, args.debug
     )
 
+    print("PhysicalGroups:")
+    vGroups = gmsh.model.getPhysicalGroups()
+    for iGroup in vGroups:
+        dimGroup = iGroup[0]  # 1D, 2D or 3D
+        tagGroup = iGroup[1]
+        namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
+        print(namGroup)
+
     # get groups
     bctags = create_physicalbcs(
         tree,
         GeomParams,
-        NHelices,
-        innerLead_exist,
-        outerLead_exist,
         groupCoolingChannels,
         Channels,
         hideIsolant,
@@ -213,14 +212,32 @@ def main():
 
     if args.command == "mesh" and not args.dry_run:
 
-        if args.lc is None:
-            print(f"Overwrite lcs def for MeshCarateristics")
-
         air = False
         if "Air" in args.input_file:
             air = True
         if is2D:
-            gmsh_msh(args.alog2d, lcs, air, args.scaling)
+            from .MeshAxiData import MeshAxiData
+
+            with open(cfgfile, "r") as f:
+                Object = yaml.load(f, Loader=yaml.FullLoader)
+            print(f"Object={Object}, type={type(Object)}")
+
+            AirData = ()
+            if air:
+                from .Air import gmsh_boundingbox
+
+                box = gmsh_boundingbox("Air")
+                AirData = (box[1], box[4], box[3], 10)
+
+            meshAxiData = MeshAxiData(cfgfile.replace(".yaml", ""), args.algo2d)
+            if args.lc:
+                meshAxiData.load(air)
+            else:
+                meshAxiData.default("", Object, AirData)
+                meshAxiData.dump(air)
+
+            cracks = {}
+            gmsh_msh(args.algo2d, meshAxiData, air, args.scaling)
         else:
             print("xao2msh: gmsh_msh for 3D not implemented")
 

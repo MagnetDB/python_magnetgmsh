@@ -45,6 +45,8 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         for i in gmsh_ids:
             domain.append((2, i))
         o, m = gmsh.model.occ.fragment(domain, slits)
+        gmsh.model.occ.synchronize()
+
         for j, entries in enumerate(m):
             _ids = []
             for id_tuple in entries:
@@ -62,11 +64,9 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
 
     # Now create air
     if AirData:
-        (r, z) = Bitter.boundingBox()
-        r0_air = 0
-        dr_air = r[1] * AirData[0]
-        z0_air = z[0] * AirData[1]
-        dz_air = abs(z[1] - z[0]) * AirData[1]
+        from .Air import gmsh_air
+
+        (r0_air, z0_air, dr_air, dz_air) = gmsh_air(Bitter, AirData)
         _id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
         ov, ovv = gmsh.model.occ.fragment(
@@ -90,12 +90,12 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
     prefix = ""
     if mname:
         prefix = f"{mname}_"
-    print(f"Bitter/gmsh_bcs: Bitter={Bitter.name}, prefix={prefix}")
 
     # set physical name
     if len(B_ids) == 1:
+        print(B_ids)
         psname = f"{prefix[0:len(prefix)-1]}"
-        ps = gmsh.model.addPhysicalGroup(2, B_ids)
+        ps = gmsh.model.addPhysicalGroup(2, B_ids[0])
         gmsh.model.setPhysicalName(2, ps, psname)
         defs[psname] = ps
     else:

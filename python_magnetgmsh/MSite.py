@@ -140,57 +140,20 @@ def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
         for i, key in enumerate(MSite.magnets):
             # print(f"msite/gmsh/{key} (dict)")
             if isinstance(MSite.magnets[key], str):
-                print(f"gmsh_ids[{key}]: {gmsh_ids[i]}")
-                # print(f"msite/gmsh/{MSite.magnets[key]} (dict/str)")
                 with open(f"{MSite.magnets[key]}.yaml", "r") as f:
                     Object = yaml.load(f, Loader=yaml.FullLoader)
                 pname = f"{key}"
-                # if isinstance(Object, Insert.Insert):
-                #    pname = ""
                 defs.update(load_defs(Object, pname, gmsh_ids[num]))
                 num += 1
             if isinstance(MSite.magnets[key], list):
                 for j, mname in enumerate(MSite.magnets[key]):
-                    print(f"msite/gmsh/{mname} (dict/list)")
-                    # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
                     with open(f"{mname}.yaml", "r") as f:
                         Object = yaml.load(f, Loader=yaml.FullLoader)
                     pname = f"{key}_{mname}"
-                    # if isinstance(Object, Insert.Insert):
-                    #     pname = ""
                     defs.update(load_defs(Object, pname, gmsh_ids[num]))
                     num += 1
 
-    """
-    for compound in [MSite.magnets, MSite.screens]:
-        if isinstance(compound, str):
-            with open(f"{compound}.yaml", "r") as f:
-                Object = yaml.load(f, Loader=yaml.FullLoader)
-            defs.update(load_defs(Object, "", ids))
-
-        elif isinstance(compound, list):
-            for i, mname in enumerate(compound):
-                with open(f"{mname}.yaml", "r") as f:
-                    Object = yaml.load(Object, Loader=yaml.FullLoader)
-                defs.update(load_defs(f, "", gmsh_ids))
-
-        elif isinstance(compound, dict):
-            num = 0
-            for i, key in enumerate(compound):
-                if isinstance(compound[key], str):
-                    with open(f"{compound[key]}.yaml", "r") as f:
-                        Object = yaml.load(f, Loader=yaml.FullLoader)
-                    defs.update(load_defs(Object, "", gmsh_ids))
-
-                if isinstance(MSite.magnets[key], list):
-                    for mname in MSite.magnets[key]:
-                        with open(f"{mname}.yaml", "r") as f:
-                            Object = yaml.load(f, Loader=yaml.FullLoader)
-                        defs.update(load_defs(Object, key, gmsh_ids))
-
-        else:
-            raise Exception(f"magnets: unsupported type {type(compound)}")
-        """
+    # TODO: add screens
 
     # Air
     if Air_data:

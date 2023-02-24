@@ -70,9 +70,6 @@ def create_physicalgroups(
 def create_physicalbcs(
     tree,
     GeomParams,
-    NHelices,
-    innerLead_exist,
-    outerLead_exist,
     groupCoolingChannels,
     Channels,
     hideIsolant,
@@ -103,32 +100,6 @@ def create_physicalbcs(
                 print(f"sname={sname} indices={indices}")
 
             skip = False
-
-            # keep only H0_V0 if no innerlead otherwise keep Lead_V0
-            # keep only H14_V1 if not outerlead otherwise keep outerlead V1
-            # print(innerLead_exist, re.search('H\d+_V0',sname))
-            if innerLead_exist:
-                match = re.search("H\d+_V0", sname)
-                if match or (sname.startswith("Inner") and sname.endswith("V1")):
-                    skip = True
-            else:
-                match = re.search("H\d+_V0", sname)
-                if match:
-                    num = int(sname.split("_")[0].replace("H", ""))
-                    if num != 1:
-                        skip = True
-            if outerLead_exist:
-                match = re.search("H\d+_V1", sname)
-                if match:
-                    skip = True
-                if sname.startswith("Outer") and sname.endswith("V1"):
-                    skip = True
-            else:
-                match = re.search("H\d+_V1", sname)
-                if match:
-                    num = int(sname.split("_")[0].replace("H", ""))
-                    if num != NHelices:
-                        skip = True
 
             # if hideIsolant remove "iRint"|"iRext" in Bcs otherwise sname: do not record physical surface for Interface
             if hideIsolant:

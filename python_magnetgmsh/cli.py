@@ -45,9 +45,7 @@ def main():
     parser.add_argument(
         "--scaling", help="scale to m (default unit is mm)", action="store_true"
     )
-    parser.add_argument(
-        "--lc", help="specify characteristic length", type=float, default=5
-    )
+    parser.add_argument("--lc", help="load mesh size from file", action="store_true")
 
     parser.add_argument("--show", help="display gmsh windows", action="store_true")
     parser.add_argument("--verbose", help="activate debug mode", action="store_true")
@@ -103,32 +101,28 @@ def main():
 
     # TODO set mesh characteristics here
     if args.mesh:
-        from .cfg import loadcfg
-
-        (solid_names, NHelices, Channels, lcs) = loadcfg(
-            args.filename, "", True, args.verbose
-        )
-        print(f"lcs: {lcs}")
-
         air = False
         if AirData:
             air = True
-            lcs["Air"] = 30
+            # lcs["Air"] = 30
 
         from .MeshAxiData import MeshAxiData
 
-        meshAxiData = MeshAxiData(args.filename, args.algo2d)
-        try:
-            meshAxiData.load(air)
-            if args.ebug:
-                self._MeshAxiData.debug()
-        except:
-            AirDAta = None
-            # if air:
-            #     AirData = (self._zInfAir, self._zSupAir, self._radAir, self._radBiot)
-            mesh_dict = meshAxiData.default("", Object, AirData)
+        AirDAta = ()
+        if air:
+            from .Air import gmsh_air
 
-        gmsh_msh(args.algo2d, lcs, air, args.scaling)
+            (r0_air, z0_air, dr_air, dz_air) = gmsh_air(Object, AirData)
+            AirData = (z0_air, z0_air + dz_air, r0_air + dr_air, 10)
+
+        meshAxiData = MeshAxiData(args.filename.replace(".yaml", ""), args.algo2d)
+        if args.lc:
+            meshAxiData.load(air)
+        else:
+            meshAxiData.default("", Object, AirData)
+            meshAxiData.dump(air)
+
+        gmsh_msh(args.algo2d, meshAxiData, air, args.scaling)
 
         gmsh.model.mesh.generate(2)
         meshfilename = args.filename.replace(".yaml", "-Axi")
