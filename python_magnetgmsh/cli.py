@@ -16,7 +16,7 @@ from python_magnetgeo import Supras
 from python_magnetgeo import Screen
 from python_magnetgeo import MSite
 
-from .mesh.axi import get_allowed_algo, gmsh_msh
+from .mesh.axi import get_allowed_algo, gmsh_msh, gmsh_cracks
 
 
 def main():
@@ -96,7 +96,7 @@ def main():
     MyObject = import_module(import_dict[type(Object)], package="python_magnetgmsh")
 
     ids = MyObject.gmsh_ids(Object, AirData, args.debug)
-    # print(f"ids[{Object.name}]: {ids}")
+    print(f"ids[{Object.name}]: {ids}")
     bcs = MyObject.gmsh_bcs(Object, "", ids, args.debug)
 
     # TODO set mesh characteristics here
@@ -123,8 +123,9 @@ def main():
             meshAxiData.dump(air)
 
         gmsh_msh(args.algo2d, meshAxiData, air, args.scaling)
+        gmsh_cracks(args.debug)
 
-        gmsh.model.mesh.generate(2)
+        gmsh.option.setNumber("Mesh.SaveAll", 1)
         meshfilename = args.filename.replace(".yaml", "-Axi")
         if air:
             meshfilename += "_withAir"

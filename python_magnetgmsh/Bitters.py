@@ -86,7 +86,7 @@ def gmsh_ids(Bitters: Bitters, AirData: tuple, debug: bool = False) -> tuple:
 
     # need to account for changes
     gmsh.model.occ.synchronize()
-    return (gmsh_ids, ())
+    return (gmsh_ids, cracks, ())
 
 
 def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:

@@ -15,8 +15,15 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
     """
     create gmsh geometry
     """
+    print("Bitter/gmsh_ids")
 
     gmsh_ids = []
+    gmsh_cracks = []
+
+    coolingslit = False
+    if len(Bitter.coolingslits) > 0:
+        coolingslit = True
+
     x = Bitter.r[0]
     dr = Bitter.r[1] - Bitter.r[0]
     y = -Bitter.axi.h
@@ -25,42 +32,46 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, dz)
         # print(f"B[{i}]={_id}")
         gmsh_ids.append(_id)
-
         y += dz
-    # print(f"gmsh_ids: {gmsh_ids}")
 
     # Cooling Channels
-    if len(Bitter.coolingslits) > 0:
-        slits = []
+    if coolingslit:
         # print(f"CoolingSlits[r]: {Bitter.coolingslits[0]['r']}")
-        for r in Bitter.coolingslits[0]["r"]:
+        for i, r in enumerate(Bitter.coolingslits[0]["r"]):
             x = float(r)
             pt1 = gmsh.model.occ.addPoint(x, Bitter.z[0], 0)
             pt2 = gmsh.model.occ.addPoint(x, Bitter.z[1], 0)
             _id = gmsh.model.occ.addLine(pt1, pt2)
-            slits.append((1, _id))
+            gmsh_cracks.append(_id)
 
         ngmsh_ids = []
-        domain = []
-        for i in gmsh_ids:
-            domain.append((2, i))
-        o, m = gmsh.model.occ.fragment(domain, slits)
+        ngmsh_cracks = []
+        domain = [(2, i) for i in gmsh_ids]
+        cuts = [(1, i) for i in gmsh_cracks]
+        o, m = gmsh.model.occ.fragment(domain, cuts)
         gmsh.model.occ.synchronize()
 
         for j, entries in enumerate(m):
             _ids = []
-            for id_tuple in entries:
-                if id_tuple[0] == 2:
-                    _ids.append(id_tuple[1])
+            _cracks = []
+            for (dim, tag) in entries:
+                if dim == 2:
+                    _ids.append(tag)
+                if dim == 1:
+                    _cracks.append(tag)
             if _ids:
                 ngmsh_ids.append(_ids)
+            if _cracks:
+                ngmsh_cracks.append(_cracks)
+
         gmsh_ids = ngmsh_ids
+        gmsh_cracks = ngmsh_cracks
 
         # need to account for changes
-        gmsh.model.occ.synchronize()
+        # gmsh.model.occ.synchronize()
 
-    if debug:
-        print(f"gmsh_ids: {gmsh_ids}")
+    # if debug:
+    print(f"gmsh_ids: {gmsh_ids}, gmsh_cracks: {gmsh_cracks}")
 
     # Now create air
     if AirData:
@@ -73,10 +84,10 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
             [(2, _id)], [(2, i) for i in flatten(gmsh_ids)]
         )
         gmsh.model.occ.synchronize()
-        return (gmsh_ids, (_id, dr_air, z0_air, dz_air))
+        return (gmsh_ids, gmsh_cracks, (_id, dr_air, z0_air, dz_air))
 
-    gmsh.model.occ.synchronize()
-    return (gmsh_ids, ())
+    # gmsh.model.occ.synchronize()
+    return (gmsh_ids, gmsh_cracks, ())
 
 
 def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dict:
@@ -85,7 +96,7 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
     """
 
     defs = {}
-    (B_ids, Air_data) = ids
+    (B_ids, Cracks_ids, Air_data) = ids
 
     prefix = ""
     if mname:
@@ -95,16 +106,17 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
     if len(B_ids) == 1:
         print(B_ids)
         psname = f"{prefix[0:len(prefix)-1]}"
-        ps = gmsh.model.addPhysicalGroup(2, B_ids[0])
+        if isinstance(B_ids[0], int):
+            ps = gmsh.model.addPhysicalGroup(2, [B_ids[0]])
+        else:
+            ps = gmsh.model.addPhysicalGroup(2, B_ids[0])
         gmsh.model.setPhysicalName(2, ps, psname)
         defs[psname] = ps
     else:
         for i, id in enumerate(B_ids):
             if isinstance(id, int):
-                # print(f"B{i+1}: {id}")
                 ps = gmsh.model.addPhysicalGroup(2, [id])
             else:
-                # print(f"B{i+1}: {id}")
                 ps = gmsh.model.addPhysicalGroup(2, id)
             psname = f"{prefix}B{i+1}"
             gmsh.model.setPhysicalName(2, ps, psname)
@@ -119,11 +131,19 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
         f"{prefix}Rint": [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]],
         f"{prefix}Rext": [Bitter.r[1], Bitter.z[0], Bitter.r[1], Bitter.z[1]],
     }
+
     # Cooling Channels
-    if len(Bitter.coolingslits) > 0:
-        # print(f"CoolingSlits[r]: {Bitter.coolingslits[0]['r']}")
-        for i, r in enumerate(Bitter.coolingslits[0]["r"]):
-            bcs_defs[f"{prefix}slit{i}"] = [r, Bitter.z[0], r, Bitter.z[1], 1]
+    print(f"Cracks_ids={Cracks_ids}")
+    if len(Cracks_ids) > 0:
+        for i, id in enumerate(Cracks_ids):
+            print(f"slit{i+1}: {id}")
+            if isinstance(id, int):
+                ps = gmsh.model.addPhysicalGroup(1, [id])
+            else:
+                ps = gmsh.model.addPhysicalGroup(1, id)
+            psname = f"{prefix}slit{i+1}"
+            gmsh.model.setPhysicalName(1, ps, psname)
+            defs[psname] = ps
 
     # Air
     if Air_data:

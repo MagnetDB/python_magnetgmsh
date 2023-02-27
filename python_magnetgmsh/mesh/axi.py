@@ -44,11 +44,17 @@ def gmsh_msh(
 
     # Assign a mesh size to all the points:
     lcar1 = 40 * unit
+
+    Origin = gmsh.model.occ.addPoint(0, 0, 0, lcar1)
+    gmsh.model.occ.synchronize()
+
+    # add Points
+    EndPoints_tags = [Origin]
+
     gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lcar1)
 
     mesh_dict = meshdata.mesh_dict
     lcs = meshdata.surfhypoths
-    cracks = {}
 
     # get ov and lc per PhysicalSurface
     lc_data = {}
@@ -76,14 +82,6 @@ def gmsh_msh(
                 ov += _ov
             lc_data[namGroup] = (ov, lc)
 
-        if "slit" in namGroup:
-            print(f"{namGroup}: Bitter cooling slit tag={tagGroup}")
-            cracks[namGroup] = tagGroup
-        """
-        else:
-            print(f"{namGroup} not in mesh_dict")
-        """
-
     # Apply lc in reverse order to get nice mesh
     for key in reversed(lc_data):
         (ov, lc) = lc_data[key]
@@ -99,12 +97,6 @@ def gmsh_msh(
     #      Point           DistMin DistMax
     # Field 1: Distance to electrodes
 
-    Origin = gmsh.model.occ.addPoint(0, 0, 0, lcar1)
-    gmsh.model.occ.synchronize()
-
-    # add Points
-    EndPoints_tags = [Origin]
-
     if EndPoints_tags:
         gmsh.model.mesh.field.add("Distance", 1)
         gmsh.model.mesh.field.setNumbers(1, "NodesList", EndPoints_tags)
@@ -119,7 +111,6 @@ def gmsh_msh(
         gmsh.model.mesh.field.setNumber(2, "StopAtDistMax", 17 * unit)
         gmsh.model.mesh.field.setAsBackgroundMesh(2)
 
-        """
         # We could also use a `Box' field to impose a step change in element sizes
         # inside a box
         gmsh.model.mesh.field.add("Box", 3)
@@ -134,21 +125,39 @@ def gmsh_msh(
         # Let's use the minimum of all the fields as the mesh size field:
         gmsh.model.mesh.field.add("Min", 4)
         gmsh.model.mesh.field.setNumbers(4, "FieldsList", [1, 2, 3])
-        """
 
-    gmsh.option.setNumber("Mesh.Algorithm", MeshAlgo2D[algo])
     gmsh.model.mesh.generate(2)
 
-    """ Only working when 1 Bitter section and gmsh >= 4.11.xx
+    pass
+
+
+def gmsh_cracks(debug: bool = False):
+    """
+    add cracks to mesh
+    """
+    print("Add cracks")
+
+    cracks = {}
+    vGroups = gmsh.model.getPhysicalGroups()
+    for iGroup in vGroups:
+        dimGroup = iGroup[0]  # 1D, 2D or 3D
+        tagGroup = iGroup[1]
+        namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
+        if "slit" in namGroup:
+            print(f"{namGroup}: Bitter cooling slit tag={tagGroup}")
+            cracks[namGroup] = tagGroup
+
+    """ Only working when 1 Bitter section and gmsh >= 4.11.xx """
     if cracks:
         print("Creating cracks for Bitter cooling slits")
         for i, crack in enumerate(cracks):
             print(f"[{i}] {crack}: id={cracks[crack]}")
             gmsh.plugin.setNumber("Crack", "Dimension", 1)
             gmsh.plugin.setNumber("Crack", "PhysicalGroup", cracks[crack])
-            gmsh.plugin.setNumber("Crack", "DebugView", 1)
+            if debug:
+                gmsh.plugin.setNumber("Crack", "DebugView", 1)
             gmsh.plugin.run("Crack")
-    """
+    """ """
 
     pass
 
