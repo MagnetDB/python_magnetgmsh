@@ -8,6 +8,7 @@ Build-Depends: debhelper-compat (= 12),
  python3-all,
  python3-yaml,
  python3-gmsh,
+ python3-magnetgeo,
  python3-pytest-runner
 Standards-Version: 4.6.0
 Homepage: https://github.com/Trophime/python_magnetgmsh
@@ -18,7 +19,7 @@ Rules-Requires-Root: no
 
 Package: python3-magnetgmsh
 Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends}, python3-gmsh
+Depends: ${python3:Depends}, ${misc:Depends}, python3-gmsh, python3-magnetgeo
 Suggests: python-python-magnetgmsh-doc
 Description: Magnet Gmsh Python module (Python 3)
  This module enable to perform the following operations
