@@ -18,6 +18,7 @@ def gmsh_ids(Bitters: Bitters, AirData: tuple, debug: bool = False) -> tuple:
     import gmsh
 
     gmsh_ids = []
+    crack_ids = []
 
     def magnet_ids(f):
         Magnet = yaml.load(f, Loader=yaml.FullLoader)
@@ -31,20 +32,26 @@ def gmsh_ids(Bitters: Bitters, AirData: tuple, debug: bool = False) -> tuple:
         # print(f"Bitters/gmsh/{Bitters.magnets} (str)")
         with open(f"{Bitters.magnets}.yaml", "r") as f:
             ids = magnet_ids(f)
-            gmsh_ids.append(ids)
+            gmsh_ids.append(ids[0])
+            crack_ids.append(ids[1])
 
     elif isinstance(Bitters.magnets, list):
         for mname in Bitters.magnets:
             # print(f"Bitters/gmsh/{mname} (dict/list)")
             with open(f"{mname}.yaml", "r") as f:
                 ids = magnet_ids(f)
-                gmsh_ids.append(ids)
+                gmsh_ids.append(ids[0])
+                crack_ids.append(ids[1])
                 # print(f"ids[{mname}]: {ids} (type={type(ids)})")
 
     else:
         raise Exception(f"magnets: unsupported type {type(Bitters.magnets)}")
 
+    if debug:
+        print(f"Bitters/gmsh_ids: gmsh_ids={gmsh_ids}")
+        print(f"Bitters/gmsh_ids: cracks: {crack_ids}")
     # Now create air
+    Air_data = ()
     if AirData:
         ([r_min, r_max], [z_min, z_max]) = Bitters.boundingBox()
         r0_air = 0
@@ -54,12 +61,13 @@ def gmsh_ids(Bitters: Bitters, AirData: tuple, debug: bool = False) -> tuple:
         A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
         flat_list = []
-        # print("list:", gmsh_ids)
-        # print("flat_list:", len(gmsh_ids))
+        if debug:
+            print("list:", gmsh_ids)
+            print("flat_list:", len(gmsh_ids))
         for sublist in gmsh_ids:
-            if not isinstance(sublist, tuple):
+            if not isinstance(sublist, list):
                 raise Exception(
-                    f"python_magnetgeo/gmsh: flat_list: expect a tuple got a {type(sublist)}"
+                    f"Bitters python_magnetmsh/gmsh: flat_list: expect a tuple got a {type(sublist)}"
                 )
             for elem in sublist:
                 # print("elem:", elem, type(elem))
@@ -82,11 +90,11 @@ def gmsh_ids(Bitters: Bitters, AirData: tuple, debug: bool = False) -> tuple:
 
         # need to account for changes
         gmsh.model.occ.synchronize()
-        return (gmsh_ids, (A_id, dr_air, z0_air, dz_air))
+        Air_data = (A_id, dr_air, z0_air, dz_air)
 
     # need to account for changes
     gmsh.model.occ.synchronize()
-    return (gmsh_ids, cracks, ())
+    return (gmsh_ids, crack_ids, Air_data)
 
 
 def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
@@ -95,8 +103,8 @@ def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
     """
     import gmsh
 
-    (gmsh_ids, Air_data) = ids
-    # print("Bitters/gmsh_bcs:", ids)
+    (gmsh_ids, crack_ids, Air_data) = ids
+    print("Bitters/gmsh_bcs:", ids)
 
     defs = {}
     bcs_defs = {}
@@ -112,7 +120,7 @@ def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
         # print(f"Bitters/gmsh/{Bitters.magnets} (str)")
         with open(f"{Bitters.magnets}.yaml", "r") as f:
             Object = yaml.load(f, Loader=yaml.FullLoader)
-        defs.update(load_defs(Object, "", gmsh_ids))
+        defs.update(load_defs(Object, "", ids))
 
     elif isinstance(Bitters.magnets, list):
         num = 0
@@ -121,7 +129,8 @@ def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
             # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
             with open(f"{mname}.yaml", "r") as f:
                 Object = yaml.load(f, Loader=yaml.FullLoader)
-            defs.update(load_defs(Object, mname, gmsh_ids[num]))
+            _ids = (gmsh_ids[num], crack_ids[num], ())
+            defs.update(load_defs(Object, mname, _ids))
             num += 1
 
     return defs

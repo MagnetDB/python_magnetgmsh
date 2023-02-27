@@ -147,6 +147,8 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
 
     # Air
     if Air_data:
+        if debug:
+            print(f"Air_data={Air_data}")
         (Air_id, dr_air, z0_air, dz_air) = Air_data
 
         ps = gmsh.model.addPhysicalGroup(2, [Air_id])

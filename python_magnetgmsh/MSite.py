@@ -66,6 +66,7 @@ def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
         raise Exception(f"magnets: unsupported type {type(MSite.magnets)}")
 
     # Now create air
+    Air_data = ()
     if AirData:
         ([r_min, r_max], [z_min, z_max]) = MSite.boundingBox()
         r0_air = 0
@@ -78,11 +79,12 @@ def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
         # print("list:", gmsh_ids)
         # print("flat_list:", len(gmsh_ids))
         for sublist in gmsh_ids:
+            # print(f"sublist: {sublist}")
             if not isinstance(sublist, tuple):
                 raise Exception(
                     f"python_magnetgeo/gmsh: flat_list: expect a tuple got a {type(sublist)}"
                 )
-            for elem in sublist:
+            for elem in sublist[0]:
                 # print("elem:", elem, type(elem))
                 if isinstance(elem, list):
                     for item in elem:
@@ -92,6 +94,8 @@ def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
                         elif isinstance(item, int):
                             flat_list.append(item)
 
+        if debug:
+            print(f"flat_list={flat_list}")
         start = 0
         end = len(flat_list)
         step = 10
@@ -103,11 +107,11 @@ def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
 
         # need to account for changes
         gmsh.model.occ.synchronize()
-        return (gmsh_ids, (A_id, dr_air, z0_air, dz_air))
+        Air_data = (A_id, dr_air, z0_air, dz_air)
 
     # need to account for changes
     gmsh.model.occ.synchronize()
-    return (gmsh_ids, ())
+    return (gmsh_ids, Air_data)
 
 
 def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
