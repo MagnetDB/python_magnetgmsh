@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-set -euo pipefail
+# set -euo pipefail
 #TODO: make optionnal set -x
 
 TestWD="/data/geometries"
