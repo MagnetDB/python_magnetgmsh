@@ -110,27 +110,17 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
         prefix = f"{mname}_"
 
     # set physical name
-    if len(B_ids) == 1:
-        print(B_ids)
-        psname = f"{prefix[0:len(prefix)-1]}"
-        if isinstance(B_ids[0], int):
-            ps = gmsh.model.addPhysicalGroup(2, [B_ids[0]])
+    shift = 0
+    if Bitter.z[0] < -Bitter.axi.h:
+        shift = 1
+    for i, id in enumerate(B_ids):
+        if isinstance(id, int):
+            ps = gmsh.model.addPhysicalGroup(2, [id])
         else:
-            ps = gmsh.model.addPhysicalGroup(2, B_ids[0])
+            ps = gmsh.model.addPhysicalGroup(2, id)
+        psname = f"{prefix}B{i+shift}"
         gmsh.model.setPhysicalName(2, ps, psname)
         defs[psname] = ps
-    else:
-        shift = 0
-        if Bitter.z[0] != Bitter.axi.h:
-            shift = 1
-        for i, id in enumerate(B_ids):
-            if isinstance(id, int):
-                ps = gmsh.model.addPhysicalGroup(2, [id])
-            else:
-                ps = gmsh.model.addPhysicalGroup(2, id)
-            psname = f"{prefix}B{i+shift}"
-            gmsh.model.setPhysicalName(2, ps, psname)
-            defs[psname] = ps
 
     # get BC ids
     gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)

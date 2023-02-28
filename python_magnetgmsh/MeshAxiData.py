@@ -176,9 +176,15 @@ class MeshAxiData(yaml.YAMLObject):
             hypname = ""
             if mname:
                 hypname = f'{mname}_'
+            if Object.z[0] < -Object.axi.h:
+                self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_B0"))
+                mesh_dict[f'{hypname}{Object.name}_B0'] = len(self.surfhypoths)-1
             for i in range(len(Object.axi.turns)):
                 self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_B{i+1}"))
                 mesh_dict[f'{hypname}{Object.name}_B{i+1}'] = len(self.surfhypoths)-1
+            if Object.z[1] > Object.axi.h:
+                self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_B{len(Object.axi.turns)+1}"))
+                mesh_dict[f'{hypname}{Object.name}_B{len(Object.axi.turns)+1}'] = len(self.surfhypoths)-1
                 
         elif isinstance(Object, Supra):
             print(f"Creating MeshAxiData for Supra {Object.name}")
