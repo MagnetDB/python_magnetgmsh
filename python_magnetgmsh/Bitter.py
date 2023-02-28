@@ -27,6 +27,10 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
     x = Bitter.r[0]
     dr = Bitter.r[1] - Bitter.r[0]
     y = -Bitter.axi.h
+    if Bitter.z[0] < y:
+        _id = gmsh.model.occ.addRectangle(x, Bitter.z[0], 0, dr, abs(y - Bitter.z[0]))
+        gmsh_ids.append(_id)
+
     for i, (n, pitch) in enumerate(zip(Bitter.axi.turns, Bitter.axi.pitch)):
         dz = n * pitch
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, dz)
@@ -34,11 +38,14 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         gmsh_ids.append(_id)
         y += dz
 
+    if Bitter.z[1] > y:
+        _id = gmsh.model.occ.addRectangle(x, y, 0, dr, abs(y - Bitter.z[1]))
+        gmsh_ids.append(_id)
+
     # Cooling Channels
     if coolingslit:
-        # print(f"CoolingSlits[r]: {Bitter.coolingslits[0]['r']}")
-        for i, r in enumerate(Bitter.coolingslits[0]["r"]):
-            x = float(r)
+        for i, slit in enumerate(Bitter.coolingslits):
+            x = float(slit.r)
             pt1 = gmsh.model.occ.addPoint(x, Bitter.z[0], 0)
             pt2 = gmsh.model.occ.addPoint(x, Bitter.z[1], 0)
             _id = gmsh.model.occ.addLine(pt1, pt2)
@@ -113,12 +120,15 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
         gmsh.model.setPhysicalName(2, ps, psname)
         defs[psname] = ps
     else:
+        shift = 0
+        if Bitter.z[0] != Bitter.axi.h:
+            shift = 1
         for i, id in enumerate(B_ids):
             if isinstance(id, int):
                 ps = gmsh.model.addPhysicalGroup(2, [id])
             else:
                 ps = gmsh.model.addPhysicalGroup(2, id)
-            psname = f"{prefix}B{i+1}"
+            psname = f"{prefix}B{i+shift}"
             gmsh.model.setPhysicalName(2, ps, psname)
             defs[psname] = ps
 
