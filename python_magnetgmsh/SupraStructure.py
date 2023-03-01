@@ -280,7 +280,7 @@ def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = Fals
         i_ids = gmsh_ids[1]
         for i, isol in enumerate(i_ids):
             ps = gmsh.model.addPhysicalGroup(2, [isol])
-            gmsh.model.setPhysicalName(2, ps, f"{prefix}i_dp{i}")
+            gmsh.model.setPhysicalName(2, ps, f"{prefix}i{i}")
             defs[f"{prefix}i_dp{i}"] = ps
         for i, dp in enumerate(dp_ids):
             # print(f"dp[{i}] = {dp}")
