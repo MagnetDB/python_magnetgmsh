@@ -22,6 +22,7 @@ def gmsh_ids(Supra: Supra, AirData: tuple, debug: bool = False):
     """
     create gmsh geometry
     """
+    print(f"gmsh_ids: Supra={Supra.name}")
 
     # TODO: how to specify detail level to actually connect gmsh with struct data
     # print(f"Supra/gmsh_ids: Supra={Supra}")
@@ -62,6 +63,7 @@ def gmsh_bcs(Supra: Supra, mname: str, ids: tuple, debug: bool = False) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
+    print(f"gmsh_bcs: Supra={Supra.name}")
 
     defs = {}
     bcs_defs = {}

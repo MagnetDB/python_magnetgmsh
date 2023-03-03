@@ -169,6 +169,7 @@ def main():
     from .cfg import loadcfg
 
     (solid_names, Channels) = loadcfg(cfgfile, gname, is2D, args.verbose)
+    print(f"input_file: {args.input_file}")
 
     if "Air" in args.input_file:
         solid_names.append("Air")

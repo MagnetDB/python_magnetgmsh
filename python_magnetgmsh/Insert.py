@@ -21,6 +21,8 @@ def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:
     """
     create gmsh geometry
     """
+    print(f"gmsh_ids: Insert={Insert.name}")
+
     gmsh_ids = ()
 
     # loop over Helices
@@ -68,6 +70,7 @@ def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:
                 print(e)
 
     # Now create air
+    Air_data = ()
     if AirData:
         (r, z) = Insert.boundingBox()
         # print(f"Insert: boundingbox= r={r}, z={z}")
@@ -83,20 +86,19 @@ def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:
         ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, i) for i in flat_list])
 
         # need to account for changes
-        gmsh.model.occ.synchronize()
-        return (H_ids, R_ids, (_id, dr_air, z0_air, dz_air))
+        Air_data = (_id, dr_air, z0_air, dz_air)
 
     # TODO return ids
     # need to account for changes
     gmsh.model.occ.synchronize()
-    return (H_ids, R_ids, ())
+    return (H_ids, R_ids, Air_data)
 
 
 def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
-    import gmsh
+    print(f"gmsh_bcs: Insert={Insert.name}")
 
     (H_ids, R_ids, AirData) = ids
     # print(f"Insert/gmsh_bcs: H_ids={H_ids}")

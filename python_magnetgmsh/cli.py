@@ -96,7 +96,7 @@ def main():
     MyObject = import_module(import_dict[type(Object)], package="python_magnetgmsh")
 
     ids = MyObject.gmsh_ids(Object, AirData, args.debug)
-    print(f"ids[{Object.name}]: {ids}")
+    # print(f"ids[{Object.name}]: {ids}")
     bcs = MyObject.gmsh_bcs(Object, "", ids, args.debug)
 
     # TODO set mesh characteristics here

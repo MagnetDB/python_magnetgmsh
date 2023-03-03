@@ -132,7 +132,7 @@ def insert_ids(
     returns gmsh ids depending on detail value
     ie. [dp_ids, isolation_ids]
     """
-    # print(f"insert_ids: {HTSinsert}")
+    print(f"insert_ids: HTSInsert={HTSinsert}, detail={detail}")
 
     x0 = HTSInsert.r0
     y0 = HTSInsert.z0 - HTSInsert.getH() / 2.0
@@ -175,16 +175,21 @@ def insert_ids(
         # Perform BooleanFragment
         # print(f"Create BooleanFragments (detail={detail})")
         for j, dp in enumerate(dp_ids):
-            # print(f"HTSInsert gmsh: dp[{j}]")
+            print(f"HTSInsert gmsh: dp[{j}]")
             if isinstance(dp, list):
                 for p in dp:
-                    # print(f"HTSInsert gmsh: dp[{j}] p={p}")
-                    # dp = [ [p0, p1], isolation ]
+                    if debug:
+                        print(f"HTSInsert gmsh: dp[{j}] type(p)={type(p)}")
                     if isinstance(p, list):
-                        # print(f"HTSInsert gmsh: dp[{j}] len(p)={len(p)}, {type(p[0])}, dp[-1]={dp[-1]}" )
+                        if debug:
+                            print(
+                                f"HTSInsert gmsh: dp[{j}] len(p)={len(p)}, type(p[0])={type(p[0])}, len(p)={len(p)}, dp[-1]={dp[-1]}"
+                            )
                         if len(p) == 2 and isinstance(p[0], int):
                             # detail == pancake
-                            # print(f"HTSInsert gmsh: dp[{j}] len(p)={len(p)}, p={p}, i_ids={len(i_ids)}")
+                            # print(
+                            #    f"HTSInsert gmsh: dp[{j}] len(p)={len(p)}, p={p}, i_ids={len(i_ids)}"
+                            # )
 
                             if j >= 1:
                                 ov, ovv = gmsh.model.occ.fragment(
@@ -201,21 +206,51 @@ def insert_ids(
                         else:
                             # detail == tape
                             # p = [ mandrin, [[SC, duromag], [SC, duromag], ...] ]
-                            # print(f"HTSInsert gmsh: dp[{j}] len(p)={len(p)}, p={p}")
+                            if debug:
+                                print(
+                                    f"HTSInsert gmsh: dp[{j}] len(p)={len(p)}, type(p[0])={type(p[0])}"
+                                )
                             flat_p0 = flatten(p[0])
+                            # print(f"flatten p0: {len(flat_p0)}")
                             flat_p1 = flatten(p[1])
+                            # print(f"flatten p1: {len(flat_p1)}")
+                            start = 0
+                            end = len(flat_p0)
+                            step = 10
                             if j >= 1:
-                                ov, ovv = gmsh.model.occ.fragment(
-                                    [(2, i_ids[j - 1])], [(2, l) for l in flat_p0]
-                                )
+                                for k in range(start, end, step):
+                                    x = k
+                                    # print(
+                                    #     f"ids/chunk[j={j}, x={x}, x+step={x+step}]: flat_p0"
+                                    # )
+                                    ov, ovv = gmsh.model.occ.fragment(
+                                        [(2, i_ids[j - 1])],
+                                        [(2, l) for l in flat_p0[x : x + step]],
+                                    )
+
+                            start = 0
+                            end = len(flat_p1)
+                            step = 10
                             if j < n_dp - 1:
+                                for k in range(start, end, step):
+                                    x = k
+                                    # print(
+                                    #     f"ids/chunk[j={j}, x={x}, x+step={x+step}]: flat_p1"
+                                    # )
+                                    ov, ovv = gmsh.model.occ.fragment(
+                                        [(2, i_ids[j])],
+                                        [(2, l) for l in flat_p1[x : x + step]],
+                                    )
+                            for k in range(start, end, step):
+                                x = k
+                                # print(
+                                #     f"dp/chunk[j={j}, x={x}, x+step={x+step}]: flat_p1"
+                                # )
                                 ov, ovv = gmsh.model.occ.fragment(
-                                    [(2, i_ids[j])], [(2, l) for l in flat_p1]
+                                    [(2, dp[-1])],
+                                    [(2, l) for l in flat_p1]
+                                    + [(2, l) for l in flat_p1[x : x + step]],
                                 )
-                            ov, ovv = gmsh.model.occ.fragment(
-                                [(2, dp[-1])],
-                                [(2, l) for l in flat_p0] + [(2, l) for l in flat_p1],
-                            )
 
             else:
                 # detail == dblpancake
@@ -225,7 +260,9 @@ def insert_ids(
                     ov, ovv = gmsh.model.occ.fragment([(2, dp)], [(2, i_ids[j])])
 
         # Now create air
+        Air_data = ()
         if AirData:
+            print("HTSInsert gmsh: create air")
             y0 = HTSInsert.z0 - HTSInsert.getH() / 2.0  # need to force y0 to init value
             r0_air = 0
             dr_air = HTSInsert.r1 * AirData[0]
@@ -239,26 +276,38 @@ def insert_ids(
 
             for j, dp in enumerate(dp_ids):
                 # dp = [ [p0, p1], isolation ]
-                # print(f"HTSInsert with Air: dp[{j}] detail={detail} dp={dp}")
+                print(f"HTSInsert with Air: dp[{j}] detail={detail}")
                 if isinstance(dp, list):
                     # detail == pancake|tape
-                    # print(_id, flatten(dp))
-                    ov, ovv = gmsh.model.occ.fragment(
-                        [(2, _id)], [(2, l) for l in flatten(dp)]
-                    )
+                    print(f"HTSInsert with Air: dp[{j}] len={len(dp)}")
+                    flat_dp = flatten(dp)
+                    start = 0
+                    end = len(flat_dp)
+                    step = 10
+                    for k in range(start, end, step):
+                        x = k
+                        print(f"chunk[j={j}, x={x}, x+step={x+step}]: flat_dp")
+                        ov, ovv = gmsh.model.occ.fragment(
+                            [(2, _id)], [(2, l) for l in flat_dp[x : x + step]]
+                        )
                 else:
                     # detail == dblpancake
+                    print(f"HTSInsert with Air: dp[{j}] dp={dp}")
                     ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, dp)])
                     # ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, i) for i in i_ids])
 
             # print("dp_ids:", dp_ids)
             # print("i_ids:", i_ids)
-            return ([dp_ids, i_ids], (_id, dr_air, z0_air, dz_air))
+            Air_data = (_id, dr_air, z0_air, dz_air)
 
-        return ([dp_ids, i_ids], ())
+        print("insert_ids: done")
+        gmsh.model.occ.synchronize()
+        return ([dp_ids, i_ids], Air_data)
 
 
-def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = False):
+def insert_bcs(
+    HTSInsert: HTSinsert, name: str, detail: str, ids: tuple, debug: bool = False
+):
     """
     create bcs groups for gmsh
 
@@ -266,6 +315,7 @@ def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = Fals
 
     returns
     """
+    print(f"insert_bcs: HTSInsert={HTSInsert}, name{name}, detail={detail}")
 
     defs = {}
     bcs_defs = {}
@@ -551,4 +601,5 @@ def insert_bcs(HTSInsert, name: str, detail: str, ids: tuple, debug: bool = Fals
             [0, z0_air + dz_air, dr_air, z0_air + dz_air],
         ]
 
+    print("insert_bcs: done")
     return defs

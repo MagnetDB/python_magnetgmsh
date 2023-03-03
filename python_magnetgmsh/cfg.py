@@ -209,4 +209,5 @@ def loadcfg(
                     Channels = _Channels
                 print(f"_Channels: {_Channels}")
 
+    print(f"cfg: solid_names={solid_names}")
     return (solid_names, Channels)

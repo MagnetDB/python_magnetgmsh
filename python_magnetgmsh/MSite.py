@@ -6,6 +6,7 @@ Provides definition for Site:
 
 """
 
+import gmsh
 import yaml
 
 from python_magnetgeo import Insert
@@ -26,7 +27,7 @@ def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
     """
     create gmsh geometry
     """
-    import gmsh
+    print(f"gmsh_ids: MSite={MSite.name}")
 
     gmsh_ids = []
 
@@ -106,7 +107,6 @@ def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
             )
 
         # need to account for changes
-        gmsh.model.occ.synchronize()
         Air_data = (A_id, dr_air, z0_air, dz_air)
 
     # need to account for changes
@@ -118,7 +118,7 @@ def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
-    import gmsh
+    print(f"gmsh_ids: MSite={MSite.name}")
 
     (gmsh_ids, Air_data) = ids
     # print("MSite/gmsh_bcs:", ids)

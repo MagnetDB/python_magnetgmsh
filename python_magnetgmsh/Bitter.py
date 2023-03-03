@@ -15,7 +15,7 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
     """
     create gmsh geometry
     """
-    print("Bitter/gmsh_ids")
+    print(f"gmsh_ids: Bitter={Bitter.name}")
 
     gmsh_ids = []
     gmsh_cracks = []
@@ -77,10 +77,11 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         # need to account for changes
         # gmsh.model.occ.synchronize()
 
-    # if debug:
-    print(f"gmsh_ids: {gmsh_ids}, gmsh_cracks: {gmsh_cracks}")
+    if debug:
+        print(f"gmsh_ids: {gmsh_ids}, gmsh_cracks: {gmsh_cracks}")
 
     # Now create air
+    Air_data = ()
     if AirData:
         from .Air import gmsh_air
 
@@ -90,17 +91,18 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         ov, ovv = gmsh.model.occ.fragment(
             [(2, _id)], [(2, i) for i in flatten(gmsh_ids)]
         )
-        gmsh.model.occ.synchronize()
-        return (gmsh_ids, gmsh_cracks, (_id, dr_air, z0_air, dz_air))
+        Air_data = (_id, dr_air, z0_air, dz_air)
 
     # gmsh.model.occ.synchronize()
-    return (gmsh_ids, gmsh_cracks, ())
+    gmsh.model.occ.synchronize()
+    return (gmsh_ids, gmsh_cracks, Air_data)
 
 
 def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
+    print(f"gmsh_bcs: Bitter={Bitter.name}")
 
     defs = {}
     (B_ids, Cracks_ids, Air_data) = ids
