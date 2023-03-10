@@ -14,12 +14,13 @@ ENV LANG=en_US.UTF-8 \
 # install prerequistes from Lncmi debian repo
 RUN apt update \
     && apt-get -y upgrade \
-    && apt-get install -y lsb-release \
-    && apt-get install -y debian-keyring \
+    && apt-get -y install lsb-release \
+    && apt-get -y install debian-keyring \
     && cp /usr/share/keyrings/debian-maintainers.gpg /etc/apt/trusted.gpg.d \
     && echo "deb http://euler.GRENOBLE.LNCMI.LOCAL/~trophime/debian/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/lncmi.list \
     && apt update \
-    && apt-get -y install python-is-python3 python3-magnetgeo python3-magnetgmsh
+    && apt-get -y install python-is-python3 python3-pandas \
+    && apt-get -y install python3-magnetgeo python3-magnetgmsh
 
 # Clean up
 RUN apt-get autoremove -y \
