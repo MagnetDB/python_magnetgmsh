@@ -6,6 +6,7 @@ import gmsh
 from python_magnetgeo.Bitter import Bitter
 from python_magnetgeo.Shape2D import Shape2D
 
+from .utils.lists import flatten
 
 # TieRod
 def create_shape(x: float, y: float, shape: Shape2D):
@@ -65,7 +66,9 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
 
     # CoolingSlits
     holes = [tierod_id]
+    names = []
     for j, slit in enumerate(Bitter.coolingslits):
+        _names = []
         print(f"slit[{j}]: nslits={slit.n}, r={slit.r}, tierod={tierod.r}")
         nslits = slit.n
         if slit.r == tierod.r:
@@ -85,6 +88,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
             print("skip slit")
         else:
             holes.append(slit_id)
+            _names.append(f"slit{j}_0")
 
         for n in range(1, nslits):
             if (
@@ -92,14 +96,52 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
                 or n * theta_s + angle >= 2 * pi - theta / 2.0
             ):
                 res = gmsh.model.occ.copy([(2, slit_id)])
-                print(f"res={res}")
+                # print(f"res={res}")
                 _id = res[0][1]
                 gmsh.model.occ.rotate([(2, _id)], 0, 0, 0, 0, 0, 1, n * theta_s)
                 holes.append(_id)
+                _names.append(f"slit{j}_{n}")
+
+        names.append(_names)
+
+        if slit.r == tierod.r and angle == 0:
+            print(f"remove slit{j}_0: {slit_id}")
+            gmsh.model.occ.remove([(2, slit_id)], recursive=True)
+            gmsh.model.occ.synchronize()
 
     print(f"holes={holes}")
-    cad = gmsh.model.occ.cut([(2, sector)], [(2, _id) for _id in holes])
+    print(f"names={names}")
+    cad = gmsh.model.occ.cut(
+        [(2, sector)], [(2, _id) for _id in holes], removeTool=False
+    )
     print(f"cad: {cad}")
+
+    # get BCs ids
+    # use
+    # gmsh/model/occ/getBoundingBox
+    # gmsh/model/occ/getEntitiesInBoundingBox
+    def create_bcgroup(shape: int, subshape: int, name: str):
+        xmin, ymin, zmin, xmax, ymax, zmax = gmsh.model.occ.getBoundingBox(2, subshape)
+        # print(f"boundingbox[{name}]: {[xmin, ymin, zmin, xmax, ymax, zmax]}")
+        if abs(zmin - zmax) >= 1.0e-6:
+            raise RuntimeError(
+                f"create_bcgroup({name}): subshape is expected to be in OxOy plane (zmin={zmin}, Zmax={zmax})"
+            )
+
+        interface = gmsh.model.occ.getEntitiesInBoundingBox(
+            xmin, ymin, zmin, xmax, ymax, zmax, dim=1
+        )
+        print(f"interface[{name}]: {interface} ({len(interface)})")
+
+    gmsh.model.occ.removeAllDuplicates()
+    create_bcgroup(cad[1][1], tierod_id, "tierod")
+
+    slit_names = flatten(names)
+    print(f"slit_names: {len(slit_names)} names, {len(holes)} slits")
+    for i in range(1, len(holes)):
+        create_bcgroup(cad[1][1], holes[i], slit_names[i - 1])
+    for hole in holes:
+        gmsh.model.occ.remove([(2, hole)], recursive=True)
 
     return ([cad[1][1]], (), ())
 
