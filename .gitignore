@@ -103,6 +103,7 @@ ENV/
 
 # IDE settings
 .vscode/
+.devcontainer/*~
 
 # msh
 *.msh
