@@ -35,10 +35,23 @@ pip install -r requirements.txt
 Examples
 ========
 
+Use Gmsh API to create a msh file from a magnetgeo yaml file
+
 ```
-python3 -m python_magnetgmsh.xao --wd /data/geometries test-Axi.xao --geo test.yaml mesh --group CoolingChannels
-python3 -m python_magnetgmsh.xao --wd /data/geometries M9_HLtest-Axi.xao --geo M9_HLtest.yaml mesh --group CoolingChannels
-python3 -m python_magnetgmsh.xao --wd /data/geometries Pancakes-pancake-Axi.xao --geo HTS-pancake-test.yaml [mesh []]
+python3 -m python_magnetgmsh.cli --wd /data/geometries test.yaml --mesh [--lc] --show
+```
+
+[NOTE]
+===
+group/hide options is not implement in python_magnetgmsh.cli
+===
+
+Create a gmsh msh file from Salome xao file:
+
+```
+python3 -m python_magnetgmsh.xao2msh --wd /data/geometries test-Axi.xao --geo test.yaml mesh --group CoolingChannels
+python3 -m python_magnetgmsh.xao2msh --wd /data/geometries M9_HLtest-Axi.xao --geo M9_HLtest.yaml mesh --group CoolingChannels
+python3 -m python_magnetgmsh.xao2msh --wd /data/geometries Pancakes-pancake-Axi.xao --geo HTS-pancake-test.yaml [mesh []]
 ```
 
 Credits
