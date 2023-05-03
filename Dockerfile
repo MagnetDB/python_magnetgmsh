@@ -17,7 +17,7 @@ RUN apt update \
     && apt-get -y install lsb-release \
     && apt-get -y install debian-keyring \
     && cp /usr/share/keyrings/debian-maintainers.gpg /etc/apt/trusted.gpg.d \
-    && echo "deb http://euler.GRENOBLE.LNCMI.LOCAL/~trophime/debian/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/lncmi.list \
+    && echo "deb http://euler.lncmig.local/~christophe.trophime@LNCMIG.local/debian/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/lncmi.list \
     && apt update \
     && apt-get -y install python-is-python3 python3-pandas \
     && apt-get -y install python3-magnetgeo python3-magnetgmsh
