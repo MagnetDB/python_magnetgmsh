@@ -54,6 +54,7 @@ def gmsh_msh(
     gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lcar1)
 
     mesh_dict = meshdata.mesh_dict
+    # print(f"mesh_dict: {mesh_dict}")
     lcs = meshdata.surfhypoths
 
     # get ov and lc per PhysicalSurface
@@ -81,6 +82,9 @@ def gmsh_msh(
                 )
                 ov += _ov
             lc_data[namGroup] = (ov, lc)
+            # print(f"lc[{namGroup}]: {lc_data[namGroup]}")
+        # else:
+        #    print(f"{namGroup} is not in mesh_dict")
 
     # Apply lc in reverse order to get nice mesh
     for key in reversed(lc_data):
@@ -160,4 +164,3 @@ def gmsh_cracks(debug: bool = False):
     """ """
 
     pass
-

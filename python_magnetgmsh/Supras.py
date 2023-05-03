@@ -95,6 +95,7 @@ def gmsh_bcs(Supras, mname: str, ids: tuple, debug: bool = False) -> dict:
     """
     import gmsh
 
+    print(f"gmsh_bcs: Supras={Supras.name}, mname={mname}")
     (gmsh_ids, Air_data) = ids
     # print("Supras/gmsh_bcs:", ids)
 
@@ -112,7 +113,7 @@ def gmsh_bcs(Supras, mname: str, ids: tuple, debug: bool = False) -> dict:
         # print(f"Supras/gmsh/{Supras.magnets} (str)")
         with open(f"{Supras.magnets}.yaml", "r") as f:
             Object = yaml.load(f, Loader=yaml.FullLoader)
-        defs.update(load_defs(Object, "", gmsh_ids))
+        defs.update(load_defs(Object, f"{Supras.name}_{Object.name}", gmsh_ids))
 
     elif isinstance(Supras.magnets, list):
         num = 0
@@ -121,8 +122,9 @@ def gmsh_bcs(Supras, mname: str, ids: tuple, debug: bool = False) -> dict:
             # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
             with open(f"{mname}.yaml", "r") as f:
                 Object = yaml.load(f, Loader=yaml.FullLoader)
-            defs.update(load_defs(Object, mname, gmsh_ids[num]))
+            defs.update(
+                load_defs(Object, f"{Supras.name}_{Object.name}", gmsh_ids[num])
+            )
             num += 1
 
     return defs
-

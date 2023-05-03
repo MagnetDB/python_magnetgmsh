@@ -103,8 +103,9 @@ def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
     """
     import gmsh
 
+    print(f"gmsh_bcs: Bitters={Bitters.name}, mname={mname}")
     (gmsh_ids, crack_ids, Air_data) = ids
-    print("Bitters/gmsh_bcs:", ids)
+    # print("Bitters/gmsh_bcs:", ids)
 
     defs = {}
     bcs_defs = {}
@@ -120,7 +121,7 @@ def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
         # print(f"Bitters/gmsh/{Bitters.magnets} (str)")
         with open(f"{Bitters.magnets}.yaml", "r") as f:
             Object = yaml.load(f, Loader=yaml.FullLoader)
-        defs.update(load_defs(Object, "", ids))
+        defs.update(load_defs(Object, f"{Bitters.name}_{Object.name}", ids))
 
     elif isinstance(Bitters.magnets, list):
         num = 0
@@ -130,8 +131,7 @@ def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
             with open(f"{mname}.yaml", "r") as f:
                 Object = yaml.load(f, Loader=yaml.FullLoader)
             _ids = (gmsh_ids[num], crack_ids[num], ())
-            defs.update(load_defs(Object, mname, _ids))
+            defs.update(load_defs(Object, f"{Bitters.name}_{Object.name}", _ids))
             num += 1
 
     return defs
-

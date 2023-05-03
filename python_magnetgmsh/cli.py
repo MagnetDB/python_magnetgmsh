@@ -97,7 +97,8 @@ def main():
 
     ids = MyObject.gmsh_ids(Object, AirData, args.debug)
     # print(f"ids[{Object.name}]: {ids}")
-    bcs = MyObject.gmsh_bcs(Object, "", ids, args.debug)
+    prefix = ""
+    bcs = MyObject.gmsh_bcs(Object, prefix, ids, args.debug)
 
     # TODO set mesh characteristics here
     if args.mesh:
@@ -119,7 +120,7 @@ def main():
         if args.lc:
             meshAxiData.load(air)
         else:
-            meshAxiData.default("", Object, AirData)
+            meshAxiData.default(prefix, Object, AirData)
             meshAxiData.dump(air)
 
         gmsh_msh(args.algo2d, meshAxiData, air, args.scaling)

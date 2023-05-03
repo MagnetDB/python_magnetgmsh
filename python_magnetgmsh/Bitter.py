@@ -61,7 +61,7 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         for j, entries in enumerate(m):
             _ids = []
             _cracks = []
-            for (dim, tag) in entries:
+            for dim, tag in entries:
                 if dim == 2:
                     _ids.append(tag)
                 if dim == 1:
@@ -102,7 +102,7 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
     """
     retreive ids for bcs in gmsh geometry
     """
-    print(f"gmsh_bcs: Bitter={Bitter.name}")
+    print(f"gmsh_bcs: Bitter={Bitter.name}, mname={mname}")
 
     defs = {}
     (B_ids, Cracks_ids, Air_data) = ids
@@ -112,15 +112,16 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
         prefix = f"{mname}_"
 
     # set physical name
-    shift = 0
+    shift = 1
     if Bitter.z[0] < -Bitter.axi.h:
-        shift = 1
+        shift = 0
     for i, id in enumerate(B_ids):
         if isinstance(id, int):
             ps = gmsh.model.addPhysicalGroup(2, [id])
         else:
             ps = gmsh.model.addPhysicalGroup(2, id)
         psname = f"{prefix}B{i+shift}"
+        print(f"Bitter: mname={mname}, psname={psname} / {len(B_ids)}")
         gmsh.model.setPhysicalName(2, ps, psname)
         defs[psname] = ps
 
@@ -170,4 +171,3 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
         defs[key] = create_bcs(key, bcs_defs[key], 1)
 
     return defs
-
