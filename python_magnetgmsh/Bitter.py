@@ -131,20 +131,20 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
     bcs_defs = {
         f"{prefix}HP": [Bitter.r[0], Bitter.z[0], Bitter.r[-1], Bitter.z[0]],
         f"{prefix}BP": [Bitter.r[0], Bitter.z[-1], Bitter.r[-1], Bitter.z[-1]],
-        f"{prefix}Rint": [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]],
-        f"{prefix}Rext": [Bitter.r[1], Bitter.z[0], Bitter.r[1], Bitter.z[1]],
+        f"{prefix}rInt": [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]],
+        f"{prefix}rExt": [Bitter.r[1], Bitter.z[0], Bitter.r[1], Bitter.z[1]],
     }
 
     # Cooling Channels
     print(f"Cracks_ids={Cracks_ids}")
     if len(Cracks_ids) > 0:
         for i, id in enumerate(Cracks_ids):
-            print(f"slit{i+1}: {id}")
+            print(f"Slit{i+1}: {id}")
             if isinstance(id, int):
                 ps = gmsh.model.addPhysicalGroup(1, [id])
             else:
                 ps = gmsh.model.addPhysicalGroup(1, id)
-            psname = f"{prefix}slit{i+1}"
+            psname = f"{prefix}Slit{i+1}"
             gmsh.model.setPhysicalName(1, ps, psname)
             defs[psname] = ps
 
