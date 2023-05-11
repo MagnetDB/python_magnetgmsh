@@ -7,6 +7,7 @@ import yaml
 from python_magnetgeo.Bitter import Bitter
 from python_magnetgeo.Bitters import Bitters
 from .utils.lists import flatten
+from .mesh.bcs import create_bcs
 
 import_dict = {Bitter: ".Bitter"}
 
@@ -133,5 +134,27 @@ def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
             _ids = (gmsh_ids[num], crack_ids[num], ())
             defs.update(load_defs(Object, f"{Bitters.name}_{Object.name}", _ids))
             num += 1
+
+    # Air
+    if Air_data:
+        if debug:
+            print(f"Air_data={Air_data}")
+        (Air_id, dr_air, z0_air, dz_air) = Air_data
+
+        ps = gmsh.model.addPhysicalGroup(2, [Air_id])
+        gmsh.model.setPhysicalName(2, ps, "Air")
+        defs["Air"] = ps
+        # TODO: Axis, Inf
+        gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
+
+        bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
+        bcs_defs[f"Infty"] = [
+            [0, z0_air, dr_air, z0_air],
+            [dr_air, z0_air, dr_air, z0_air + dz_air],
+            [0, z0_air + dz_air, dr_air, z0_air + dz_air],
+        ]
+
+    for key in bcs_defs:
+        defs[key] = create_bcs(key, bcs_defs[key], 1)
 
     return defs
