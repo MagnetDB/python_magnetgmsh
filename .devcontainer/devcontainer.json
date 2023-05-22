@@ -37,7 +37,8 @@
 		},
 		"extensions": [
 			"ms-python.python",
-			"ms-python.vscode-pylance"
+			"ms-python.vscode-pylance",
+			"ms-python.black-formatter"
 		]
 	},
 	// Use 'appPort' to create a container with published ports. If the port isn't working, be sure
