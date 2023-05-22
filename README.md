@@ -38,7 +38,7 @@ Examples
 Use Gmsh API to create a msh file from a magnetgeo yaml file
 
 ```
-python3 -m python_magnetgmsh.cli --wd /data/geometries test.yaml --mesh [--lc] --show
+python3 -m python_magnetgmsh.cli --wd /data/geometries test.yaml [--thickslit] --mesh [--lc] --show
 ```
 
 [NOTE]
