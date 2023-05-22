@@ -46,12 +46,15 @@ def create_bcs(name: str, box: list, dim: int = 1, eps: float = 1.0e-6):
         ov += gmsh.model.getEntitiesInBoundingBox(rmin, zmin, 0, rmax, zmax, 0, dim)
     else:
         for item in box:
+            # print(f'create_bcs: item={item}')
             (rmin, rmax, zmin, zmax) = minmax(item, eps)
             _ov = gmsh.model.getEntitiesInBoundingBox(rmin, zmin, 0, rmax, zmax, 0, dim)
             if len(_ov) == 0:
                 print(f"create_bs: name={name}, item={item} no surface detected")
                 print(f"minmax: {(rmin, rmax, zmin, zmax)}")
+            # print(f'create_bcs: _ov={_ov}')
             ov += _ov
+            # print(f'create_bcs: ov={ov}')
 
     ps = gmsh.model.addPhysicalGroup(1, [tag for (dim, tag) in ov])
     gmsh.model.setPhysicalName(1, ps, name)

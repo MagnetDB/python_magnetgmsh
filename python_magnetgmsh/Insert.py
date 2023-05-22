@@ -17,7 +17,9 @@ from .mesh.bcs import create_bcs
 from .utils.lists import flatten
 
 
-def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:
+def gmsh_ids(
+    Insert: Insert, AirData: tuple, Thickslit: bool = False, debug: bool = False
+) -> tuple:
     """
     create gmsh geometry
     """
@@ -94,7 +96,9 @@ def gmsh_ids(Insert: Insert, AirData: tuple, debug: bool = False) -> tuple:
     return (H_ids, R_ids, Air_data)
 
 
-def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dict:
+def gmsh_bcs(
+    Insert: Insert, mname: str, ids: tuple, thickslit: bool = False, skipR: bool = False, debug: bool = False
+) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
@@ -179,7 +183,7 @@ def gmsh_bcs(Insert: Insert, mname: str, ids: tuple, debug: bool = False) -> dic
             if bc in defs:
                 # print(f"{bc}: {defs[bc]}")
                 vEntities = gmsh.model.getEntitiesForPhysicalGroup(1, defs[bc])
-                # print(f"{bc}: {vEntities.tolist()}")
+                print(f"{bc}: vEntites={type(vEntities)}, tolist={vEntities.tolist()}")
                 tags += vEntities.tolist()
         # print(f"{channel}: {tags}")
         ps = gmsh.model.addPhysicalGroup(1, tags)

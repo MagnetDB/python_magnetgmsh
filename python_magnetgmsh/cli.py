@@ -34,6 +34,9 @@ def main():
         type=float,
         metavar=("infty_Rratio", "infty_Zratio"),
     )
+    parser.add_argument(
+        "--thickslit", help="model thick cooling slits", action="store_true"
+    )
     parser.add_argument("--mesh", help="activate mesh", action="store_true")
     parser.add_argument(
         "--algo2d",
@@ -95,10 +98,16 @@ def main():
 
     MyObject = import_module(import_dict[type(Object)], package="python_magnetgmsh")
 
-    ids = MyObject.gmsh_ids(Object, AirData, args.debug)
+    # TODO: add args.thickness as optional param
+    # or only for Bitter(s)
+    ids = MyObject.gmsh_ids(Object, AirData, args.thickslit, args.debug)
     # print(f"ids[{Object.name}]: {ids}")
+    
     prefix = ""
-    bcs = MyObject.gmsh_bcs(Object, prefix, ids, args.debug)
+    skipR = False
+    if isinstance(Object, Bitters.Bitters):
+        skipR = True    
+    bcs = MyObject.gmsh_bcs(Object, prefix, ids, args.thickslit, skipR, args.debug)
 
     # TODO set mesh characteristics here
     if args.mesh:
@@ -124,7 +133,8 @@ def main():
             meshAxiData.dump(air)
 
         gmsh_msh(args.algo2d, meshAxiData, air, args.scaling)
-        gmsh_cracks(args.debug)
+        if not args.thickslit:
+            gmsh_cracks(args.debug)
 
         gmsh.option.setNumber("Mesh.SaveAll", 1)
         meshfilename = args.filename.replace(".yaml", "-Axi")

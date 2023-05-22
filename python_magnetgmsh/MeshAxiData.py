@@ -81,7 +81,7 @@ class MeshAxiData(yaml.YAMLObject):
         """
         Define default mesh params for Helix
         """
-        print(f"part_default: name={H.name}, lc={H.get_lc}")
+        #print(f"part_default: name={H.name}, lc={H.get_lc}")
         return H.get_lc()
 
     def air_default(self, Data: tuple):

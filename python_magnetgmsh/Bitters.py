@@ -12,12 +12,15 @@ from .mesh.bcs import create_bcs
 import_dict = {Bitter: ".Bitter"}
 
 
-def gmsh_ids(Bitters: Bitters, AirData: tuple, debug: bool = False) -> tuple:
+def gmsh_ids(
+    Bitters: Bitters, AirData: tuple, thickslit: bool = False, debug: bool = False
+) -> tuple:
     """
     create gmsh geometry
     """
     import gmsh
 
+    print(f"gmsh_ids: Bitters={Bitters.name}, thickslit={thickslit}")
     gmsh_ids = []
     crack_ids = []
 
@@ -26,7 +29,7 @@ def gmsh_ids(Bitters: Bitters, AirData: tuple, debug: bool = False) -> tuple:
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        ids = MyMagnet.gmsh_ids(Magnet, (), debug)
+        ids = MyMagnet.gmsh_ids(Magnet, (), thickslit, debug)
         return ids
 
     if isinstance(Bitters.magnets, str):
@@ -98,13 +101,15 @@ def gmsh_ids(Bitters: Bitters, AirData: tuple, debug: bool = False) -> tuple:
     return (gmsh_ids, crack_ids, Air_data)
 
 
-def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
+def gmsh_bcs(
+    Bitters, mname: str, ids: tuple, thickslit: bool = False, skipR: bool = False, debug: bool = False
+) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
     import gmsh
 
-    print(f"gmsh_bcs: Bitters={Bitters.name}, mname={mname}")
+    print(f"gmsh_bcs: Bitters={Bitters.name}, mname={mname}, thickslit={thickslit}")
     (gmsh_ids, crack_ids, Air_data) = ids
     # print("Bitters/gmsh_bcs:", ids)
 
@@ -115,25 +120,67 @@ def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, debug)
+        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, skipR, debug)
         return tdefs
 
     if isinstance(Bitters.magnets, str):
-        # print(f"Bitters/gmsh/{Bitters.magnets} (str)")
+        print(f"Bitters/gmsh/{Bitters.magnets} (str)")
         with open(f"{Bitters.magnets}.yaml", "r") as f:
             Object = yaml.load(f, Loader=yaml.FullLoader)
         defs.update(load_defs(Object, f"{Bitters.name}_{Object.name}", ids))
 
     elif isinstance(Bitters.magnets, list):
+        print(f"Bitters/gmsh/{Bitters.magnets} (list)")
         num = 0
         for i, mname in enumerate(Bitters.magnets):
-            # print(f"Bitters/gmsh/{mname} (dict/list)")
-            # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
+            print(f"Bitters/gmsh/{mname} Bitter[{i}]: {gmsh_ids[num]}")
             with open(f"{mname}.yaml", "r") as f:
                 Object = yaml.load(f, Loader=yaml.FullLoader)
             _ids = (gmsh_ids[num], crack_ids[num], ())
             defs.update(load_defs(Object, f"{Bitters.name}_{Object.name}", _ids))
+            Nslits = len(Object.coolingslits)
+            if i == 0:
+                print(f"Bitters/gmsh/{mname} Bitter[{i}] rInt: {defs}")
+                key = f"{Bitters.name}_{Object.name}_Slit0"
+                bcs_def = [Object.r[0], Object.z[0], Object.r[0], Object.z[1]]
+                defs[key] = create_bcs(key, bcs_def, 1)
+                # print(f'{key}: bcs_def={defs[key]}')
+                    
+                # print(f'Bitters rInt: defs={defs}')
+
+            # add Bitter.magnets[i+1]_rInt + Bitter.magnets[i]_rExt -> Bitter.magnets[i]_slitN
+            if i < len(Bitters.magnets) -1:
+                nmname = Bitters.magnets[i+1]
+                print(f"Bitters/gmsh/{mname} Bitter[{i}] rExt {nmname} Bitter[{i+1}] rInt: {defs}")
+                with open(f"{nmname}.yaml", "r") as f:
+                    nObject = yaml.load(f, Loader=yaml.FullLoader)
+                    _nids = (gmsh_ids[num+1], crack_ids[num+1], ())
+
+                    key = f"{Bitters.name}_{Object.name}_Slit{Nslits+1}"
+                    bcs_def = [
+                        [Object.r[1], Object.z[0], Object.r[1], Object.z[1]],
+                        [nObject.r[0], nObject.z[0], nObject.r[0], nObject.z[1]]
+                    ]
+                    defs[key] = create_bcs(key, bcs_def, 1)
+                    # print(f'{key}: bcs_def={defs[key]}')
+                    
+                # print(f'Bitters rInt/rExt: defs={defs}')
+
+            if i == len(Bitters.magnets) -1 :
+                print(f"Bitters/gmsh/{mname} Bitter[{i}] rExt: {defs}")
+                key = f"{Bitters.name}_{Object.name}_Slit{Nslits+1}"
+                bcs_def = [Object.r[1], Object.z[0], Object.r[1], Object.z[1]]
+                defs[key] = create_bcs(key, bcs_def, 1)
+                # print(f'{key}: bcs_def={defs[key]}')
+                # print(f'Bitters rExt: defs={defs}')
+                
             num += 1
+
+    print(f'Bitters: defs={defs.keys()}')
+    # rename Bitter.magnets[0]_rInt -> Bitter.magnets[0]_slit0
+    # add Bitter.magnets[i]_rExt + Bitter.magnets[i+1]_rInt -> Bitter.magnets[i+1]_slit0
+    # remove Bitter.magnets[i]_rExt and Bitter.magnets[i+1]_rInt
+    # rename Bitter.magnets[-1]_rExt -> Bitter.magnets[-1]_slitN
 
     # Air
     if Air_data:
@@ -156,5 +203,7 @@ def gmsh_bcs(Bitters, mname: str, ids: tuple, debug: bool = False) -> dict:
 
     for key in bcs_defs:
         defs[key] = create_bcs(key, bcs_defs[key], 1)
+
+    gmsh.model.occ.synchronize()
 
     return defs

@@ -18,7 +18,9 @@ from .mesh.bcs import create_bcs
 from .SupraStructure import insert_ids, insert_bcs
 
 
-def gmsh_ids(Supra: Supra, AirData: tuple, debug: bool = False):
+def gmsh_ids(
+    Supra: Supra, AirData: tuple, Thickslit: bool = False, debug: bool = False
+):
     """
     create gmsh geometry
     """
@@ -59,7 +61,9 @@ def gmsh_ids(Supra: Supra, AirData: tuple, debug: bool = False):
         return gmsh_ids
 
 
-def gmsh_bcs(Supra: Supra, mname: str, ids: tuple, debug: bool = False) -> dict:
+def gmsh_bcs(
+    Supra: Supra, mname: str, ids: tuple, thickslit: bool = False, skipR: bool = False, debug: bool = False
+) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
@@ -74,7 +78,6 @@ def gmsh_bcs(Supra: Supra, mname: str, ids: tuple, debug: bool = False) -> dict:
 
     # print(f"Supra: name={Supra.name}, struct={Supra.struct}")
     if not Supra.struct:
-
         (id, Air_data) = ids
 
         # set physical name

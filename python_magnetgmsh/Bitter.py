@@ -3,6 +3,7 @@
 
 from typing import List, Union
 
+import math
 import gmsh
 from python_magnetgeo.Bitter import Bitter
 from .mesh.bcs import create_bcs
@@ -11,11 +12,16 @@ from .mesh.bcs import create_bcs
 from .utils.lists import flatten
 
 
-def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
+def gmsh_ids(
+    Bitter: Bitter, AirData: tuple, thickslit: bool = False, debug: bool = False
+) -> tuple:
     """
     create gmsh geometry
+    
+    thickslit: boolean, True for Thickslit else False
+    
     """
-    print(f"gmsh_ids: Bitter={Bitter.name}")
+    print(f"gmsh_ids: Bitter={Bitter.name}, thickslit={thickslit}")
 
     gmsh_ids = []
     gmsh_cracks = []
@@ -44,19 +50,39 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
 
     # Cooling Channels
     if coolingslit:
-        for i, slit in enumerate(Bitter.coolingslits):
-            x = float(slit.r)
-            pt1 = gmsh.model.occ.addPoint(x, Bitter.z[0], 0)
-            pt2 = gmsh.model.occ.addPoint(x, Bitter.z[1], 0)
-            _id = gmsh.model.occ.addLine(pt1, pt2)
-            gmsh_cracks.append(_id)
-
         ngmsh_ids = []
         ngmsh_cracks = []
-        domain = [(2, i) for i in gmsh_ids]
-        cuts = [(1, i) for i in gmsh_cracks]
-        o, m = gmsh.model.occ.fragment(domain, cuts)
-        gmsh.model.occ.synchronize()
+
+        if not thickslit:
+            for i, slit in enumerate(Bitter.coolingslits):
+                x = float(slit.r)
+                pt1 = gmsh.model.occ.addPoint(x, Bitter.z[0], 0)
+                pt2 = gmsh.model.occ.addPoint(x, Bitter.z[1], 0)
+                _id = gmsh.model.occ.addLine(pt1, pt2)
+                gmsh_cracks.append(_id)
+
+            domain = [(2, i) for i in gmsh_ids]
+            cuts = [(1, i) for i in gmsh_cracks]
+            o, m = gmsh.model.occ.fragment(domain, cuts)
+            gmsh.model.occ.synchronize()
+
+        else:
+            gmsh_slits = []
+            for i, slit in enumerate(Bitter.coolingslits):
+                x = float(slit.r)
+                # eps: thickness of annular ring equivalent to n * coolingslit surface
+                eps = slit.n * slit.sh / (2 * math.pi * x)  # 0.2
+                print(f'slit[{i}]: eps={eps}')
+                _id = gmsh.model.occ.addRectangle(
+                    x - eps / 2.0, Bitter.z[0], 0, eps, abs(Bitter.z[1] - Bitter.z[0])
+                )
+                gmsh_slits.append(_id)
+
+            o, m = gmsh.model.occ.cut(
+                [(2, _id) for _id in gmsh_ids],
+                [(2, _id) for _id in gmsh_slits],
+                removeTool=False,
+            )
 
         for j, entries in enumerate(m):
             _ids = []
@@ -73,6 +99,13 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
 
         gmsh_ids = ngmsh_ids
         gmsh_cracks = ngmsh_cracks
+
+        # gmsh_ids: shall become a list of list
+        # replace: for each id in gmsh_ids: id by a list from cad output
+
+        gmsh.model.occ.synchronize()
+        # gmsh.fltk.run()
+        # raise RuntimeError("finite thickness not implemented")
 
         # need to account for changes
         # gmsh.model.occ.synchronize()
@@ -98,11 +131,13 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
     return (gmsh_ids, gmsh_cracks, Air_data)
 
 
-def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dict:
+def gmsh_bcs(
+    Bitter: Bitter, mname: str, ids: tuple, thickslit: bool = False, skipR: bool = False, debug: bool = False
+) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
-    print(f"gmsh_bcs: Bitter={Bitter.name}, mname={mname}")
+    print(f"gmsh_bcs: Bitter={Bitter.name}, mname={mname}, thickslit={thickslit}")
 
     defs = {}
     (B_ids, Cracks_ids, Air_data) = ids
@@ -131,11 +166,13 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
     bcs_defs = {
         f"{prefix}HP": [Bitter.r[0], Bitter.z[0], Bitter.r[-1], Bitter.z[0]],
         f"{prefix}BP": [Bitter.r[0], Bitter.z[-1], Bitter.r[-1], Bitter.z[-1]],
-        f"{prefix}rInt": [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]],
-        f"{prefix}rExt": [Bitter.r[1], Bitter.z[0], Bitter.r[1], Bitter.z[1]],
     }
+    
+    if not skipR:
+        bcs_defs[f"{prefix}rInt"] = [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]]
+        bcs_defs[f"{prefix}rExt"] = [Bitter.r[1], Bitter.z[0], Bitter.r[1], Bitter.z[1]]
 
-    # Cooling Channels
+    # Cooling Channels for thickness == 0
     print(f"Cracks_ids={Cracks_ids}")
     if len(Cracks_ids) > 0:
         for i, id in enumerate(Cracks_ids):
@@ -147,6 +184,16 @@ def gmsh_bcs(Bitter: Bitter, mname: str, ids: tuple, debug: bool = False) -> dic
             psname = f"{prefix}Slit{i+1}"
             gmsh.model.setPhysicalName(1, ps, psname)
             defs[psname] = ps
+    else:
+        for i, slit in enumerate(Bitter.coolingslits):
+            sname = f"{prefix}Slit{i+1}"
+            x = float(slit.r)
+            eps = slit.n * slit.sh / (2 * math.pi * x)  # 0.2
+            bcs_defs[sname] = [[x-eps/2., Bitter.z[0], x+eps/2., Bitter.z[0]]]
+            print(f'add {sname} to bcs_defs')
+
+    # Cooling Channels for thickness != 0
+    # do the same as bcs_defs on line 158
 
     # Air
     if Air_data:

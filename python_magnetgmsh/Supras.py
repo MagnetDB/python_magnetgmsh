@@ -11,7 +11,9 @@ from .utils.lists import flatten
 import_dict = {Supra: ".Supra"}
 
 
-def gmsh_ids(Supras: Supras, AirData: tuple, debug: bool = False) -> tuple:
+def gmsh_ids(
+    Supras: Supras, AirData: tuple, thickslit: bool = False, debug: bool = False
+) -> tuple:
     """
     create gmsh geometry
     """
@@ -24,7 +26,7 @@ def gmsh_ids(Supras: Supras, AirData: tuple, debug: bool = False) -> tuple:
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        ids = MyMagnet.gmsh_ids(Magnet, (), debug)
+        ids = MyMagnet.gmsh_ids(Magnet, (), thickslit, debug)
         return ids
 
     if isinstance(Supras.magnets, str):
@@ -89,13 +91,15 @@ def gmsh_ids(Supras: Supras, AirData: tuple, debug: bool = False) -> tuple:
     return (gmsh_ids, ())
 
 
-def gmsh_bcs(Supras, mname: str, ids: tuple, debug: bool = False) -> dict:
+def gmsh_bcs(
+    Supras, mname: str, ids: tuple, thickslit: bool = False, skipR: bool = False, debug: bool = False
+) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
     import gmsh
 
-    print(f"gmsh_bcs: Supras={Supras.name}, mname={mname}")
+    print(f"gmsh_bcs: Supras={Supras.name}, mname={mname}, thickslit={thickslit}")
     (gmsh_ids, Air_data) = ids
     # print("Supras/gmsh_bcs:", ids)
 
@@ -106,7 +110,7 @@ def gmsh_bcs(Supras, mname: str, ids: tuple, debug: bool = False) -> dict:
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, debug)
+        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, skipR, debug)
         return tdefs
 
     if isinstance(Supras.magnets, str):
