@@ -149,9 +149,9 @@ def gmsh_bcs(
             defs.update(load_defs(Object, f"{prefix}{Object.name}", _ids))
 
             Nslits = 0
-            if Object.coolingslits :
+            if Object.coolingslits:
                 Nslits = len(Object.coolingslits)
-            else :
+            else:
                 Nslits = 0
 
             if i == 0:
