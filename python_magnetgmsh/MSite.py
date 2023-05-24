@@ -23,7 +23,7 @@ import_dict = {
 }
 
 
-def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
+def gmsh_ids(MSite, AirData: tuple,thickslit: bool = False, debug: bool = False) -> tuple:
     """
     create gmsh geometry
     """
@@ -114,7 +114,7 @@ def gmsh_ids(MSite, AirData: tuple, debug: bool = False) -> tuple:
     return (gmsh_ids, Air_data)
 
 
-def gmsh_bcs(MSite, mname: str, ids: tuple, debug: bool = False) -> dict:
+def gmsh_bcs(MSite, mname: str, ids: tuple,thickslit: bool = False,skipR: bool = False, debug: bool = False) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
