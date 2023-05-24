@@ -81,7 +81,7 @@ class MeshAxiData(yaml.YAMLObject):
         """
         Define default mesh params for Helix
         """
-        #print(f"part_default: name={H.name}, lc={H.get_lc}")
+        # print(f"part_default: name={H.name}, lc={H.get_lc}")
         return H.get_lc()
 
     def air_default(self, Data: tuple):
@@ -117,7 +117,7 @@ class MeshAxiData(yaml.YAMLObject):
         """
 
         print(
-            f"{__name__}: creating default MeshAxiData,  Object.name={Object.name}, Air={Air}, wd={workingDir}"
+            f"{__name__}: creating default MeshAxiData,  mname={mname}, Object.name={Object.name}, Air={Air}, wd={workingDir}"
         )
         mesh_dict = {}
 
@@ -153,20 +153,26 @@ class MeshAxiData(yaml.YAMLObject):
 
         elif isinstance(Object, Bitters):
             print(f"Creating MeshAxiData for Bitters {Object.name}, mname={mname}")
+            hypname = ""
+            if mname:
+                hypname = f"{mname}_"
             for part in Object.magnets:
                 YAMLFile = os.path.join(workingDir, f"{part}.yaml")
                 with open(YAMLFile, "r") as istream:
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    _tmp = self.default(Object.name, mObject, (), workingDir)
+                    _tmp = self.default(hypname, mObject, (), workingDir)
                     mesh_dict.update(_tmp)
 
         elif isinstance(Object, Supras):
             print(f"Creating MeshAxiData for Supras {Object.name}, mname={mname}")
+            hypname = ""
+            if mname:
+                hypname = f"{mname}_"
             for part in Object.magnets:
                 YAMLFile = os.path.join(workingDir, f"{part}.yaml")
                 with open(YAMLFile, "r") as istream:
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    _tmp = self.default(Object.name, mObject, (), workingDir)
+                    _tmp = self.default(hypname, mObject, (), workingDir)
                     mesh_dict.update(_tmp)
 
         elif isinstance(Object, Screen):
@@ -384,12 +390,13 @@ class MeshAxiData(yaml.YAMLObject):
 
         with open(filename, "r") as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
+            # print(f"data={data}")
 
         self.name = data.name
         self.algosurf = data.algosurf
         self.mesh_dict = data.mesh_dict
         self.surfhypoths = data.surfhypoths
-        print(f"MeshAxiData/Load: {filename}")
+        print(f"MeshAxiData/Load: {filename} (pwd={os.getcwd()})")
         if debug:
             print("---------------------------------------------------------")
             print("surfhypoths: ", len(self.surfhypoths), self.surfhypoths)

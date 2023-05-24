@@ -102,11 +102,11 @@ def main():
     # or only for Bitter(s)
     ids = MyObject.gmsh_ids(Object, AirData, args.thickslit, args.debug)
     # print(f"ids[{Object.name}]: {ids}")
-    
+
     prefix = ""
     skipR = False
     if isinstance(Object, Bitters.Bitters):
-        skipR = True    
+        skipR = True
     bcs = MyObject.gmsh_bcs(Object, prefix, ids, args.thickslit, skipR, args.debug)
 
     # TODO set mesh characteristics here
