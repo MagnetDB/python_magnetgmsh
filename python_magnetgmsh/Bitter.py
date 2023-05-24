@@ -139,6 +139,10 @@ def gmsh_bcs(
     """
     print(f"gmsh_bcs: Bitter={Bitter.name}, mname={mname}, thickslit={thickslit}")
 
+    coolingslit = False
+    if Bitter.coolingslits:
+        coolingslit = True
+
     defs = {}
     (B_ids, Cracks_ids, Air_data) = ids
 
@@ -173,24 +177,25 @@ def gmsh_bcs(
         bcs_defs[f"{prefix}rExt"] = [Bitter.r[1], Bitter.z[0], Bitter.r[1], Bitter.z[1]]
 
     # Cooling Channels for thickness == 0
-    print(f"Cracks_ids={Cracks_ids}")
-    if len(Cracks_ids) > 0:
-        for i, id in enumerate(Cracks_ids):
-            print(f"Slit{i+1}: {id}")
-            if isinstance(id, int):
-                ps = gmsh.model.addPhysicalGroup(1, [id])
-            else:
-                ps = gmsh.model.addPhysicalGroup(1, id)
-            psname = f"{prefix}Slit{i+1}"
-            gmsh.model.setPhysicalName(1, ps, psname)
-            defs[psname] = ps
-    else:
-        for i, slit in enumerate(Bitter.coolingslits):
-            sname = f"{prefix}Slit{i+1}"
-            x = float(slit.r)
-            eps = slit.n * slit.sh / (2 * math.pi * x)  # 0.2
-            bcs_defs[sname] = [[x-eps/2., Bitter.z[0], x+eps/2., Bitter.z[0]]]
-            print(f'add {sname} to bcs_defs')
+    if coolingslit :
+        print(f"Cracks_ids={Cracks_ids}")
+        if len(Cracks_ids) > 0:
+            for i, id in enumerate(Cracks_ids):
+                print(f"Slit{i+1}: {id}")
+                if isinstance(id, int):
+                    ps = gmsh.model.addPhysicalGroup(1, [id])
+                else:
+                    ps = gmsh.model.addPhysicalGroup(1, id)
+                psname = f"{prefix}Slit{i+1}"
+                gmsh.model.setPhysicalName(1, ps, psname)
+                defs[psname] = ps
+        else:
+            for i, slit in enumerate(Bitter.coolingslits):
+                sname = f"{prefix}Slit{i+1}"
+                x = float(slit.r)
+                eps = slit.n * slit.sh / (2 * math.pi * x)  # 0.2
+                bcs_defs[sname] = [[x-eps/2., Bitter.z[0], x+eps/2., Bitter.z[0]]]
+                print(f'add {sname} to bcs_defs')
 
     # Cooling Channels for thickness != 0
     # do the same as bcs_defs on line 158
