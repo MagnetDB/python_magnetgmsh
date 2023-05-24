@@ -56,6 +56,7 @@ def gmsh_msh(
     mesh_dict = meshdata.mesh_dict
     # print(f"mesh_dict: {mesh_dict}")
     lcs = meshdata.surfhypoths
+    # print(f"lcs: {lcs}")
 
     # get ov and lc per PhysicalSurface
     lc_data = {}
@@ -64,12 +65,14 @@ def gmsh_msh(
         dimGroup = iGroup[0]  # 1D, 2D or 3D
         tagGroup = iGroup[1]
         namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
+        # print(f"namGroup={namGroup}")
         if namGroup in mesh_dict:
             def_lcs = mesh_dict[namGroup]
             if isinstance(def_lcs, int):
                 lc = lcs[def_lcs]
             else:
                 lc = lcs[def_lcs[0]][def_lcs[1]]
+            # print(f"{namGroup}: lc={lc}")
 
             vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
             ov = []
