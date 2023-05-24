@@ -27,7 +27,7 @@ def gmsh_ids(
     gmsh_cracks = []
 
     coolingslit = False
-    if len(Bitter.coolingslits) > 0:
+    if Bitter.coolingslits:
         coolingslit = True
 
     x = Bitter.r[0]
