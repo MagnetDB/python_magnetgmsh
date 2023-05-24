@@ -144,6 +144,10 @@ def gmsh_bcs(
     """
     print(f"gmsh_bcs: Bitter={Bitter.name}, mname={mname}, thickslit={thickslit}")
 
+    coolingslit = False
+    if Bitter.coolingslits:
+        coolingslit = True
+
     defs = {}
     (B_ids, Cracks_ids, Air_data) = ids
 
@@ -178,6 +182,7 @@ def gmsh_bcs(
         bcs_defs[f"{prefix}rExt"] = [Bitter.r[1], Bitter.z[0], Bitter.r[1], Bitter.z[1]]
 
     # Cooling Channels for thickness == 0
+
     if not Bitter.coolingslits is None:
         print(f"Cracks_ids={Cracks_ids}")
         if len(Cracks_ids) > 0:
