@@ -17,9 +17,9 @@ def gmsh_ids(
 ) -> tuple:
     """
     create gmsh geometry
-    
+
     thickslit: boolean, True for Thickslit else False
-    
+
     """
     print(f"gmsh_ids: Bitter={Bitter.name}, thickslit={thickslit}")
 
@@ -27,7 +27,7 @@ def gmsh_ids(
     gmsh_cracks = []
 
     coolingslit = False
-    if Bitter.coolingslits:
+    if not Bitter.coolingslits is None:
         coolingslit = True
 
     x = Bitter.r[0]
@@ -72,7 +72,7 @@ def gmsh_ids(
                 x = float(slit.r)
                 # eps: thickness of annular ring equivalent to n * coolingslit surface
                 eps = slit.n * slit.sh / (2 * math.pi * x)  # 0.2
-                print(f'slit[{i}]: eps={eps}')
+                print(f"slit[{i}]: eps={eps}")
                 _id = gmsh.model.occ.addRectangle(
                     x - eps / 2.0, Bitter.z[0], 0, eps, abs(Bitter.z[1] - Bitter.z[0])
                 )
@@ -132,7 +132,12 @@ def gmsh_ids(
 
 
 def gmsh_bcs(
-    Bitter: Bitter, mname: str, ids: tuple, thickslit: bool = False, skipR: bool = False, debug: bool = False
+    Bitter: Bitter,
+    mname: str,
+    ids: tuple,
+    thickslit: bool = False,
+    skipR: bool = False,
+    debug: bool = False,
 ) -> dict:
     """
     retreive ids for bcs in gmsh geometry
@@ -167,30 +172,33 @@ def gmsh_bcs(
         f"{prefix}HP": [Bitter.r[0], Bitter.z[0], Bitter.r[-1], Bitter.z[0]],
         f"{prefix}BP": [Bitter.r[0], Bitter.z[-1], Bitter.r[-1], Bitter.z[-1]],
     }
-    
+
     if not skipR:
         bcs_defs[f"{prefix}rInt"] = [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]]
         bcs_defs[f"{prefix}rExt"] = [Bitter.r[1], Bitter.z[0], Bitter.r[1], Bitter.z[1]]
 
     # Cooling Channels for thickness == 0
-    print(f"Cracks_ids={Cracks_ids}")
-    if len(Cracks_ids) > 0:
-        for i, id in enumerate(Cracks_ids):
-            print(f"Slit{i+1}: {id}")
-            if isinstance(id, int):
-                ps = gmsh.model.addPhysicalGroup(1, [id])
-            else:
-                ps = gmsh.model.addPhysicalGroup(1, id)
-            psname = f"{prefix}Slit{i+1}"
-            gmsh.model.setPhysicalName(1, ps, psname)
-            defs[psname] = ps
-    else:
-        for i, slit in enumerate(Bitter.coolingslits):
-            sname = f"{prefix}Slit{i+1}"
-            x = float(slit.r)
-            eps = slit.n * slit.sh / (2 * math.pi * x)  # 0.2
-            bcs_defs[sname] = [[x-eps/2., Bitter.z[0], x+eps/2., Bitter.z[0]]]
-            print(f'add {sname} to bcs_defs')
+    if not Bitter.coolingslits is None:
+        print(f"Cracks_ids={Cracks_ids}")
+        if len(Cracks_ids) > 0:
+            for i, id in enumerate(Cracks_ids):
+                print(f"Slit{i+1}: {id}")
+                if isinstance(id, int):
+                    ps = gmsh.model.addPhysicalGroup(1, [id])
+                else:
+                    ps = gmsh.model.addPhysicalGroup(1, id)
+                psname = f"{prefix}Slit{i+1}"
+                gmsh.model.setPhysicalName(1, ps, psname)
+                defs[psname] = ps
+        else:
+            for i, slit in enumerate(Bitter.coolingslits):
+                sname = f"{prefix}Slit{i+1}"
+                x = float(slit.r)
+                eps = slit.n * slit.sh / (2 * math.pi * x)  # 0.2
+                bcs_defs[sname] = [
+                    [x - eps / 2.0, Bitter.z[0], x + eps / 2.0, Bitter.z[0]]
+                ]
+                print(f"add {sname} to bcs_defs")
 
     # Cooling Channels for thickness != 0
     # do the same as bcs_defs on line 158
