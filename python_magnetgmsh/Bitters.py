@@ -147,10 +147,13 @@ def gmsh_bcs(
                 Object = yaml.load(f, Loader=yaml.FullLoader)
             _ids = (gmsh_ids[num], crack_ids[num], ())
             defs.update(load_defs(Object, f"{prefix}{Object.name}", _ids))
+
+            Nslits = 0
             if Object.coolingslits :
                 Nslits = len(Object.coolingslits)
             else :
                 Nslits = 0
+
             if i == 0:
                 print(f"Bitters/gmsh/{mname} Bitter[{i}] rInt: {defs}")
                 key = f"{prefix}{Object.name}_Slit0"
