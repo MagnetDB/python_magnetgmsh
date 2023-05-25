@@ -201,7 +201,7 @@ def gmsh_bcs(
                 x = float(slit.r)
                 eps = slit.n * slit.sh / (2 * math.pi * x)  # 0.2
                 bcs_defs[sname] = [
-                    [x - eps / 2.0, Bitter.z[0], x + eps / 2.0, Bitter.z[0]]
+                    [x - eps / 2.0, Bitter.z[0], x + eps / 2.0, Bitter.z[1]]
                 ]
                 print(f"add {sname} to bcs_defs")
 
