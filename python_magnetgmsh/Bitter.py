@@ -69,10 +69,11 @@ def gmsh_ids(
         else:
             gmsh_slits = []
             for i, slit in enumerate(Bitter.coolingslits):
-                x = float(slit.r)
                 # eps: thickness of annular ring equivalent to n * coolingslit surface
-                eps = slit.n * slit.sh / (2 * math.pi * x)  # 0.2
+                x = slit.r
+                eps = Bitter.equivalent_eps(i)
                 print(f"slit[{i}]: eps={eps}")
+
                 _id = gmsh.model.occ.addRectangle(
                     x - eps / 2.0, Bitter.z[0], 0, eps, abs(Bitter.z[1] - Bitter.z[0])
                 )
@@ -198,8 +199,8 @@ def gmsh_bcs(
         else:
             for i, slit in enumerate(Bitter.coolingslits):
                 sname = f"{prefix}Slit{i+1}"
-                x = float(slit.r)
-                eps = slit.n * slit.sh / (2 * math.pi * x)  # 0.2
+                x = slit.r
+                eps = Bitter.equivalent_eps(i)
                 bcs_defs[sname] = [
                     [x - eps / 2.0, Bitter.z[0], x + eps / 2.0, Bitter.z[1]]
                 ]
