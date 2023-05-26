@@ -82,7 +82,7 @@ def gmsh_ids(
             o, m = gmsh.model.occ.cut(
                 [(2, _id) for _id in gmsh_ids],
                 [(2, _id) for _id in gmsh_slits],
-                removeTool=False,
+                removeTool=True,
             )
 
         for j, entries in enumerate(m):
@@ -202,7 +202,7 @@ def gmsh_bcs(
                 x = slit.r
                 eps = Bitter.equivalent_eps(i)
                 bcs_defs[sname] = [
-                    [x - eps / 2.0, Bitter.z[0], x + eps / 2.0, Bitter.z[0]]
+                    [x - eps / 2.0, Bitter.z[0], x + eps / 2.0, Bitter.z[1]]
                 ]
                 print(f"add {sname} to bcs_defs")
 

@@ -38,7 +38,7 @@ def gmsh_ids(
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        ids = MyMagnet.gmsh_ids(Magnet, (), debug)
+        ids = MyMagnet.gmsh_ids(Magnet, (), thickslit, debug)
         return ids
 
     if isinstance(MSite.magnets, str):
@@ -139,7 +139,7 @@ def gmsh_bcs(
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, debug)
+        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, skipR, debug)
         return tdefs
 
     if isinstance(MSite.magnets, str):
