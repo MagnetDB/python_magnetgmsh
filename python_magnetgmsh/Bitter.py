@@ -81,7 +81,7 @@ def gmsh_ids(
             o, m = gmsh.model.occ.cut(
                 [(2, _id) for _id in gmsh_ids],
                 [(2, _id) for _id in gmsh_slits],
-                removeTool=False,
+                removeTool=True,
             )
 
         for j, entries in enumerate(m):
