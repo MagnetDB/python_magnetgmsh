@@ -11,6 +11,7 @@ import yaml
 
 from python_magnetgeo import Insert
 from python_magnetgeo import Bitter
+from python_magnetgeo import Bitters
 from python_magnetgeo import Supra
 from python_magnetgeo import Screen
 from .mesh.bcs import create_bcs
@@ -19,6 +20,7 @@ from .utils.lists import flatten
 import_dict = {
     Insert.Insert: ".Insert",
     Bitter.Bitter: ".Bitter",
+    Bitters.Bitters: ".Bitters",
     Supra.Supra: ".Supra",
 }
 
@@ -138,8 +140,11 @@ def gmsh_bcs(
     def load_defs(Magnet, name, ids):
         from importlib import import_module
 
+        NskipR = skipR
+        if isinstance(Magnet, Bitters.Bitters):
+            NskipR = True
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, skipR, debug)
+        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, NskipR, debug)
         return tdefs
 
     if isinstance(MSite.magnets, str):
@@ -162,7 +167,7 @@ def gmsh_bcs(
                 for j, mname in enumerate(MSite.magnets[key]):
                     with open(f"{mname}.yaml", "r") as f:
                         Object = yaml.load(f, Loader=yaml.FullLoader)
-                    pname = f"{key}_{mname}"
+                    pname = f"{key}_{Object.name}"
                     defs.update(load_defs(Object, pname, gmsh_ids[num]))
                     num += 1
 
