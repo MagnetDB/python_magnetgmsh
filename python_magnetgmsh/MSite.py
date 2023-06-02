@@ -89,7 +89,7 @@ def gmsh_ids(
                 raise Exception(
                     f"python_magnetgeo/gmsh: flat_list: expect a tuple got a {type(sublist)}"
                 )
-            for elem in sublist[0]:
+            for elem in sublist[0] + sublist[1]:
                 # print("elem:", elem, type(elem))
                 if isinstance(elem, list):
                     for item in elem:
@@ -98,6 +98,8 @@ def gmsh_ids(
                             flat_list += flatten(item)
                         elif isinstance(item, int):
                             flat_list.append(item)
+                elif isinstance(elem, int):
+                    flat_list.append(elem)
 
         if debug:
             print(f"flat_list={flat_list}")
