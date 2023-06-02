@@ -81,7 +81,7 @@ class MeshAxiData(yaml.YAMLObject):
         """
         Define default mesh params for Helix
         """
-        # print(f"part_default: name={H.name}, lc={H.get_lc}")
+        print(f"part_default: name={H.name}, lc={H.get_lc}")
         return H.get_lc()
 
     def air_default(self, Data: tuple):
@@ -190,19 +190,14 @@ class MeshAxiData(yaml.YAMLObject):
             hypname = Object.name
             if mname:
                 hypname = f"{mname}_{Object.name}"
-            if Object.z[0] < -Object.axi.h:
-                self.surfhypoths.append(self.part_default(Object, f"{hypname}_B0"))
-                mesh_dict[f"{hypname}_B0"] = len(self.surfhypoths) - 1
-            for i in range(len(Object.axi.turns)):
-                self.surfhypoths.append(self.part_default(Object, f"{hypname}_B{i+1}"))
-                mesh_dict[f"{hypname}_B{i+1}"] = len(self.surfhypoths) - 1
-            if Object.z[1] > Object.axi.h:
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}_B{len(Object.axi.turns)+1}")
-                )
-                mesh_dict[f"{hypname}_B{len(Object.axi.turns)+1}"] = (
-                    len(self.surfhypoths) - 1
-                )
+            psnames = Object.get_names(hypname, is2D=True, verbose=debug)
+            surfhypoths_names = [psname.replace("_Slit0", "") for psname in psnames]
+            print(
+                f"Creating MeshAxiData for Bitter {Object.name}, mname={mname}, hypname={hypname}_B0, psnames={psnames[0]}"
+            )
+            for psname in surfhypoths_names:
+                self.surfhypoths.append(self.part_default(Object, psname))
+                mesh_dict[psname] = len(self.surfhypoths) - 1
 
         elif isinstance(Object, Supra):
             print(f"Creating MeshAxiData for Supra {Object.name}, mname={mname}")
@@ -335,27 +330,41 @@ class MeshAxiData(yaml.YAMLObject):
             hypname = ""
             if mname:
                 hypname = f"{mname}_"
-            theInsert = Object
+            psnames = Object.get_names(hypname, is2D=True, verbose=debug)
+            print(
+                f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, psnames={psnames}"
+            )
+            num = 0
             for i, H_cfg in enumerate(Object.Helices):
-                print("MeshAxiData for H:", H_cfg)
                 H = None
                 with open(f"{H_cfg}.yaml", "r") as f:
                     H = yaml.load(f, Loader=yaml.FullLoader)
-                self.surfhypoths.append(self.part_default(H, f"{hypname}H{i+1}"))
+                    print(
+                        f"MeshAxiData for H: {H_cfg}, nturns={len(H.axi.turns)}, psname[{num}]={psnames[num]}"
+                    )
+
+                    for n in range(len(H.axi.turns) + 2):
+                        self.surfhypoths.append(self.part_default(H, psnames[num]))
+                        mesh_dict[psnames[num]] = len(self.surfhypoths) - 1
+                        num += 1
+                """
+                self.surfhypoths.append(self.part_default(H, f"{hypname}H{i+1}_Cu0"))
                 mesh_dict[f"{hypname}H{i+1}_Cu0"] = len(self.surfhypoths) - 1
                 for j in range(len(H.axi.turns)):
                     mesh_dict[f"{hypname}H{i+1}_Cu{j+1}"] = len(self.surfhypoths) - 1
                 mesh_dict[f"{hypname}H{i+1}_Cu{len(H.axi.turns)+1}"] = (
                     len(self.surfhypoths) - 1
                 )
+                """
+
             if Object.Rings:
                 for i, R_cfg in enumerate(Object.Rings):
                     print(f"MeshAxiData for R: {R_cfg}")
                     R = None
                     with open(f"{R_cfg}.yaml", "r") as f:
                         R = yaml.load(f, Loader=yaml.FullLoader)
-                    self.surfhypoths.append(self.part_default(R, f"{hypname}R{i+1}"))
-                    mesh_dict[f"{hypname}R{i+1}"] = len(self.surfhypoths) - 1
+                    self.surfhypoths.append(self.part_default(R, psnames[i + num]))
+                    mesh_dict[psnames[i + num]] = len(self.surfhypoths) - 1
 
         if Air:
             print("MeshAxiData for Air")

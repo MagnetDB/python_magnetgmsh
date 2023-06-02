@@ -152,23 +152,31 @@ def gmsh_bcs(
     defs = {}
     (B_ids, Cracks_ids, Air_data) = ids
 
+    psnames = Bitter.get_names(mname, is2D=True, verbose=debug)
+    print(f"Bitter: mname={mname}, psnames={psnames}")
     prefix = ""
     if mname:
         prefix = f"{mname}_"
 
     # set physical name
-    shift = 1
-    if Bitter.z[0] < -Bitter.axi.h:
-        shift = 0
+    num = 0
     for i, id in enumerate(B_ids):
         if isinstance(id, int):
             ps = gmsh.model.addPhysicalGroup(2, [id])
         else:
             ps = gmsh.model.addPhysicalGroup(2, id)
-        psname = f"{prefix}B{i+shift}"
-        print(f"Bitter: mname={mname}, psname={psname} / {len(B_ids)}")
+
+        psname = psnames[num].replace("_slit0", "")
+        print(
+            f"Bitter[{i}]: id={id}, mname={mname}, psnames[{num}]={psnames[num]}, psname={psname} / {len(B_ids)}"
+        )
         gmsh.model.setPhysicalName(2, ps, psname)
         defs[psname] = ps
+
+        if isinstance(id, int):
+            num += 1
+        else:
+            num += len(id) - 1
 
     # get BC ids
     gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)

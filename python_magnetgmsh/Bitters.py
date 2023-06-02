@@ -192,10 +192,6 @@ def gmsh_bcs(
             num += 1
 
     print(f"Bitters: defs={defs.keys()}")
-    # rename Bitter.magnets[0]_rInt -> Bitter.magnets[0]_slit0
-    # add Bitter.magnets[i]_rExt + Bitter.magnets[i+1]_rInt -> Bitter.magnets[i+1]_slit0
-    # remove Bitter.magnets[i]_rExt and Bitter.magnets[i+1]_rInt
-    # rename Bitter.magnets[-1]_rExt -> Bitter.magnets[-1]_slitN
 
     # Air
     if Air_data:

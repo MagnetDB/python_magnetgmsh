@@ -97,7 +97,12 @@ def gmsh_ids(
 
 
 def gmsh_bcs(
-    Insert: Insert, mname: str, ids: tuple, thickslit: bool = False, skipR: bool = False, debug: bool = False
+    Insert: Insert,
+    mname: str,
+    ids: tuple,
+    thickslit: bool = False,
+    skipR: bool = False,
+    debug: bool = False,
 ) -> dict:
     """
     retreive ids for bcs in gmsh geometry
@@ -113,17 +118,20 @@ def gmsh_bcs(
     prefix = ""
     if mname:
         prefix = f"{mname}_"
+    psnames = Insert.get_names(prefix, is2D=True, verbose=debug)
 
     # loop over Helices
     z = []
     H_Bc_ids = []
     NHelices = len(Insert.Helices)
+    num = 0
     for i, name in enumerate(Insert.Helices):
         Helix = None
         with open(f"{name}.yaml", "r") as f:
             Helix = yaml.load(f, Loader=yaml.FullLoader)
 
-        hdefs = helix_bcs(Helix, f"{prefix}H{i+1}", (H_ids[i], ()), debug)
+        hname = psnames[num].replace("_Cu0", "")
+        hdefs = helix_bcs(Helix, hname, (H_ids[i], ()), debug)
         if i % 2 == 0:
             z.append(Helix.z[1])
         else:
@@ -131,14 +139,16 @@ def gmsh_bcs(
         defs.update(hdefs)
 
         if i == 0:
-            bcs_defs[f"{prefix}H1_BP"] = [
+            bcs_defs[f"{hname}_BP"] = [
                 Helix.r[0],
                 Helix.z[0],
                 Helix.r[1],
                 Helix.z[0],
             ]
         if i == NHelices - 1:
-            bcs_defs[f"{prefix}H_BP"] = [Helix.r[0], Helix.z[0], Helix.r[1], Helix.z[0]]
+            bcs_defs[f"{hname}_BP"] = [Helix.r[0], Helix.z[0], Helix.r[1], Helix.z[0]]
+
+        num += len(Helix.axi.nturns) + 2
 
     # loop over Rings
     R_Bc_ids = []
@@ -152,8 +162,10 @@ def gmsh_bcs(
         if i % 2 != 0:
             y -= Ring.z[-1] - Ring.z[0]
 
-        rdefs = ring_bcs(Ring, f"{prefix}R{i+1}", (i % 2 != 0), y, R_ids[i], debug)
+        rname = psnames[num]
+        rdefs = ring_bcs(Ring, rname, (i % 2 != 0), y, R_ids[i], debug)
         defs.update(rdefs)
+        num += 1
 
     if AirData:
         (Air_id, dr_air, z0_air, dz_air) = AirData
@@ -195,48 +207,5 @@ def gmsh_bcs(
             if bc in defs:
                 gmsh.model.removePhysicalGroups([(1, defs[bc])])
                 del defs[bc]
-
-    """              
-    vGroups = gmsh.model.getPhysicalGroups(1)
-    for iGroup in vGroups:
-        dimGroup = iGroup[0]  # 1D, 2D or 3D
-        tagGroup = iGroup[1]
-        nameGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
-        print(f"{nameGroup}: dim={dimGroup}, tag={tagGroup}")
-        vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
-        print(f"{nameGroup}: {vEntities.tolist()} (type={type(vEntities.tolist()[0])})")
-    """
-    """
-    # TODO group bcs by Channels
-    num = 0
-    NChannels = NHelices + 1
-    for i in range(NChannels):
-        print("Channel%d" % i)
-        Channel_id = []
-        if i == 0:
-            # names.append("R%d_R0n" % (i+1)) # check Ring nummerotation
-            Channel_id += R_Bc_ids[i][0]
-        if i >= 1:
-            # names.append("H%d_rExt" % (i))
-            Channel_id += H_Bc_ids[i - 1][1]
-        if i >= 2:
-            # names.append("R%d_R1n" % (i-1))
-            Channel_id += R_Bc_ids[i - 2][1]
-        if i < NChannels:
-            # names.append("H%d_rInt" % (i+1))
-            if i < NHelices:
-                Channel_id += H_Bc_ids[i][0]
-            if i != 0 and i + 1 < NChannels:
-                # names.append("R%d_CoolingSlits" % (i))
-                print("R_Bc_ids[%d]" % i, R_Bc_ids[i - 1])
-                Channel_id += R_Bc_ids[i - 1][2]
-                # names.append("R%d_R0n" % (i+1))
-                if i < NRings:
-                    Channel_id += R_Bc_ids[i][0]
-
-        ps = gmsh.model.addPhysicalGroup(1, Channel_id)
-        gmsh.model.setPhysicalName(1, ps, "Channel%d" % i)
-        defs["Channel%d" % i] = ps
-    """
 
     return defs
