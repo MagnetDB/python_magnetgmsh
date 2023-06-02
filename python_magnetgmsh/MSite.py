@@ -75,14 +75,15 @@ def gmsh_ids(
     if AirData:
         ([r_min, r_max], [z_min, z_max]) = MSite.boundingBox()
         r0_air = 0
-        dr_air = abs(r_min - r_max) * AirData[0]
+        dr_air = r_max * AirData[0]
         z0_air = z_min * AirData[1]
         dz_air = abs(z_max - z_min) * AirData[1]
         A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
         flat_list = []
-        # print("list:", gmsh_ids)
-        # print("flat_list:", len(gmsh_ids))
+        if debug:
+            print("list:", gmsh_ids)
+            print("flat_list:", len(gmsh_ids))
         for sublist in gmsh_ids:
             # print(f"sublist: {sublist}")
             if not isinstance(sublist, tuple):
