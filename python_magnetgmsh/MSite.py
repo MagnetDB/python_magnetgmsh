@@ -75,21 +75,22 @@ def gmsh_ids(
     if AirData:
         ([r_min, r_max], [z_min, z_max]) = MSite.boundingBox()
         r0_air = 0
-        dr_air = abs(r_min - r_max) * AirData[0]
+        dr_air = r_max * AirData[0]
         z0_air = z_min * AirData[1]
         dz_air = abs(z_max - z_min) * AirData[1]
         A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
         flat_list = []
-        # print("list:", gmsh_ids)
-        # print("flat_list:", len(gmsh_ids))
+        if debug:
+            print("list:", gmsh_ids)
+            print("flat_list:", len(gmsh_ids))
         for sublist in gmsh_ids:
             # print(f"sublist: {sublist}")
             if not isinstance(sublist, tuple):
                 raise Exception(
                     f"python_magnetgeo/gmsh: flat_list: expect a tuple got a {type(sublist)}"
                 )
-            for elem in sublist[0]:
+            for elem in sublist[0] + sublist[1]:
                 # print("elem:", elem, type(elem))
                 if isinstance(elem, list):
                     for item in elem:
@@ -98,6 +99,8 @@ def gmsh_ids(
                             flat_list += flatten(item)
                         elif isinstance(item, int):
                             flat_list.append(item)
+                elif isinstance(elem, int):
+                    flat_list.append(elem)
 
         if debug:
             print(f"flat_list={flat_list}")

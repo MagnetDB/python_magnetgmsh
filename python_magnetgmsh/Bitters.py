@@ -59,7 +59,7 @@ def gmsh_ids(
     if AirData:
         ([r_min, r_max], [z_min, z_max]) = Bitters.boundingBox()
         r0_air = 0
-        dr_air = abs(r_min - r_max) * AirData[0]
+        dr_air = r_max * AirData[0]
         z0_air = z_min * AirData[1]
         dz_air = abs(z_max - z_min) * AirData[1]
         A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
@@ -74,7 +74,8 @@ def gmsh_ids(
                     f"Bitters python_magnetmsh/gmsh: flat_list: expect a tuple got a {type(sublist)}"
                 )
             for elem in sublist:
-                # print("elem:", elem, type(elem))
+                if debug:
+                    print("elem:", elem, type(elem))
                 if isinstance(elem, list):
                     for item in elem:
                         # print("item:", elem, type(item))
@@ -82,6 +83,8 @@ def gmsh_ids(
                             flat_list += flatten(item)
                         elif isinstance(item, int):
                             flat_list.append(item)
+                elif isinstance(elem, int):
+                    flat_list.append(elem)
 
         start = 0
         end = len(flat_list)
