@@ -129,7 +129,7 @@ def main():
         if args.lc:
             meshAxiData.load(air)
         else:
-            meshAxiData.default(prefix, Object, AirData)
+            meshAxiData.default(prefix, Object, AirData, "", args.debug)
             meshAxiData.dump(air)
 
         gmsh_msh(args.algo2d, meshAxiData, air, args.scaling)
