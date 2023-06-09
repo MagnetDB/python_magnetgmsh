@@ -13,6 +13,7 @@ from python_magnetgeo import Insert
 from python_magnetgeo import Bitter
 from python_magnetgeo import Bitters
 from python_magnetgeo import Supra
+from python_magnetgeo import Supras
 from python_magnetgeo import Screen
 from .mesh.bcs import create_bcs
 from .utils.lists import flatten
@@ -22,6 +23,7 @@ import_dict = {
     Bitter.Bitter: ".Bitter",
     Bitters.Bitters: ".Bitters",
     Supra.Supra: ".Supra",
+    Supras.Supras: ".Supras",
 }
 
 
@@ -37,6 +39,7 @@ def gmsh_ids(
 
     def magnet_ids(f):
         Magnet = yaml.load(f, Loader=yaml.FullLoader)
+        print(f"Magnet  {Magnet}")
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
@@ -90,7 +93,7 @@ def gmsh_ids(
                 raise Exception(
                     f"python_magnetgeo/gmsh: flat_list: expect a tuple got a {type(sublist)}"
                 )
-            for elem in sublist[0] + sublist[1]:
+            for elem in flatten(sublist[0]) + flatten(sublist[1]):
                 # print("elem:", elem, type(elem))
                 if isinstance(elem, list):
                     for item in elem:
