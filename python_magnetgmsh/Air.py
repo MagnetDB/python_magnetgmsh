@@ -20,7 +20,7 @@ def gmsh_air(Object: ObjectType, AirData: tuple) -> tuple:
     if isinstance(Object, MSite):
         ([r_min, r_max], [z_min, z_max]) = Object.boundingBox()
         r0 = 0
-        dr = abs(r_min - r_max) * AirData[0]
+        dr = r_max * AirData[0]
         z0 = z_min * AirData[1]
         dz = abs(z_max - z_min) * AirData[1]
     else:

@@ -13,6 +13,7 @@ from python_magnetgeo import Insert
 from python_magnetgeo import Bitter
 from python_magnetgeo import Bitters
 from python_magnetgeo import Supra
+from python_magnetgeo import Supras
 from python_magnetgeo import Screen
 from .mesh.bcs import create_bcs
 from .utils.lists import flatten
@@ -22,6 +23,7 @@ import_dict = {
     Bitter.Bitter: ".Bitter",
     Bitters.Bitters: ".Bitters",
     Supra.Supra: ".Supra",
+    Supras.Supras: ".Supras",
 }
 
 
@@ -37,6 +39,7 @@ def gmsh_ids(
 
     def magnet_ids(f):
         Magnet = yaml.load(f, Loader=yaml.FullLoader)
+        print(f"Magnet  {Magnet}")
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
@@ -90,11 +93,11 @@ def gmsh_ids(
                 raise Exception(
                     f"python_magnetgeo/gmsh: flat_list: expect a tuple got a {type(sublist)}"
                 )
-            for elem in sublist[0] + sublist[1]:
+            for elem in flatten(sublist[0]) + flatten(sublist[1]):
                 # print("elem:", elem, type(elem))
                 if isinstance(elem, list):
                     for item in elem:
-                        # print("item:", elem, type(item))
+                        # print("item:", item, type(item))
                         if isinstance(item, list):
                             flat_list += flatten(item)
                         elif isinstance(item, int):
@@ -104,14 +107,12 @@ def gmsh_ids(
 
         if debug:
             print(f"flat_list={flat_list}")
-        start = 0
-        end = len(flat_list)
-        step = 10
-        for i in range(start, end, step):
-            x = i
-            ov, ovv = gmsh.model.occ.fragment(
-                [(2, A_id)], [(2, j) for j in flat_list[x : x + step]]
-            )
+        # start = 0
+        # end = len(flat_list)
+        # step = 10
+        # for i in range(start, end, step):
+        #     x = i
+        ov, ovv = gmsh.model.occ.fragment([(2, A_id)], [(2, j) for j in flat_list])
 
         # need to account for changes
         Air_data = (A_id, dr_air, z0_air, dz_air)
@@ -161,12 +162,14 @@ def gmsh_bcs(
         for i, key in enumerate(MSite.magnets):
             # print(f"msite/gmsh/{key} (dict)")
             if isinstance(MSite.magnets[key], str):
+                # print(f"msite/gmsh/{key} (dict/str)")
                 with open(f"{MSite.magnets[key]}.yaml", "r") as f:
                     Object = yaml.load(f, Loader=yaml.FullLoader)
                 pname = f"{key}"
                 defs.update(load_defs(Object, pname, gmsh_ids[num]))
                 num += 1
             if isinstance(MSite.magnets[key], list):
+                # print(f"msite/gmsh/{key} (dict/list)")
                 for j, mname in enumerate(MSite.magnets[key]):
                     with open(f"{mname}.yaml", "r") as f:
                         Object = yaml.load(f, Loader=yaml.FullLoader)
