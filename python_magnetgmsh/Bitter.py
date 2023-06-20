@@ -166,7 +166,7 @@ def gmsh_bcs(
         else:
             ps = gmsh.model.addPhysicalGroup(2, id)
 
-        psname = psnames[num].replace("_slit0", "")
+        psname = psnames[num].replace("_Slit0", "")
         print(
             f"Bitter[{i}]: id={id}, mname={mname}, psnames[{num}]={psnames[num]}, psname={psname} / {len(B_ids)}"
         )
@@ -191,15 +191,8 @@ def gmsh_bcs(
         n_slits = len(Bitter.coolingslits)
 
     bcs_defs[f"{prefix}Slit0"] = [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]]
-    bcs_defs[f"{prefix}Slit{n_slits+1}"] = [
-        Bitter.r[1],
-        Bitter.z[0],
-        Bitter.r[1],
-        Bitter.z[1],
-    ]
 
-    # Cooling Channels for thickness == 0
-
+    # Cooling Channels
     if not Bitter.coolingslits is None:
         print(f"Cracks_ids={Cracks_ids}")
         if len(Cracks_ids) > 0:
@@ -222,8 +215,12 @@ def gmsh_bcs(
                 ]
                 print(f"add {sname} to bcs_defs")
 
-    # Cooling Channels for thickness != 0
-    # do the same as bcs_defs on line 158
+    bcs_defs[f"{prefix}Slit{n_slits+1}"] = [
+        Bitter.r[1],
+        Bitter.z[0],
+        Bitter.r[1],
+        Bitter.z[1],
+    ]
 
     # Air
     if Air_data:
