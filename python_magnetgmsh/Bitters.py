@@ -151,47 +151,6 @@ def gmsh_bcs(
             _ids = (gmsh_ids[num], crack_ids[num], ())
             defs.update(load_defs(Object, f"{prefix}{Object.name}", _ids))
 
-            Nslits = 0
-            if Object.coolingslits:
-                Nslits = len(Object.coolingslits)
-
-            if i == 0:
-                print(f"Bitters/gmsh/{mname} Bitter[{i}] rInt: {defs}")
-                key = f"{prefix}{Object.name}_Slit0"
-                bcs_def = [Object.r[0], Object.z[0], Object.r[0], Object.z[1]]
-                defs[key] = create_bcs(key, bcs_def, 1)
-                # print(f'{key}: bcs_def={defs[key]}')
-
-                # print(f'Bitters rInt: defs={defs}')
-
-            # add Bitter.magnets[i+1]_rInt + Bitter.magnets[i]_rExt -> Bitter.magnets[i]_slitN
-            if i < len(Bitters.magnets) - 1:
-                nmname = Bitters.magnets[i + 1]
-                print(
-                    f"Bitters/gmsh/{mname} Bitter[{i}] rExt {nmname} Bitter[{i+1}] rInt: {defs}"
-                )
-                with open(f"{nmname}.yaml", "r") as f:
-                    nObject = yaml.load(f, Loader=yaml.FullLoader)
-                    _nids = (gmsh_ids[num + 1], crack_ids[num + 1], ())
-
-                    key = f"{prefix}{Object.name}_Slit{Nslits+1}"
-                    bcs_def = [
-                        [Object.r[1], Object.z[0], Object.r[1], Object.z[1]],
-                        [nObject.r[0], nObject.z[0], nObject.r[0], nObject.z[1]],
-                    ]
-                    defs[key] = create_bcs(key, bcs_def, 1)
-                    # print(f'{key}: bcs_def={defs[key]}')
-
-                # print(f'Bitters rInt/rExt: defs={defs}')
-
-            if i == len(Bitters.magnets) - 1:
-                print(f"Bitters/gmsh/{mname} Bitter[{i}] rExt: {defs}")
-                key = f"{prefix}{Object.name}_Slit{Nslits+1}"
-                bcs_def = [Object.r[1], Object.z[0], Object.r[1], Object.z[1]]
-                defs[key] = create_bcs(key, bcs_def, 1)
-                # print(f'{key}: bcs_def={defs[key]}')
-                # print(f'Bitters rExt: defs={defs}')
-
             num += 1
 
     print(f"Bitters: defs={defs.keys()}")

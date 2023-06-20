@@ -186,9 +186,17 @@ def gmsh_bcs(
         f"{prefix}BP": [Bitter.r[0], Bitter.z[-1], Bitter.r[-1], Bitter.z[-1]],
     }
 
-    if not skipR:
-        bcs_defs[f"{prefix}rInt"] = [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]]
-        bcs_defs[f"{prefix}rExt"] = [Bitter.r[1], Bitter.z[0], Bitter.r[1], Bitter.z[1]]
+    n_slits = 0
+    if not Bitter.coolingslits is None:
+        n_slits = len(Bitter.coolingslits)
+
+    bcs_defs[f"{prefix}Slit0"] = [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]]
+    bcs_defs[f"{prefix}Slit{n_slits+1}"] = [
+        Bitter.r[1],
+        Bitter.z[0],
+        Bitter.r[1],
+        Bitter.z[1],
+    ]
 
     # Cooling Channels for thickness == 0
 
