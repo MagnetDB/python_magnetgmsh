@@ -195,7 +195,7 @@ def gmsh_bcs(
             if bc in defs:
                 # print(f"{bc}: {defs[bc]}")
                 vEntities = gmsh.model.getEntitiesForPhysicalGroup(1, defs[bc])
-                print(f"{bc}: vEntites={type(vEntities)}, tolist={vEntities.tolist()}")
+                # print(f"{bc}: vEntites={type(vEntities)}, tolist={vEntities.tolist()}")
                 tags += vEntities.tolist()
         # print(f"{channel}: {tags}")
         ps = gmsh.model.addPhysicalGroup(1, tags)
