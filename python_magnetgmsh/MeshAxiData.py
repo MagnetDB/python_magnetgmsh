@@ -155,7 +155,7 @@ class MeshAxiData(yaml.YAMLObject):
             print(f"Creating MeshAxiData for Bitters {Object.name}, mname={mname}")
             hypname = ""
             if mname:
-                hypname = f"{mname}_"
+                hypname = f"{mname}"
             for part in Object.magnets:
                 YAMLFile = os.path.join(workingDir, f"{part}.yaml")
                 with open(YAMLFile, "r") as istream:
