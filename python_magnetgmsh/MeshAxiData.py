@@ -5,7 +5,7 @@
 from typing import Union
 
 import os
-
+import re
 import yaml
 
 # Load Modules for geometrical Objects
@@ -191,10 +191,8 @@ class MeshAxiData(yaml.YAMLObject):
             if mname:
                 hypname = f"{mname}_{Object.name}"
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
-            surfhypoths_names = [psname.replace("_Slit0", "") for psname in psnames]
-            print(
-                f"Creating MeshAxiData for Bitter {Object.name}, mname={mname}, hypname={hypname}_B0, psnames={psnames[0]}"
-            )
+            surfhypoths_names = [re.sub(r"_Slit\d+", "", psname) for psname in psnames]
+            surfhypoths_names = list(set(surfhypoths_names))
             for psname in surfhypoths_names:
                 self.surfhypoths.append(self.part_default(Object, psname))
                 mesh_dict[psname] = len(self.surfhypoths) - 1

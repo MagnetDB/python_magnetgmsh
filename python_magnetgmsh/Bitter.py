@@ -3,7 +3,7 @@
 
 from typing import List, Union
 
-import math
+import re
 import gmsh
 from python_magnetgeo.Bitter import Bitter
 from .mesh.bcs import create_bcs
@@ -166,7 +166,7 @@ def gmsh_bcs(
         else:
             ps = gmsh.model.addPhysicalGroup(2, id)
 
-        psname = psnames[num].replace("_Slit0", "")
+        psname = re.sub(r"_Slit\d+", "", psnames[num])
         print(
             f"Bitter[{i}]: id={id}, mname={mname}, psnames[{num}]={psnames[num]}, psname={psname} / {len(B_ids)}"
         )
