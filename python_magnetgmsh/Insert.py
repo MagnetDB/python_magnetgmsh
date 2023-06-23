@@ -118,7 +118,7 @@ def gmsh_bcs(
     prefix = ""
     if mname:
         prefix = f"{mname}_"
-    psnames = Insert.get_names(prefix, is2D=True, verbose=debug)
+    psnames = Insert.get_names(mname, is2D=True, verbose=debug)
 
     # loop over Helices
     z = []
@@ -148,7 +148,7 @@ def gmsh_bcs(
         if i == NHelices - 1:
             bcs_defs[f"{hname}_BP"] = [Helix.r[0], Helix.z[0], Helix.r[1], Helix.z[0]]
 
-        num += len(Helix.axi.nturns) + 2
+        num += len(Helix.axi.turns) + 2
 
     # loop over Rings
     R_Bc_ids = []
@@ -202,7 +202,6 @@ def gmsh_bcs(
         gmsh.model.setPhysicalName(1, ps, f"{prefix}Channel{i}")
         defs[f"{prefix}Channel{i}"] = ps
 
-    for channel in Channels:
         for bc in channel:
             if bc in defs:
                 gmsh.model.removePhysicalGroups([(1, defs[bc])])

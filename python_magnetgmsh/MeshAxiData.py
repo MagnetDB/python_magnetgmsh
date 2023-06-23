@@ -327,7 +327,7 @@ class MeshAxiData(yaml.YAMLObject):
             print(f"Creating MeshAxiData for Insert {Object.name}, mname={mname}")
             hypname = ""
             if mname:
-                hypname = f"{mname}_"
+                hypname = f"{mname}"
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
             print(
                 f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, psnames={psnames}"
