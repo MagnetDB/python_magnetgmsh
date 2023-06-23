@@ -159,6 +159,8 @@ def gmsh_bcs(
         prefix = f"{mname}_"
 
     # set physical name
+    if not psnames:
+        psnames.append(f"{mname}_B1_Slit0")
     num = 0
     for i, id in enumerate(B_ids):
         if isinstance(id, int):
