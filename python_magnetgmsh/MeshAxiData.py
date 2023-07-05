@@ -159,7 +159,10 @@ class MeshAxiData(yaml.YAMLObject):
                 YAMLFile = os.path.join(workingDir, f"{part}.yaml")
                 with open(YAMLFile, "r") as istream:
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    _tmp = self.default(f'{mname}_{mObject.name}', mObject, (), workingDir)
+                    prefix = ""
+                    if mname:
+                        prefix = f'{mname_}'
+                    _tmp = self.default(f'{prefix}{mObject.name}', mObject, (), workingDir)
                     mesh_dict.update(_tmp)
 
         elif isinstance(Object, Supras):
@@ -168,7 +171,10 @@ class MeshAxiData(yaml.YAMLObject):
                 YAMLFile = os.path.join(workingDir, f"{part}.yaml")
                 with open(YAMLFile, "r") as istream:
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    _tmp = self.default(f'{mname}_{mObject.name}', mObject, (), workingDir)
+                    prefix = ""
+                    if mname:
+                        prefix = f'{mname}_'
+                    _tmp = self.default(f'{prefix}{mObject.name}', mObject, (), workingDir)
                     mesh_dict.update(_tmp)
 
         elif isinstance(Object, Screen):
