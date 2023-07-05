@@ -54,6 +54,7 @@ def gmsh_ids(
     if debug:
         print(f"Bitters/gmsh_ids: gmsh_ids={gmsh_ids}")
         print(f"Bitters/gmsh_ids: cracks: {crack_ids}")
+
     # Now create air
     Air_data = ()
     if AirData:
@@ -64,43 +65,26 @@ def gmsh_ids(
         dz_air = abs(z_max - z_min) * AirData[1]
         A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
-        flat_list = []
-        if debug:
-            print("list:", gmsh_ids)
-            print("flat_list:", len(gmsh_ids))
-        for sublist in gmsh_ids:
-            if not isinstance(sublist, list):
-                raise Exception(
-                    f"Bitters python_magnetmsh/gmsh: flat_list: expect a tuple got a {type(sublist)}"
-                )
-            for elem in sublist:
-                if debug:
-                    print("elem:", elem, type(elem))
-                if isinstance(elem, list):
-                    for item in elem:
-                        # print("item:", elem, type(item))
-                        if isinstance(item, list):
-                            flat_list += flatten(item)
-                        elif isinstance(item, int):
-                            flat_list.append(item)
-                elif isinstance(elem, int):
-                    flat_list.append(elem)
+        flat_list = flatten(gmsh_ids)
+        print(f'flat_list: {flat_list}')
 
-        start = 0
-        end = len(flat_list)
-        step = 10
-        for i in range(start, end, step):
-            x = i
-            ov, ovv = gmsh.model.occ.fragment(
-                [(2, A_id)], [(2, j) for j in flat_list[x : x + step]]
-            )
-
-        # need to account for changes
+        ov, ovv = gmsh.model.occ.fragment(
+            [(2, A_id)], [(2, j) for j in flat_list]
+        )
+        """
+        print(f'Air fragment map: A_id={A_id}')
+        print("fragment produced surfaces:")
+        for e in ov:
+            print(e)
+        # ovv contains the parent-child relationships for all the input entities:
+        print("before/after fragment relations:")
+        for e in zip([(2, A_id)] + [(2, j) for j in flat_list], ovv):
+            print("parent " + str(e[0]) + " -> child " + str(e[1]))
+        """
+        
         gmsh.model.occ.synchronize()
         Air_data = (A_id, dr_air, z0_air, dz_air)
 
-    # need to account for changes
-    gmsh.model.occ.synchronize()
     return (gmsh_ids, crack_ids, Air_data)
 
 
@@ -109,7 +93,6 @@ def gmsh_bcs(
     mname: str,
     ids: tuple,
     thickslit: bool = False,
-    skipR: bool = False,
     debug: bool = False,
 ) -> dict:
     """
@@ -132,7 +115,7 @@ def gmsh_bcs(
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, skipR, debug)
+        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, debug)
         return tdefs
 
     if isinstance(Bitters.magnets, str):

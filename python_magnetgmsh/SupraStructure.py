@@ -145,16 +145,20 @@ def insert_ids(
         )
 
         # Now create air
+        Air_data = ()
         if AirData:
             r0_air = 0
             dr_air = (HTSInsert.r1 - HTSInsert.r0) * AirData[0]
             z0_air = y0 * AirData[1]
             dz_air = (2 * abs(y0)) * AirData[1]
-            _id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
+            
+            A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
+            ov, ovv = gmsh.model.occ.fragment([(2, A_id)], [(2, id)])
+            gmsh.model.occ.synchronize()
+            
+            Air_data = (A_id, dr_air, z0_air, dz_air)
 
-            ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, id)])
-            return (id, (_id, dr_air, z0_air, dz_air))
-        return (id, None)
+        return (id, Air_data)
 
     else:
         dp_ids = []
@@ -195,13 +199,16 @@ def insert_ids(
                                 ov, ovv = gmsh.model.occ.fragment(
                                     [(2, p[0])], [(2, i_ids[j - 1])]
                                 )
+                                gmsh.model.occ.synchronize()
                             if j < n_dp - 1:
                                 ov, ovv = gmsh.model.occ.fragment(
                                     [(2, p[1])], [(2, i_ids[j])]
                                 )
+                                gmsh.model.occ.synchronize()
                             ov, ovv = gmsh.model.occ.fragment(
                                 [(2, dp[-1])], [(2, p[0]), (2, p[1])]
                             )
+                            gmsh.model.occ.synchronize()
 
                         else:
                             # detail == tape
@@ -227,6 +234,7 @@ def insert_ids(
                                         [(2, i_ids[j - 1])],
                                         [(2, l) for l in flat_p0[x : x + step]],
                                     )
+                                    gmsh.model.occ.synchronize()
 
                             start = 0
                             end = len(flat_p1)
@@ -241,6 +249,7 @@ def insert_ids(
                                         [(2, i_ids[j])],
                                         [(2, l) for l in flat_p1[x : x + step]],
                                     )
+                                    gmsh.model.occ.synchronize()
                             for k in range(start, end, step):
                                 x = k
                                 # print(
@@ -251,13 +260,16 @@ def insert_ids(
                                     [(2, l) for l in flat_p1]
                                     + [(2, l) for l in flat_p1[x : x + step]],
                                 )
+                                gmsh.model.occ.synchronize()
 
             else:
                 # detail == dblpancake
                 if j >= 1:
                     ov, ovv = gmsh.model.occ.fragment([(2, dp)], [(2, i_ids[j - 1])])
+                    gmsh.model.occ.synchronize()
                 if j < n_dp - 1:
                     ov, ovv = gmsh.model.occ.fragment([(2, dp)], [(2, i_ids[j])])
+                    gmsh.model.occ.synchronize()
 
         # Now create air
         Air_data = ()
@@ -273,6 +285,7 @@ def insert_ids(
             # TODO fragment _id with dp_ids, i_ids
             for j, i_dp in enumerate(i_ids):
                 ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, i_dp)])
+                gmsh.model.occ.synchronize()
 
             for j, dp in enumerate(dp_ids):
                 # dp = [ [p0, p1], isolation ]
@@ -290,10 +303,12 @@ def insert_ids(
                         ov, ovv = gmsh.model.occ.fragment(
                             [(2, _id)], [(2, l) for l in flat_dp[x : x + step]]
                         )
+                        gmsh.model.occ.synchronize()
                 else:
                     # detail == dblpancake
                     print(f"HTSInsert with Air: dp[{j}] dp={dp}")
                     ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, dp)])
+                    gmsh.model.occ.synchronize()
                     # ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, i) for i in i_ids])
 
             # print("dp_ids:", dp_ids)
@@ -301,7 +316,6 @@ def insert_ids(
             Air_data = (_id, dr_air, z0_air, dz_air)
 
         print("insert_ids: done")
-        gmsh.model.occ.synchronize()
         return ([dp_ids, i_ids], Air_data)
 
 

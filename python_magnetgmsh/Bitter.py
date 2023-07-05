@@ -40,7 +40,6 @@ def gmsh_ids(
     for i, (n, pitch) in enumerate(zip(Bitter.axi.turns, Bitter.axi.pitch)):
         dz = n * pitch
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, dz)
-        # print(f"B[{i}]={_id}")
         gmsh_ids.append(_id)
         y += dz
 
@@ -50,6 +49,7 @@ def gmsh_ids(
 
     # Cooling Channels
     if coolingslit:
+        m = None
         ngmsh_ids = []
         ngmsh_cracks = []
 
@@ -84,6 +84,7 @@ def gmsh_ids(
                 [(2, _id) for _id in gmsh_slits],
                 removeTool=True,
             )
+            gmsh.model.occ.synchronize()
 
         for j, entries in enumerate(m):
             _ids = []
@@ -98,18 +99,11 @@ def gmsh_ids(
             if _cracks:
                 ngmsh_cracks.append(_cracks)
 
+        # print(f'Bitter/gmsh_bcs: ngmsh_ids={ngmsh_ids}, ngmsh_cracks: {ngmsh_cracks}')
         gmsh_ids = ngmsh_ids
         gmsh_cracks = ngmsh_cracks
-
-        # gmsh_ids: shall become a list of list
-        # replace: for each id in gmsh_ids: id by a list from cad output
-
-        gmsh.model.occ.synchronize()
-        # gmsh.fltk.run()
-        # raise RuntimeError("finite thickness not implemented")
-
-        # need to account for changes
-        # gmsh.model.occ.synchronize()
+        # print(f'Bitter/gmsh_id: gmsh_ids={gmsh_ids}, gmsh_cracks: {gmsh_cracks}')
+        
 
     if debug:
         print(f"gmsh_ids: {gmsh_ids}, gmsh_cracks: {gmsh_cracks}")
@@ -125,10 +119,10 @@ def gmsh_ids(
         ov, ovv = gmsh.model.occ.fragment(
             [(2, _id)], [(2, i) for i in flatten(gmsh_ids)]
         )
+        gmsh.model.occ.synchronize()
         Air_data = (_id, dr_air, z0_air, dz_air)
 
-    # gmsh.model.occ.synchronize()
-    gmsh.model.occ.synchronize()
+    
     return (gmsh_ids, gmsh_cracks, Air_data)
 
 
@@ -137,22 +131,22 @@ def gmsh_bcs(
     mname: str,
     ids: tuple,
     thickslit: bool = False,
-    skipR: bool = False,
     debug: bool = False,
 ) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
-    print(f"gmsh_bcs: Bitter={Bitter.name}, mname={mname}, thickslit={thickslit}")
-
+    
     coolingslit = False
     if Bitter.coolingslits:
         coolingslit = True
 
     defs = {}
     (B_ids, Cracks_ids, Air_data) = ids
+    print(f"gmsh_bcs: Bitter={Bitter.name}, mname={mname}, thickslit={thickslit}, Air_data={Air_data}")
 
     psnames = Bitter.get_names(mname, is2D=True, verbose=debug)
+    assert len(flatten(B_ids)) == len(psnames), f"Bitter/gmsh_bcs {Bitter.name}: trouble with psnames (expected {len(psnames)} got {len(flatten(B_ids))})"
     print(f"Bitter: mname={mname}, psnames={psnames}")
     prefix = ""
     if mname:
@@ -178,7 +172,7 @@ def gmsh_bcs(
         if isinstance(id, int):
             num += 1
         else:
-            num += len(id) - 1
+            num += len(id)
 
     # get BC ids
     gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
@@ -233,6 +227,7 @@ def gmsh_bcs(
         ps = gmsh.model.addPhysicalGroup(2, [Air_id])
         gmsh.model.setPhysicalName(2, ps, "Air")
         defs["Air"] = ps
+
         # TODO: Axis, Inf
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 

@@ -43,33 +43,34 @@ def gmsh_ids(
 
     # loop over Rings
     R_ids = []
-    for i, name in enumerate(Insert.Rings):
-        with open(f"{name}.yaml", "r") as f:
-            Ring = yaml.load(f, Loader=yaml.FullLoader)
+    if Insert.Rings:
+        for i, name in enumerate(Insert.Rings):
+            with open(f"{name}.yaml", "r") as f:
+                Ring = yaml.load(f, Loader=yaml.FullLoader)
 
-        y = z[i]
-        if i % 2 != 0:
-            y -= Ring.z[-1] - Ring.z[0]
+            y = z[i]
+            if i % 2 != 0:
+                y -= Ring.z[-1] - Ring.z[0]
 
-        _id = ring_ids(Ring, y, debug)
-        R_ids.append(_id)
-        # fragment
-        if i % 2 != 0:
-            ov, ovv = gmsh.model.occ.fragment(
-                [(2, _id)], [(2, H_ids[i][0]), (2, H_ids[i + 1][0])]
-            )
-        else:
-            ov, ovv = gmsh.model.occ.fragment(
-                [(2, _id)], [(2, H_ids[i][-1]), (2, H_ids[i + 1][-1])]
-            )
-        gmsh.model.occ.synchronize()
+            _id = ring_ids(Ring, y, debug)
+            R_ids.append(_id)
+            # fragment
+            if i % 2 != 0:
+                ov, ovv = gmsh.model.occ.fragment(
+                    [(2, _id)], [(2, H_ids[i][0]), (2, H_ids[i + 1][0])]
+                )
+            else:
+                ov, ovv = gmsh.model.occ.fragment(
+                    [(2, _id)], [(2, H_ids[i][-1]), (2, H_ids[i + 1][-1])]
+                )
+            gmsh.model.occ.synchronize()
 
-        if debug:
-            print(
-                f"Insert/Ring[{i}]: R_id={_id}, fragment produced volumes: {len(ov)}, {len(ovv)}"
-            )
-            for e in ov:
-                print(e)
+            if debug:
+                print(
+                    f"Insert/Ring[{i}]: R_id={_id}, fragment produced volumes: {len(ov)}, {len(ovv)}"
+                )
+                for e in ov:
+                    print(e)
 
     # Now create air
     Air_data = ()
@@ -80,19 +81,17 @@ def gmsh_ids(
         dr_air = r[1] * AirData[0]
         z0_air = z[0] * AirData[1]
         dz_air = abs(z[1] - z[0]) * AirData[1]
-        _id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
+        A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
         flat_list = flatten(H_ids)
         flat_list += R_ids
 
-        ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, i) for i in flat_list])
+        ov, ovv = gmsh.model.occ.fragment([(2, A_id)], [(2, i) for i in flat_list])
+        gmsh.model.occ.synchronize()
 
         # need to account for changes
-        Air_data = (_id, dr_air, z0_air, dz_air)
+        Air_data = (A_id, dr_air, z0_air, dz_air)
 
-    # TODO return ids
-    # need to account for changes
-    gmsh.model.occ.synchronize()
     return (H_ids, R_ids, Air_data)
 
 
@@ -101,7 +100,6 @@ def gmsh_bcs(
     mname: str,
     ids: tuple,
     thickslit: bool = False,
-    skipR: bool = False,
     debug: bool = False,
 ) -> dict:
     """

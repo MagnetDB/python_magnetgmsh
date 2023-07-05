@@ -93,7 +93,14 @@ def gmsh_ids(
                 raise Exception(
                     f"python_magnetgeo/gmsh: flat_list: expect a tuple got a {type(sublist)}"
                 )
-            for elem in flatten(sublist[0]) + flatten(sublist[1]):
+            # CHECK THIS?? should be flatten(sublist[0]) only
+            # since sublist[0] contains id for Face 
+            # and sublist[1] ................. edge (aka cracks for Bitters with thin cooling slits)
+            # but sublist[1] ................. Rings for insert !!!
+            flat_list += flatten(sublist[0])
+            flat_list += flatten(sublist[1])
+            """
+            for elem in flatten(sublist[0]) + flatten(sublist[1]):            
                 # print("elem:", elem, type(elem))
                 if isinstance(elem, list):
                     for item in elem:
@@ -104,21 +111,17 @@ def gmsh_ids(
                             flat_list.append(item)
                 elif isinstance(elem, int):
                     flat_list.append(elem)
-
+            """
+            
         if debug:
             print(f"flat_list={flat_list}")
-        # start = 0
-        # end = len(flat_list)
-        # step = 10
-        # for i in range(start, end, step):
-        #     x = i
-        ov, ovv = gmsh.model.occ.fragment([(2, A_id)], [(2, j) for j in flat_list])
 
-        # need to account for changes
+        ov, ovv = gmsh.model.occ.fragment([(2, A_id)], [(2, j) for j in flat_list])
+        gmsh.model.occ.synchronize()
+
         Air_data = (A_id, dr_air, z0_air, dz_air)
 
-    # need to account for changes
-    gmsh.model.occ.synchronize()
+    
     return (gmsh_ids, Air_data)
 
 
@@ -127,7 +130,6 @@ def gmsh_bcs(
     mname: str,
     ids: tuple,
     thickslit: bool = False,
-    skipR: bool = False,
     debug: bool = False,
 ) -> dict:
     """
@@ -144,11 +146,8 @@ def gmsh_bcs(
     def load_defs(Magnet, name, ids):
         from importlib import import_module
 
-        NskipR = skipR
-        if isinstance(Magnet, Bitters.Bitters):
-            NskipR = True
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, NskipR, debug)
+        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, debug)
         return tdefs
 
     if isinstance(MSite.magnets, str):

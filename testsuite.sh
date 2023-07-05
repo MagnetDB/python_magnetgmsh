@@ -22,10 +22,11 @@ echo_failure() {
 echo "Axi CAD generation"
 for test in ${TestsAxi}; do
     echo -en "${test} : " 
-    python -m python_magnetgmsh.cli ${test}.yaml --wd ${TestWD} > ${test}.log 2>&1
+    python -m python_magnetgmsh.cli ${test}.yaml --wd ${TestWD} --thickslit > ${test}_gmsh.log 2>&1
     status=$?
     if [ "$status" != "0" ]; then
 	    echo_failure
+      exit 1
     else
 	    echo_success
     fi
@@ -34,10 +35,11 @@ done
 echo "Axi CAD generation with Air"
 for test in ${TestsAxi}; do
     echo -en "${test} : " 
-    python -m python_magnetgmsh.cli ${test}.yaml --wd ${TestWD} --air 10 6 > ${test}_withAir.log 2>&1
+    python -m python_magnetgmsh.cli ${test}.yaml --wd ${TestWD} --thickslit --air 10 6 > ${test}_withAir_gmsh.log 2>&1
     status=$?
     if [ "$status" != "0" ]; then
 	    echo_failure
+      exit 1
     else
 	    echo_success
     fi
@@ -46,10 +48,11 @@ done
 echo "Axi Mesh generation with Gmsh"
 for test in ${TestsAxi}; do
     echo -en "${test} : " 
-    python -m python_magnetgmsh.cli ${test}.yaml --wd ${TestWD} --mesh > ${test}_mesh.log 2>&1
+    python -m python_magnetgmsh.cli ${test}.yaml --wd ${TestWD} --thickslit --mesh > ${test}_mesh_gmsh.log 2>&1
     status=$?
     if [ "$status" != "0" ]; then
 	    echo_failure
+      exit 1
     else
 	    echo_success
     fi
@@ -58,7 +61,7 @@ done
 echo "Axi Mesh generation with Gmsh (with Air)"
 for test in ${TestsAxi}; do
     echo -en "${test} : " 
-    python -m python_magnetgmsh.cli ${test}.yaml --wd ${TestWD} --air 10 6 --mesh > ${test}_withAir_mesh.log 2>&1
+    python -m python_magnetgmsh.cli ${test}.yaml --wd ${TestWD} --thickslit --air 10 6 --mesh > ${test}_withAir_mesh_gmsh.log 2>&1
     status=$?
     if [ "$status" != "0" ]; then
 	    echo_failure

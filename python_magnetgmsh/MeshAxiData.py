@@ -187,7 +187,7 @@ class MeshAxiData(yaml.YAMLObject):
 
         elif isinstance(Object, Bitter):
             print(f"Creating MeshAxiData for Bitter {Object.name}, mname={mname}")
-            hypname = Object.name
+            hypname = ""
             if mname:
                 hypname = f"{mname}_{Object.name}"
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)

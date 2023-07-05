@@ -35,21 +35,19 @@ def gmsh_ids(
         )
 
         # Now create air
+        Air_data = ()
         if AirData:
-            r0_air = 0
-            dr_air = Supra.r[1] * AirData[0]
-            z0_air = Supra.z[0] * AirData[1]
-            dz_air = (Supra.z[1] - Supra.z[0]) * AirData[1]
+            from .Air import gmsh_air
+
+            (r0_air, z0_air, dr_air, dz_air) = gmsh_air(Supra, AirData)
             A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
             ov, ovv = gmsh.model.occ.fragment([(2, A_id)], [(2, _id)])
             # need to account for changes
             gmsh.model.occ.synchronize()
-            return (_id, (A_id, dr_air, z0_air, dz_air))
+            Air_data = (A_id, dr_air, z0_air, dz_air)
 
-        # need to account for changes
-        gmsh.model.occ.synchronize()
-        return (_id, ())
+        return (_id, Air_data)
     else:
         # load struct
         nougat = HTSinsert.fromcfg(Supra.struct)
@@ -57,12 +55,12 @@ def gmsh_ids(
         # call gmsh for struct
         gmsh_ids = insert_ids(nougat, Supra.detail, AirData, debug)
         # need to account for changes
-        gmsh.model.occ.synchronize()
+        
         return gmsh_ids
 
 
 def gmsh_bcs(
-    Supra: Supra, mname: str, ids: tuple, thickslit: bool = False, skipR: bool = False, debug: bool = False
+    Supra: Supra, mname: str, ids: tuple, thickslit: bool = False, debug: bool = False
 ) -> dict:
     """
     retreive ids for bcs in gmsh geometry

@@ -47,6 +47,7 @@ def gmsh_ids(
         raise Exception(f"magnets: unsupported type {type(Supras.magnets)}")
 
     # Now create air
+    Air_data = ()
     if AirData:
         ([r_min, r_max], [z_min, z_max]) = Supras.boundingBox()
         r0_air = 0
@@ -63,6 +64,12 @@ def gmsh_ids(
                 raise Exception(
                     f"python_magnetgeo/gmsh: flat_list: expect a tuple got a {type(sublist)}"
                 )
+            if isinstance(sublist[0], list):
+                flat_list += flatten(sublist[0])
+            else:
+                flat_list.append(sublist[0])
+            
+            """    
             for elem in sublist:
                 # print("elem:", elem, type(elem))
                 if isinstance(elem, list):
@@ -72,27 +79,19 @@ def gmsh_ids(
                             flat_list += flatten(item)
                         elif isinstance(item, int):
                             flat_list.append(item)
-
-        start = 0
-        end = len(flat_list)
-        step = 10
-        for i in range(start, end, step):
-            x = i
-            ov, ovv = gmsh.model.occ.fragment(
-                [(2, A_id)], [(2, j) for j in flat_list[x : x + step]]
-            )
-
-        # need to account for changes
+            """
+            
+        ov, ovv = gmsh.model.occ.fragment(
+                [(2, A_id)], [(2, j) for j in flat_list]
+        )
         gmsh.model.occ.synchronize()
-        return (gmsh_ids, (A_id, dr_air, z0_air, dz_air))
+        Air_data = (A_id, dr_air, z0_air, dz_air)
 
-    # need to account for changes
-    gmsh.model.occ.synchronize()
-    return (gmsh_ids, ())
+    return (gmsh_ids, (), Air_data)
 
 
 def gmsh_bcs(
-    Supras, mname: str, ids: tuple, thickslit: bool = False, skipR: bool = False, debug: bool = False
+    Supras, mname: str, ids: tuple, thickslit: bool = False, debug: bool = False
 ) -> dict:
     """
     retreive ids for bcs in gmsh geometry
@@ -100,7 +99,7 @@ def gmsh_bcs(
     import gmsh
 
     print(f"gmsh_bcs: Supras={Supras.name}, mname={mname}, thickslit={thickslit}")
-    (gmsh_ids, Air_data) = ids
+    (gmsh_ids, gmsh_bc_ids, Air_data) = ids
     # print("Supras/gmsh_bcs:", ids)
 
     defs = {}
@@ -110,7 +109,7 @@ def gmsh_bcs(
         from importlib import import_module
 
         MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, skipR, debug)
+        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, debug)
         return tdefs
 
     if isinstance(Supras.magnets, str):
