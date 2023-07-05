@@ -132,6 +132,7 @@ class MeshAxiData(yaml.YAMLObject):
             elif isinstance(Object.magnets, dict):
                 for i, key in enumerate(Object.magnets):
                     if isinstance(Object.magnets[key], str):
+                        print(f"Creating MeshAxiData for MSite {Object.name}, mname={mname}, key={key}")
                         YAMLFile = os.path.join(
                             workingDir, f"{Object.magnets[key]}.yaml"
                         )
@@ -140,11 +141,12 @@ class MeshAxiData(yaml.YAMLObject):
                             _tmp = self.default(key, mObject, (), workingDir)
                             mesh_dict.update(_tmp)
                     elif isinstance(Object.magnets[key], list):
-                        for j, mname in enumerate(Object.magnets[key]):
-                            YAMLFile = os.path.join(workingDir, f"{mname}.yaml")
+                        for j, pname in enumerate(Object.magnets[key]):
+                            print(f"Creating MeshAxiData for MSite {Object.name}, mname={mname}, key={key}, pname={pname}")
+                            YAMLFile = os.path.join(workingDir, f"{pname}.yaml")
                             with open(YAMLFile, "r") as istream:
                                 mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                                _tmp = self.default(key, mObject, (), workingDir)
+                                _tmp = self.default(f'{key}_{mObject.name}', mObject, (), workingDir)
                                 mesh_dict.update(_tmp)
                     else:
                         raise RuntimeError(
@@ -152,48 +154,43 @@ class MeshAxiData(yaml.YAMLObject):
                         )
 
         elif isinstance(Object, Bitters):
-            print(f"Creating MeshAxiData for Bitters {Object.name}, mname={mname}")
-            hypname = ""
-            if mname:
-                hypname = f"{mname}"
+            print(f"Creating MeshAxiData for Bitters {Object.name}, (mname={mname})")
             for part in Object.magnets:
                 YAMLFile = os.path.join(workingDir, f"{part}.yaml")
                 with open(YAMLFile, "r") as istream:
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    _tmp = self.default(hypname, mObject, (), workingDir)
+                    _tmp = self.default(f'{mname}_{mObject.name}', mObject, (), workingDir)
                     mesh_dict.update(_tmp)
 
         elif isinstance(Object, Supras):
             print(f"Creating MeshAxiData for Supras {Object.name}, mname={mname}")
-            hypname = ""
-            if mname:
-                hypname = f"{mname}_"
             for part in Object.magnets:
                 YAMLFile = os.path.join(workingDir, f"{part}.yaml")
                 with open(YAMLFile, "r") as istream:
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    _tmp = self.default(hypname, mObject, (), workingDir)
+                    _tmp = self.default(f'{mname}_{mObject.name}', mObject, (), workingDir)
                     mesh_dict.update(_tmp)
 
         elif isinstance(Object, Screen):
-            print(f"Creating MeshAxiData for Screen {Object.name}, mname={mname}")
             hypname = ""
             if mname:
                 hypname = f"{mname}_"
+            print(f"Creating MeshAxiData for Screen {Object.name}, mname={mname}, hypname={hypname}")
             self.surfhypoths.append(
                 self.part_default(Object, f"{hypname}{Object.name}_Screen")
             )
             mesh_dict[f"{hypname}{Object.name}_Screen"] = len(self.surfhypoths) - 1
 
         elif isinstance(Object, Bitter):
-            print(f"Creating MeshAxiData for Bitter {Object.name}, mname={mname}")
             hypname = ""
             if mname:
-                hypname = f"{mname}_{Object.name}"
+                hypname = f"{mname}"
+            print(f"Creating MeshAxiData for Bitter {Object.name}, mname={mname}, hypname={hypname}")
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
             surfhypoths_names = [re.sub(r"_Slit\d+", "", psname) for psname in psnames]
             surfhypoths_names = list(set(surfhypoths_names))
             for psname in surfhypoths_names:
+                print(f"\tpsname={psname}")
                 self.surfhypoths.append(self.part_default(Object, psname))
                 mesh_dict[psname] = len(self.surfhypoths) - 1
 
