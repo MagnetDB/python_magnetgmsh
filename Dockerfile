@@ -4,7 +4,7 @@ USER root
 
 # Avoid warnings by switching to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
-~
+
 # Setup demo environment variables
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US.UTF-8 \
