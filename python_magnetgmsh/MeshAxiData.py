@@ -161,7 +161,7 @@ class MeshAxiData(yaml.YAMLObject):
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
                     prefix = ""
                     if mname:
-                        prefix = f'{mname_}'
+                        prefix = f'{mname}_'
                     _tmp = self.default(f'{prefix}{mObject.name}', mObject, (), workingDir)
                     mesh_dict.update(_tmp)
 
@@ -327,10 +327,10 @@ class MeshAxiData(yaml.YAMLObject):
                 )
 
         elif isinstance(Object, Insert):
-            print(f"Creating MeshAxiData for Insert {Object.name}, mname={mname}")
             hypname = ""
             if mname:
                 hypname = f"{mname}"
+            print(f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, hypname={hypname}")
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
             print(
                 f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, psnames={psnames}"
