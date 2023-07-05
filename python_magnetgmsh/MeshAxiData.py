@@ -159,7 +159,10 @@ class MeshAxiData(yaml.YAMLObject):
                 YAMLFile = os.path.join(workingDir, f"{part}.yaml")
                 with open(YAMLFile, "r") as istream:
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    _tmp = self.default(f'{mname}_{mObject.name}', mObject, (), workingDir)
+                    prefix = ""
+                    if mname:
+                        prefix = f'{mname}_'
+                    _tmp = self.default(f'{prefix}{mObject.name}', mObject, (), workingDir)
                     mesh_dict.update(_tmp)
 
         elif isinstance(Object, Supras):
@@ -168,7 +171,10 @@ class MeshAxiData(yaml.YAMLObject):
                 YAMLFile = os.path.join(workingDir, f"{part}.yaml")
                 with open(YAMLFile, "r") as istream:
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    _tmp = self.default(f'{mname}_{mObject.name}', mObject, (), workingDir)
+                    prefix = ""
+                    if mname:
+                        prefix = f'{mname}_'
+                    _tmp = self.default(f'{prefix}{mObject.name}', mObject, (), workingDir)
                     mesh_dict.update(_tmp)
 
         elif isinstance(Object, Screen):
@@ -189,9 +195,9 @@ class MeshAxiData(yaml.YAMLObject):
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
             surfhypoths_names = [re.sub(r"_Slit\d+", "", psname) for psname in psnames]
             surfhypoths_names = list(set(surfhypoths_names))
+            self.surfhypoths.append(self.part_default(Object, surfhypoths_names[0]))
             for psname in surfhypoths_names:
                 print(f"\tpsname={psname}")
-                self.surfhypoths.append(self.part_default(Object, psname))
                 mesh_dict[psname] = len(self.surfhypoths) - 1
 
         elif isinstance(Object, Supra):
@@ -321,10 +327,10 @@ class MeshAxiData(yaml.YAMLObject):
                 )
 
         elif isinstance(Object, Insert):
-            print(f"Creating MeshAxiData for Insert {Object.name}, mname={mname}")
             hypname = ""
             if mname:
                 hypname = f"{mname}"
+            print(f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, hypname={hypname}")
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
             print(
                 f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, psnames={psnames}"
@@ -338,8 +344,9 @@ class MeshAxiData(yaml.YAMLObject):
                         f"MeshAxiData for H: {H_cfg}, nturns={len(H.axi.turns)}, psname[{num}]={psnames[num]}"
                     )
 
+                    psname = re.sub(r"_Cu\d+", "", psnames[num])
+                    self.surfhypoths.append(self.part_default(H, psname))
                     for n in range(len(H.axi.turns) + 2):
-                        self.surfhypoths.append(self.part_default(H, psnames[num]))
                         mesh_dict[psnames[num]] = len(self.surfhypoths) - 1
                         num += 1
                 """
