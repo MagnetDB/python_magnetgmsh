@@ -6,141 +6,115 @@ from typing import Union
 
 import re
 import gmsh
+from ..utils.lists import flatten
 
 
 def create_physicalgroups(
-    tree,
-    solid_names: list,
+    vtags: dict,
+    stags: dict,
+    excluded_tags: list,
     GeomParams: dict,
     hideIsolant: bool,
     groupIsolant: bool,
+    is2D: bool = True,
     debug: bool = False,
-):
+) -> None:
     """
     creates PhysicalVolumes
     """
 
-    tr_subelements = tree.xpath("//" + GeomParams["Solid"][1])
-    stags = {}
-    for i, sgroup in enumerate(tr_subelements):
-        for j, child in enumerate(sgroup):
-            sname = solid_names[j]
-            oname = sname
-            print(f"sname={sname}: child.attrib={child.attrib}")
+    print(f"create_physicalgroups: is2D={is2D}")
 
-            indices = int(child.attrib["index"]) + 1
-            if debug:
-                print(
-                    f"sname[{j}]: oname={oname}, sname={sname}, child.attrib={child.attrib}, solid_name={solid_names[j]}, indices={indices}"
+    dict_tags = {}
+
+    if hideIsolant:
+        # populate exlude_tags
+        raise RuntimeError("hideIsolant case not implemented")
+
+    if groupIsolant:
+        # select Isolant just like section for Bitter
+        # populate exclude_tags
+        raise RuntimeError("groupIsolant not implemented")
+
+    if is2D:
+        # Create Physical surfaces
+        regexp_stags = [
+            r"_Slit\d+",
+        ]
+        for regexp in regexp_stags:
+            match = [solid for solid in list(stags.keys()) if re.search(regexp, solid)]
+            print(f"looking for regexp={regexp} (found: {match})")
+            if match:
+                SGroups = [re.sub(regexp, "", solid) for solid in match]
+                SGroups.sort()
+                SGroups = list(dict.fromkeys(SGroups))
+                for group in SGroups:
+                    r = re.compile(f"^{group}")
+                    newlist = list(filter(r.match, list(stags.keys())))
+                    print(f"{group}: {newlist}")
+                    dict_tags[group] = newlist
+                    excluded_tags += newlist
+
+        print(f"excluded_tags={excluded_tags}")
+        print("set physical for dict_stags")
+        for sname, values in dict_tags.items():
+            if not sname in excluded_tags:
+                _ids = flatten([stags[s] for s in values])
+                print(f"sname={sname}, _ids={_ids}")
+                pgrp = gmsh.model.addPhysicalGroup(
+                    GeomParams["Solid"][0], _ids, name=sname
                 )
+                # gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, sname)
+                # if debug:
+                print(f"{sname}: _ids={_ids}, pgrp={pgrp}")
 
-            skip = False
-            if hideIsolant and (
-                "Isolant" in sname or "Glue" in sname or "Kapton" in sname
-            ):
-                if debug:
-                    print(f"skip isolant: {sname}")
-                skip = True
+    else:
+        raise RuntimeError("3D case not implemented")
 
-            # TODO if groupIsolant and "glue" in sname:
-            #    sname = remove latest digit from sname
-            if groupIsolant and (
-                "Isolant" in sname or "Glue" in sname or "Kapton" in sname
-            ):
-                sname = re.sub(r"\d+$", "", sname)
-
-            if not skip:
-                if sname in stags:
-                    stags[sname].append(indices)
-                else:
-                    stags[sname] = [indices]
-
-    # Physical Volumes
-    if debug:
-        print("Solidtags:")
+    print("set physical for stags - ignore exclude_tags")
     for sname in stags:
-        pgrp = gmsh.model.addPhysicalGroup(GeomParams["Solid"][0], stags[sname])
-        gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, sname)
-        if debug:
+        if not sname in excluded_tags:
+            pgrp = gmsh.model.addPhysicalGroup(
+                GeomParams["Solid"][0], stags[sname], name=sname
+            )
+            # gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, sname)
+            # if debug:
             print(f"{sname}: {stags[sname]}, pgrp={pgrp}")
 
-    return stags
+    print("PhysicalGroups:")
+    vGroups = gmsh.model.getPhysicalGroups()
+    for iGroup in vGroups:
+        dimGroup = iGroup[0]  # 1D, 2D or 3D
+        tagGroup = iGroup[1]
+        namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
+        print(namGroup)
+
+    # get groups
 
 
 def create_physicalbcs(
-    tree,
-    GeomParams,
-    groupCoolingChannels,
-    Channels,
-    hideIsolant,
-    groupIsolant,
+    bctags: dict,
+    GeomParams: dict,
+    groupCoolingChannels: bool,
+    Channels: Union[list, dict],
+    hideIsolant: bool,
+    groupIsolant: bool,
     debug: bool = False,
-):
+) -> None:
+    exclude_tags = {}
 
-    tr_elements = tree.xpath("//group")
+    if hideIsolant:
+        # populate exlude_tags
+        raise RuntimeError("hideIsolant case not implemented")
 
-    bctags = {}
-    for i, group in enumerate(tr_elements):
-        if debug:
-            print(
-                "name=",
-                group.attrib["name"],
-                group.attrib["dimension"],
-                group.attrib["count"],
-            )
-
-        indices = []
-        if group.attrib["dimension"] == GeomParams["Face"][1]:
-            for child in group:
-                indices.append(int(child.attrib["index"]) + 1)
-            sname = group.attrib["name"]
-
-            sname = sname.replace("Air_", "")
-            if debug:
-                print(f"sname={sname} indices={indices}")
-
-            skip = False
-
-            # if hideIsolant remove "iRint"|"iRext" in Bcs otherwise sname: do not record physical surface for Interface
-            if hideIsolant:
-                if "IrInt" in sname or "IrExt" in sname:
-                    skip = True
-                if "iRint" in sname or "iRext" in sname:
-                    skip = True
-                if "Interface" in sname:
-                    if groupIsolant:
-                        sname = re.sub(r"\d+$", "", sname)
-
-            if groupIsolant:
-                if "IrInt" in sname or "IrExt" in sname:
-                    sname = re.sub(r"\d+$", "", sname)
-                if "iRint" in sname or "iRext" in sname:
-                    sname = re.sub(r"\d+$", "", sname)
-                    # print("groupBC:", sname)
-                if "Interface" in sname:
-                    # print("groupBC: skip ", sname)
-                    skip = True
-
-            print(
-                f"BCs[{i}]: name={group.attrib['name']}, {group.attrib['dimension']}, {group.attrib['count']}, sname={sname}, skip={skip}"
-            )
-            if debug:
-                print(
-                    f"BCs[{i}]: name={group.attrib['name']}, {group.attrib['dimension']}, {group.attrib['count']}, sname={sname}, skip={skip}"
-                )
-            if not skip:
-                if not sname in bctags:
-                    bctags[sname] = indices
-                else:
-                    for index in indices:
-                        bctags[sname].append(index)
-
-            if sname in bctags:
-                print(f"bctags[{sname}] = {bctags[sname]}")
+    if groupIsolant:
+        # select Isolant just like section for Bitter
+        # populate exclude_tags
+        raise RuntimeError("groupIsolant not implemented")
 
     if groupCoolingChannels:
         print(f"group cooling channels: {Channels}")
-        print(f"registred bctags: {bctags.keys()}")
+        print(f"registered bctags: {bctags.keys()}")
         if isinstance(Channels, dict):
             for key in Channels:
                 print(f"Channels[{key}]]: {Channels[key]}")
@@ -177,11 +151,9 @@ def create_physicalbcs(
     if debug:
         print("BCtags:")
     for bctag in bctags:
-        pgrp = gmsh.model.addPhysicalGroup(GeomParams["Face"][0], bctags[bctag])
-        gmsh.model.setPhysicalName(GeomParams["Face"][0], pgrp, bctag)
-        print(bctag, bctags[bctag], pgrp)
-        if debug:
+        if not bctag in exclude_tags:
+            pgrp = gmsh.model.addPhysicalGroup(GeomParams["Face"][0], bctags[bctag])
+            gmsh.model.setPhysicalName(GeomParams["Face"][0], pgrp, bctag)
             print(bctag, bctags[bctag], pgrp)
-
-    return bctags
-
+            if debug:
+                print(bctag, bctags[bctag], pgrp)

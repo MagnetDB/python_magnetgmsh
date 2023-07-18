@@ -1,4 +1,5 @@
 import gmsh
+import re
 
 MeshAlgo2D = {
     "MeshAdapt": 1,
@@ -65,9 +66,11 @@ def gmsh_msh(
         dimGroup = iGroup[0]  # 1D, 2D or 3D
         tagGroup = iGroup[1]
         namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
-        # print(f"namGroup={namGroup}")
+        print(f"namGroup={namGroup}")
         if namGroup in mesh_dict:
-            def_lcs = mesh_dict[namGroup]
+            _namGroup = re.sub(r"_Slit\d+", "", namGroup)
+            def_lcs = mesh_dict[_namGroup]
+            print(f'mesh_dict[{_namGroup}]={def_lcs}')
             if isinstance(def_lcs, int):
                 lc = lcs[def_lcs]
             else:
