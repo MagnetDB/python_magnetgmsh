@@ -115,7 +115,6 @@ def main():
 
         from .MeshAxiData import MeshAxiData
 
-        AirDAta = ()
         if air:
             from .Air import gmsh_air
 
