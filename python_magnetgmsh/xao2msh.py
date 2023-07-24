@@ -11,7 +11,6 @@ remove unneeded class like NumModel, freesteam, pint and SimMaterial
 see gmsh/api/python examples for that
 ex also in https://www.pygimli.org/_examples_auto/1_meshing/plot_cad_tutorial.html
 """
-from typing import Type, Union
 
 import os
 
@@ -28,6 +27,8 @@ from .mesh.groups import create_physicalbcs, create_physicalgroups
 from .mesh.axi import get_allowed_algo as get_allowed_algo2D
 from .mesh.axi import gmsh_msh
 from .mesh.m3d import get_allowed_algo as get_allowed_algo3D
+from .utils.lists import flatten
+from .cfg import loadcfg
 
 
 def main():
@@ -142,23 +143,26 @@ def main():
     # init gmsh
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
-    # (0: silent except for fatal errors, 1: +errors, 2: +warnings, 3: +direct, 4: +information, 5: +status, 99: +debug)
+
+    # gmsh verbosity:
+    # 0: silent except for fatal errors,
+    # 1: +errors,
+    # 2: +warnings,
+    # 3: +direct,
+    # 4: +information,
+    # 5: +status,
+    # 99: +debug
     gmsh.option.setNumber("General.Verbosity", 0)
     if args.debug or args.verbose:
         gmsh.option.setNumber("General.Verbosity", 2)
 
+    # inspect Xao
     file = args.input_file  # r"HL-31_H1.xao"
-    (gname, tree) = load_Xao(file, GeomParams, args.debug)
+    (gname, tags) = load_Xao(file, GeomParams, args.debug)
+    (vtags, stags, ltags) = tags
 
     # Loading yaml file to get infos on volumes
     cfgfile = ""
-    solid_names = []
-    bc_names = []
-
-    innerLead_exist = False
-    outerLead_exist = False
-    NHelices = 0
-    Channels = None
 
     if args.geo != "None":
         cfgfile = args.geo
@@ -166,10 +170,16 @@ def main():
         cfgfile = gname + ".yaml"
     print("cfgfile:", cfgfile)
 
-    from .cfg import loadcfg
-
     (solid_names, Channels) = loadcfg(cfgfile, gname, is2D, args.verbose)
     print(f"input_file: {args.input_file}")
+    print(f"solid_names: {solid_names}")
+    mdict = {}
+    for name in solid_names:
+        mdict[name] = ""
+
+    excluded_tags = [name for name in stags if not name in mdict and not name == "Air"]
+    print(f"excluded_tags: {excluded_tags}")
+    # remove exclude_tags from stags
 
     if "Air" in args.input_file:
         solid_names.append("Air")
@@ -183,26 +193,21 @@ def main():
         len(solid_names) == nsolids
     ), f"Wrong number of solids: in yaml {len(solid_names)} in gmsh {nsolids}"
 
-    print(f"Channels = {Channels}")
-
-    # use yaml data to identify solids id...
-    # Insert solids: H1_Cu, H1_Glue0, H1_Glue1, H2_Cu, ..., H14_Glue1, R1, R2, ..., R13, InnerLead, OuterLead, Air
-    # HR: Cu, Kapton0, Kapton1, ... KaptonXX
-    stags = create_physicalgroups(
-        tree, solid_names, GeomParams, hideIsolant, groupIsolant, args.debug
+    print(f"hideIsolant={hideIsolant}, groupIsolant={groupIsolant}, is2D={is2D}")
+    create_physicalgroups(
+        vtags,
+        stags,
+        excluded_tags,
+        GeomParams,
+        hideIsolant,
+        groupIsolant,
+        is2D,
+        args.debug,
     )
 
-    print("PhysicalGroups:")
-    vGroups = gmsh.model.getPhysicalGroups()
-    for iGroup in vGroups:
-        dimGroup = iGroup[0]  # 1D, 2D or 3D
-        tagGroup = iGroup[1]
-        namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
-        print(namGroup)
-
-    # get groups
-    bctags = create_physicalbcs(
-        tree,
+    print(f"Channels = {Channels}")
+    create_physicalbcs(
+        ltags,
         GeomParams,
         groupCoolingChannels,
         Channels,
@@ -212,7 +217,6 @@ def main():
     )
 
     if args.command == "mesh" and not args.dry_run:
-
         air = False
         if "Air" in args.input_file:
             air = True
@@ -242,13 +246,9 @@ def main():
         else:
             print("xao2msh: gmsh_msh for 3D not implemented")
 
-        meshname = gname
-        if is2D:
-            meshname += "-Axi"
-        if "Air" in args.input_file:
-            meshname += "_withAir"
-        print(f"Save mesh {meshname}.msh to {os.getcwd()}")
-        gmsh.write(f"{meshname}.msh")
+        meshname = file.replace(".xao", ".msh")
+        print(f"Save mesh {meshname} to {os.getcwd()}")
+        gmsh.write(f"{meshname}")
 
     if args.command == "adapt":
         print("adapt mesh not implemented yet")

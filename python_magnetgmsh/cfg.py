@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 import yaml
 
@@ -10,23 +10,27 @@ from python_magnetgeo.Bitters import Bitters
 from python_magnetgeo.Supras import Supras
 from python_magnetgeo.MSite import MSite
 
-CADType = Union[Insert, Bitter, Supra, Bitters, Supras]
-
 
 def Supra_Gmsh(
     mname: str, cad: Supra, gname: str, is2D: bool, verbose: bool = False
 ) -> List[str]:
     """ Load Supra cad """
     print(f"Supra_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
-    return cad.get_names(mname, is2D, verbose)
+    prefix = ""
+    if mname:
+        prefix = mname
+    return cad.get_names(prefix, is2D, verbose)
 
 
 def Bitter_Gmsh(
     mname: str, cad: Bitter, gname: str, is2D: bool, verbose: bool = False
 ) -> List[str]:
     """ Load Bitter cad """
-    print(f"Bitter_Gmsh: cad={cad.name}, gname={gname}")
-    return cad.get_names(mname, is2D, verbose)
+    print(f"Bitter_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
+    prefix = ""
+    if mname:
+        prefix = mname
+    return cad.get_names(prefix, is2D, verbose)
 
 
 def Helix_Gmsh(
@@ -34,7 +38,10 @@ def Helix_Gmsh(
 ) -> List[str]:
     """ Load Helix cad """
     print(f"Helix_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
-    return cad.get_names(mname, is2D, verbose)
+    prefix = ""
+    if mname:
+        prefix = mname
+    return cad.get_names(prefix, is2D, verbose)
 
 
 def Bitters_Gmsh(
@@ -43,13 +50,28 @@ def Bitters_Gmsh(
     """ Load Bitters """
     print(f"Bitters_Gmsh: mname={mname}, gname={gname}")
     solid_names = []
-    for magnet in cad.magnets:
-        pcad = None
+    prefix = ""
+    if mname:
+        prefix = f"{mname}"
+    
+    pcad = None
+    if isinstance(cad.magnets, str):
+        magnet = cad.magnets
         with open(magnet + ".yaml", "r") as f:
             pcad = yaml.load(f, Loader=yaml.FullLoader)
 
-        _names = Bitter_Gmsh(mname, pcad, gname, is2D, verbose)
+        _names = Bitter_Gmsh(f"{prefix}{pcad.name}", pcad, gname, is2D, verbose)
+        print(f'Bitter_Gmsh: _names={_names}')
         solid_names += _names
+        
+    else:
+        for magnet in cad.magnets:
+            with open(magnet + ".yaml", "r") as f:
+                pcad = yaml.load(f, Loader=yaml.FullLoader)
+
+            _names = Bitter_Gmsh(f"{prefix}{pcad.name}", pcad, gname, is2D, verbose)
+            print(f'Bitter_Gmsh: _names={_names}')
+            solid_names += _names
     return solid_names
 
 
@@ -59,13 +81,24 @@ def Supras_Gmsh(
     """ Load Supras """
     print(f"Supras_Gmsh: mname={mname}, gname={gname}")
     solid_names = []
-    for magnet in cad.magnets:
-        pcad = None
-        with open(magnet + ".yaml", "r") as f:
+    prefix = ""
+    if mname:
+        prefix = f"{mname}"
+    
+    pcad = None
+    if isinstance(cad.magnets, str):
+        with open(cad.magnets + ".yaml", "r") as f:
             pcad = yaml.load(f, Loader=yaml.FullLoader)
 
-        _names = Supra_Gmsh(mname, pcad, gname, is2D, verbose)
+        _names = Supra_Gmsh(f"{prefix}{pcad.name}", pcad, gname, is2D, verbose)
         solid_names += _names
+    else:
+        for magnet in cad.magnets:
+            with open(magnet + ".yaml", "r") as f:
+                pcad = yaml.load(f, Loader=yaml.FullLoader)
+
+            _names = Supra_Gmsh(f"{prefix}{pcad.name}", pcad, gname, is2D, verbose)
+            solid_names += _names
     return solid_names
 
 
@@ -76,10 +109,12 @@ def Insert_Gmsh(
     print(f"Insert_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
     return cad.get_names(mname, is2D, verbose)
 
-
 action_dict = {
     Bitter: {"run": Bitter_Gmsh, "msg": "Bitter"},
+    Bitters: {"run": Bitters_Gmsh, "msg": "Bitters"},
     Supra: {"run": Supra_Gmsh, "msg": "Supra"},
+    Supras: {"run": Supras_Gmsh, "msg": "Supras"},
+    Helix: {"run": Helix_Gmsh, "msg": "Helix"},
     Insert: {"run": Insert_Gmsh, "msg": "Insert"},
 }
 
@@ -105,7 +140,7 @@ def Magnet_Gmsh(
 
 
 def MSite_Gmsh(
-    cad: MSite, gname: str, is2D: bool, verbose: bool = False
+    mname: str, cad: MSite, gname: str, is2D: bool, verbose: bool = False
 ) -> Tuple[List[str], dict, dict]:
     """
     Load MSite cad
@@ -149,65 +184,27 @@ def MSite_Gmsh(
 def loadcfg(
     cfgfile: str, gname: str, is2D: bool, verbose: bool = False
 ) -> Tuple[List[str], Union[dict, list]]:
+    print(f'loadcfg: cfgfile={cfgfile}, gname={gname}, is2D={is2D}')
 
     solid_names = []
-    Channels: Union[dict, list] = None
+    Channels = None
 
     with open(cfgfile, "r") as cfgdata:
         cad = yaml.load(cfgdata, Loader=yaml.FullLoader)
 
-        print(f"cfgfile: {cad}")
-        # TODO get solid names (see Salome HiFiMagnet plugin)
-        if isinstance(cad, MSite):
-            if verbose:
-                print("load cfg MSite")
-            (_names, Channels, Isolants) = MSite_Gmsh(cad, gname, is2D, verbose)
-            solid_names += _names
-        elif isinstance(cad, Bitters):
-            if verbose:
-                print("load cfg Bitters")
-            mname = ""
-            _names = Bitters_Gmsh(mname, cad, gname, is2D, verbose)
-            solid_names += _names
+        print(f"cfgfile: {cad.name} type={type(cad)}")
+        if verbose:
+            print("load cfg {type(cad)}")
 
-            _Channels = cad.get_channels(mname)
-            if mname:
-                Channels[mname] = _Channels
-            else:
-                Channels = _Channels
-
-        elif isinstance(cad, Supras):
-            if verbose:
-                print("load cfg Supras")
-            mname = ""
-            _names = Supras_Gmsh(mname, cad, gname, is2D, verbose)
-            solid_names += _names
-
-        elif isinstance(cad, Helix):
-            if verbose:
-                print("load cfg Helix")
-            (_names, _lcs) = Helix_Gmsh("", cad, gname, is2D, verbose)
-            solid_names += _names
-
-        else:
-            if not type(cad) in action_dict:
+        mname = ""
+        if not type(cad) in action_dict:
+            if not isinstance(cad, MSite):
                 raise Exception(f"unsupported type of cad {type(cad)}")
             else:
-                if verbose:
-                    print("load cfg {type(cad)}")
-                mname = ""
-                _names = action_dict[type(cad)]["run"](mname, cad, gname, is2D, verbose)
-                solid_names += _names
+                (solid_names, Channels, Isolants) = MSite_Gmsh(mname, cad, gname, is2D, verbose)
+        else:        
+            solid_names = action_dict[type(cad)]["run"](mname, cad, gname, is2D, verbose)
+            Channels = cad.get_channels(mname)
 
-                if isinstance(cad, Insert):
-                    _Channels = cad.get_channels("")
-                else:
-                    _Channels = cad.get_channels(mname)
-                if mname:
-                    Channels[mname] = _Channels
-                else:
-                    Channels = _Channels
-                print(f"_Channels: {_Channels}")
-
-    print(f"cfg: solid_names={solid_names}")
+    print(f"cfg: solid_names={solid_names}, Channels={Channels}")
     return (solid_names, Channels)
