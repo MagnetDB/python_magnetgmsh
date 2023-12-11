@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-from typing import List, Union
-
 import re
 import gmsh
 from python_magnetgeo.Bitter import Bitter
@@ -10,6 +8,31 @@ from .mesh.bcs import create_bcs
 
 
 from .utils.lists import flatten
+
+
+def gmsh_box(Bitter: Bitter, debug: bool = False) -> list:
+    """
+    get (boundingbox,size) for each slit
+    """
+
+    if Bitter.coolingslits is None:
+        return []
+
+    f = 1.1
+    z0 = Bitter.z[1]
+    z1 = Bitter.z[0]
+    boxes = []
+    for i, slit in enumerate(Bitter.coolingslits):
+        x = float(slit.r)
+        eps = Bitter.equivalent_eps(i)
+        xmin = x - eps / 2.0
+        xmax = x + eps / 2.0
+        boxes.append(([xmin, z0, 0, xmax, z1, 0], eps / 2.0))
+
+    print("gmsh_box(Bitter):")
+    for box in boxes:
+        print(box)
+    return boxes
 
 
 def gmsh_ids(
@@ -46,6 +69,7 @@ def gmsh_ids(
     if Bitter.z[1] > y:
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, abs(y - Bitter.z[1]))
         gmsh_ids.append(_id)
+    gmsh.model.occ.synchronize()
 
     # Cooling Channels
     if coolingslit:
@@ -103,7 +127,6 @@ def gmsh_ids(
         gmsh_ids = ngmsh_ids
         gmsh_cracks = ngmsh_cracks
         # print(f'Bitter/gmsh_id: gmsh_ids={gmsh_ids}, gmsh_cracks: {gmsh_cracks}')
-        
 
     if debug:
         print(f"gmsh_ids: {gmsh_ids}, gmsh_cracks: {gmsh_cracks}")
@@ -122,7 +145,6 @@ def gmsh_ids(
         gmsh.model.occ.synchronize()
         Air_data = (_id, dr_air, z0_air, dz_air)
 
-    
     return (gmsh_ids, gmsh_cracks, Air_data)
 
 
@@ -136,17 +158,21 @@ def gmsh_bcs(
     """
     retreive ids for bcs in gmsh geometry
     """
-    
+
     coolingslit = False
     if Bitter.coolingslits:
         coolingslit = True
 
     defs = {}
     (B_ids, Cracks_ids, Air_data) = ids
-    print(f"gmsh_bcs: Bitter={Bitter.name}, mname={mname}, thickslit={thickslit}, Air_data={Air_data}")
+    print(
+        f"gmsh_bcs: Bitter={Bitter.name}, mname={mname}, thickslit={thickslit}, Air_data={Air_data}"
+    )
 
     psnames = Bitter.get_names(mname, is2D=True, verbose=debug)
-    assert len(flatten(B_ids)) == len(psnames), f"Bitter/gmsh_bcs {Bitter.name}: trouble with psnames (expected {len(psnames)} got {len(flatten(B_ids))})"
+    assert len(flatten(B_ids)) == len(
+        psnames
+    ), f"Bitter/gmsh_bcs {Bitter.name}: trouble with psnames (expected {len(psnames)} got {len(flatten(B_ids))})"
     print(f"Bitter: mname={mname}, psnames={psnames}")
     prefix = ""
     if mname:
@@ -203,13 +229,23 @@ def gmsh_bcs(
                 defs[psname] = ps
         else:
             for i, slit in enumerate(Bitter.coolingslits):
-                sname = f"{prefix}Slit{i+1}"
                 x = slit.r
                 eps = Bitter.equivalent_eps(i)
-                bcs_defs[sname] = [
-                    [x - eps / 2.0, Bitter.z[0], x + eps / 2.0, Bitter.z[1]]
-                ]
-                print(f"add {sname} to bcs_defs")
+
+                # Add Slit on both side
+                # if i != 0:
+                #    sname = f"{prefix}Slit{i+1}"
+                #    bcs_defs[sname] = [
+                #        [x - eps / 2.0, Bitter.z[0], x + eps / 2.0, Bitter.z[1]]
+                #    ]
+                #    print(f"add {sname} to bcs_defs", flush=True)
+                # else:
+                sname = f"{prefix}Slit{i+1}_l"
+                bcs_defs[sname] = [[x - eps / 2.0, Bitter.z[0], x, Bitter.z[1]]]
+                print(f"add {sname} to bcs_defs", flush=True)
+                sname = f"{prefix}Slit{i+1}_r"
+                bcs_defs[sname] = [[x, Bitter.z[0], x + eps / 2.0, Bitter.z[1]]]
+                print(f"add {sname} to bcs_defs", flush=True)
 
     bcs_defs[f"{prefix}Slit{n_slits+1}"] = [
         Bitter.r[1],
@@ -238,7 +274,8 @@ def gmsh_bcs(
             [0, z0_air + dz_air, dr_air, z0_air + dz_air],
         ]
 
-    for key in bcs_defs:
-        defs[key] = create_bcs(key, bcs_defs[key], 1)
+    for key, values in bcs_defs.items():
+        print(f"create_bcs({key}, values={values})", flush=True)
+        defs[key] = create_bcs(key, values, 1)
 
     return defs
