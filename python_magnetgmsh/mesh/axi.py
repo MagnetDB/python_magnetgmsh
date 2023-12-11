@@ -25,7 +25,11 @@ def get_algo(name: str):
 
 
 def gmsh_msh(
-    algo: str, meshdata: MeshAxiData, air: bool = False, scaling: bool = False
+    algo: str,
+    meshdata: MeshAxiData,
+    refinedboxes: list,
+    air: bool = False,
+    scaling: bool = False,
 ):
     """
     create Axi msh
@@ -35,7 +39,8 @@ def gmsh_msh(
     - mesh characteristics
     - crack plugin for Bitter CoolingSlits
     """
-    print("create Axi Gmsh")
+    print(f"create Axi Gmsh mesh ({algo})")
+    gmsh.option.setNumber("Mesh.Algorithm", MeshAlgo2D[algo])
 
     # scaling
     unit = 1
@@ -44,7 +49,7 @@ def gmsh_msh(
         gmsh.option.setNumber("Geometry.OCCScaling", unit)
 
     # Assign a mesh size to all the points:
-    lcar1 = 40 * unit
+    lcar1 = 80 * unit
 
     Origin = gmsh.model.occ.addPoint(0, 0, 0, lcar1)
     gmsh.model.occ.synchronize()
@@ -59,27 +64,47 @@ def gmsh_msh(
     lcs = meshdata.surfhypoths
     # print(f"lcs: {lcs}")
 
+    eps = {}
+    """
+    eps = {
+        "Slit1": 0.16899920781621336,
+        "Slit2": 0.15823567225436383,
+        "Slit3": 0.11114198388441233,
+        "Slit4": 0.13878949537006918,
+    }
+    min_eps = min(list(eps.values()))
+    print(f"eps={eps}, min_eps={min_eps}")
+    """
+
     # get ov and lc per PhysicalSurface
     lc_data = {}
+    lc_sdata = {}
     vGroups = gmsh.model.getPhysicalGroups()
     for iGroup in vGroups:
         dimGroup = iGroup[0]  # 1D, 2D or 3D
         tagGroup = iGroup[1]
         namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
-        print(f"namGroup={namGroup}")
+        # print(f"namGroup={namGroup} dimgroup={dimGroup}")
         if namGroup in mesh_dict:
-            _namGroup = re.sub(r"_Slit\d+", "", namGroup)
+            _namGroup = re.sub(r"_Slit\d+[_[lr]]", "", namGroup)
             def_lcs = mesh_dict[_namGroup]
-            print(f'mesh_dict[{_namGroup}]={def_lcs}')
+            # print(f"mesh_dict[{_namGroup}]={def_lcs}")
             if isinstance(def_lcs, int):
                 lc = lcs[def_lcs]
             else:
                 lc = lcs[def_lcs[0]][def_lcs[1]]
-            # print(f"{namGroup}: lc={lc}")
+            print(f"{namGroup}: lc={lc}")
 
             vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
             ov = []
-            for entity in vEntities:
+            xmin = 0
+            ymin = 0
+            zmin = 0
+            xmax = 0
+            ymax = 0
+            zmax = 0
+            lc_data[namGroup] = {"box": [], "pts": [], "lc": lcar1}
+            for i, entity in enumerate(vEntities):
                 (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(
                     2, entity
                 )
@@ -87,16 +112,55 @@ def gmsh_msh(
                     xmin, ymin, zmin, xmax, ymax, zmax, 0
                 )
                 ov += _ov
-            lc_data[namGroup] = (ov, lc)
+
+                lc_data[namGroup]["box"].append((xmin, ymin, zmin, xmax, ymax, zmax))
+                lc_data[namGroup]["pts"] += [tag for (dimtag, tag) in ov]
+                lc_data[namGroup]["lc"] = lc
+
             # print(f"lc[{namGroup}]: {lc_data[namGroup]}")
         # else:
         #    print(f"{namGroup} is not in mesh_dict")
 
+        if dimGroup == 1:
+            vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
+            ov = []
+            lv = []
+            size = []
+            for i, entity in enumerate(vEntities):
+                (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(
+                    1, entity
+                )
+                _ov = gmsh.model.getEntitiesInBoundingBox(
+                    xmin, ymin, zmin, xmax, ymax, zmax, 0
+                )
+                ov += _ov
+                _lv = gmsh.model.getEntitiesInBoundingBox(
+                    xmin, ymin, zmin, xmax, ymax, zmax, 1
+                )
+                # print(
+                #     f"{namGroup}: entity={entity}, _lv={_lv}, xmin={xmin}, ymin={ymin}, zmin={zmin}, xmax={xmax}, ymax={ymax}, zmax={zmax}"
+                # )
+                lv += _lv
+                size.append(max(abs(xmax - xmin), abs(ymax - ymin)))
+            lc = lcar1
+
+            if not eps is None:
+                if namGroup in eps:
+                    lc = eps[namGroup]
+
+            lc_sdata[namGroup] = (ov, lv, size, lc)
+
     # Apply lc in reverse order to get nice mesh
-    for key in reversed(lc_data):
-        (ov, lc) = lc_data[key]
-        # print(f"{key}: {lc}")
-        gmsh.model.mesh.setSize(ov, lc)
+    print("Physical Surfaces")
+    for key, values in reversed(lc_data.items()):
+        print(f"lc_data[{key}]: lc={values['lc']}")
+        gmsh.model.mesh.setSize([(0, tag) for tag in values["pts"]], values["lc"])
+
+    """
+    print("Physical Lines:")
+    for key in reversed(lc_sdata):
+        print(f"lc_sdata[{key}]: size={lc_sdata[key][2]}, lc={lc_sdata[key][3]}")
+    """
 
     # LcMax -                         /------------------
     #                               /
@@ -107,34 +171,228 @@ def gmsh_msh(
     #      Point           DistMin DistMax
     # Field 1: Distance to electrodes
 
-    if EndPoints_tags:
-        gmsh.model.mesh.field.add("Distance", 1)
-        gmsh.model.mesh.field.setNumbers(1, "NodesList", EndPoints_tags)
+    # Gmsh has to be compiled with HXT and P4EST to use automaticMeshSizeField
+    # 2D size field not operational
+    HXT_support = False
+    if HXT_support:
+        gmsh.model.mesh.field.add("AutomaticMeshSizeField", 1)
+        gmsh.model.mesh.field.setNumber(1, "features", True)
+        gmsh.model.mesh.field.setNumber(1, "gradation", 2)
+        gmsh.model.mesh.field.setNumber(1, "hBulk", lcar1 / 10.0 * unit)
+        gmsh.model.mesh.field.setNumber(1, "hMax", lcar1 * unit)
+        gmsh.model.mesh.field.setNumber(1, "hMin", lcar1 / 100.0 * unit)
+        gmsh.model.mesh.field.setNumber(1, "smoothing", True)
+        gmsh.model.mesh.field.setAsBackgroundMesh(1)
 
-        # Field 2: Threshold that dictates the mesh size of the background field
-        gmsh.model.mesh.field.add("Threshold", 2)
-        gmsh.model.mesh.field.setNumber(2, "IField", 1)
-        gmsh.model.mesh.field.setNumber(2, "LcMin", lcar1 / 100.0)
-        gmsh.model.mesh.field.setNumber(2, "LcMax", lcar1)
-        gmsh.model.mesh.field.setNumber(2, "DistMin", 10 * unit)
-        gmsh.model.mesh.field.setNumber(2, "DistMax", 14 * unit)
-        gmsh.model.mesh.field.setNumber(2, "StopAtDistMax", 17 * unit)
-        gmsh.model.mesh.field.setAsBackgroundMesh(2)
+    # features: Enable computation of local feature size (thin channels), Type: boolean, Default value: 1
+    # gradation: Maximum growth ratio for the edges lengths, Type: float, Default value: 1.1
+    # hBulk: Default size where it is not prescribed, Type: float, Default value: -1
+    # hMax: Maximum size, Type: float, Default value: -1
+    # hMin: Minimum size, Type: float, Default value: -1
+    # nPointsPerCircle: Number of points per circle (adapt to curvature of surfaces), Type: integer, Default value: 20
+    # nPointsPerGap: Number of layers of elements in thin layers, Type: integer, Default value: 1
+    # p4estFileToLoad: p4est file containing the size field, Type: string, Default value: ""
+    # smoothing:Enable size smoothing (should always be true), Type: boolean, Default value: 1
 
-        # We could also use a `Box' field to impose a step change in element sizes
-        # inside a box
-        gmsh.model.mesh.field.add("Box", 3)
-        gmsh.model.mesh.field.setNumber(3, "VIn", lcar1 / 15.0)
-        gmsh.model.mesh.field.setNumber(3, "VOut", lcar1)
-        gmsh.model.mesh.field.setNumber(3, "XMin", 0)
-        gmsh.model.mesh.field.setNumber(3, "XMax", 20 * unit)
-        gmsh.model.mesh.field.setNumber(3, "YMin", -60 * unit)
-        gmsh.model.mesh.field.setNumber(3, "YMax", 60 * unit)
-        gmsh.model.mesh.field.setNumber(3, "Thickness", 0.3 * unit)
+    else:
+        Lines = False
+        Boxes = False
+        nfield = 0
+        dfields = []
+
+        if air and EndPoints_tags:
+            gmsh.model.mesh.field.add("Distance", nfield)
+            gmsh.model.mesh.field.setNumbers(nfield, "NodesList", EndPoints_tags)
+            nfield += 1
+
+            # Field 2: Threshold that dictates the mesh size of the background field
+            print(f"Field[Thresold] for Air (Distance with Origin): {nfield}")
+            gmsh.model.mesh.field.add("Threshold", nfield)
+            gmsh.model.mesh.field.setNumber(nfield, "IField", nfield - 1)
+            gmsh.model.mesh.field.setNumber(nfield, "LcMin", lcar1 / 100.0 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "LcMax", lcar1 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "DistMin", 10 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "DistMax", 14 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "StopAtDistMax", True)
+            dfields.append(nfield)
+            nfield += 1
+
+            # use a `Box' field to impose a step change in element sizes
+            # inside a box
+            print(f"Field[Box] for Air: {nfield}")
+            gmsh.model.mesh.field.add("Box", nfield)
+            gmsh.model.mesh.field.setNumber(nfield, "VIn", lcar1 / 30.0 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "VOut", lcar1 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "XMin", 0 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "XMax", 30 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "YMin", -120 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "YMax", 120 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "Thickness", 0.3 * unit)
+            dfields.append(nfield)
+            nfield += 1
+
+        for key, values in reversed(lc_data.items()):
+            print(
+                f'Field[Box] for {key}: from {nfield} to {nfield+len(values["box"])-1}'
+            )
+            for box in values["box"]:
+                print(f"\t{box}")
+            print(f"\tlc={values['lc']}")
+            lc = values["lc"]
+            for box in values["box"]:
+                (xmin, ymin, zmin, xmax, ymax, zmax) = box
+                gmsh.model.mesh.field.add("Box", nfield)
+                gmsh.model.mesh.field.setNumber(nfield, "VIn", lc * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "VOut", lcar1 * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "XMin", xmin * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "XMax", xmax * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "YMin", ymin * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "YMax", ymax * unit)
+                # gmsh.model.mesh.field.setNumber(nfield, "Thickness", 0.001 * unit)
+                dfields.append(nfield)
+                nfield += 1
+
+        if Boxes:
+            # special treatment for Slit: Try with refinedboxes
+            for box in refinedboxes:
+                (xmin, ymin, zmin, xmax, ymax, zmax) = box[0]
+                dl = max(abs(xmax - xmin), abs(ymax - ymin))
+                hsize = box[1]  # almost working except a HP/BP
+                gmsh.model.mesh.field.add("Box", nfield)
+                gmsh.model.mesh.field.setNumber(nfield, "VIn", hsize * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "VOut", lcar1 * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "XMin", xmin * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "XMax", xmax * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "YMin", ymin * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "YMax", ymax * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "Thickness", 0.001 * unit)
+                dfields.append(nfield)
+                nfield += 1
+
+        # # uncomment if test anisotropic
+        # special treatment for Slit: add distance to line with a threshold (see gmsh-tuto)
+        # TODO better to get curve list before, create just like gmsh_box but in gmsh_ids?
+        uniq = []
+        uniqpts = []
+        """
+        curvelist = []
+        ptslist = []
+        sizedict = {}
+        lcdict = {}
+        for key, values in lc_sdata.items():
+            if not key in ["ZAxis", "Infty"]:
+                _list = [tag for (dimtag, tag) in values[1]]
+                curvelist += _list
+                _plist = [tag for (dimtag, tag) in values[0]]
+                ptslist += _plist
+                print(
+                    f"{key}: _list={_list}, size={values[2]} ({len(values[2])}), lc={values[3]}",
+                    flush=True,
+                )
+                for i, tag in enumerate(_list):
+                    sizedict[tag] = values[2][i]
+                    lcdict[tag] = values[3]
+
+        print(f"ptslist={ptslist} ({len(ptslist)})")
+        seen = set()
+        dupespts = [x for x in ptslist if x in seen or seen.add(x)]
+        uniqpts = list(set(ptslist))
+        print(f"uniqpts={uniqpts} ({len(uniqpts)})")
+        print(f"dupespts={dupespts} ({len(dupespts)})")
+
+        print(f"curvelist={curvelist} ({len(curvelist)})")
+        seen = set()
+        dupes = [x for x in curvelist if x in seen or seen.add(x)]
+        uniq = list(set(curvelist))
+        print(f"uniq={uniq} ({len(uniq)})")
+        print(f"dupes={dupes} ({len(dupes)})")
+        """
+
+        if Lines:
+            """
+            # test boundary: dont work
+            for curve in list(set(uniq)):
+                gmsh.model.mesh.field.add("BoundaryLayer", nfield)
+                gmsh.model.mesh.field.setNumbers(nfield, "CurvesList", uniq)
+                gmsh.model.mesh.field.setNumbers(
+                    nfield, "Size", [0.1 * unit] * len(uniq)
+                )
+                gmsh.model.mesh.field.setNumbers(
+                    nfield, "Thickness", [0.01 * unit] * len(uniq)
+                )
+                dfields.append(nfield)
+                nfield += 1
+            """
+
+            # refine pts: working needed in addition with refine curves
+            # TODO give charact according to curve
+            if not uniqpts is None:
+                gmsh.model.mesh.field.add("Distance", nfield)
+                gmsh.model.mesh.field.setNumbers(nfield, "NodesList", uniqpts)
+                nfield += 1
+
+                gmsh.model.mesh.field.add("Threshold", nfield)
+                gmsh.model.mesh.field.setNumber(nfield, "IField", nfield - 1)
+                gmsh.model.mesh.field.setNumber(nfield, "LcMin", min_eps / 2.0 * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "LcMax", lcar1 * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "DistMin", min_eps / 2.0 * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "DistMax", min_eps * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "StopAtDistMax", True)
+                dfields.append(nfield)
+                nfield += 1
+
+                """
+                # refine curves: working but creating huge mesh
+                for curve in list(set(uniq)):
+                    if lcdict[curve] != lcar1:
+                        gmsh.model.mesh.field.add("Distance", nfield)
+                        gmsh.model.mesh.field.setNumbers(nfield, "CurvesList", [curve])
+                        sampling = int(sizedict[curve] / 0.05) * 10
+                        print(
+                            f"curve: id={curve}, size={sizedict[curve]}, sampling={sampling}, lc={lcdict[curve]}"
+                        )
+                        gmsh.model.mesh.field.setNumber(nfield, "Sampling", sampling)
+                        nfield += 1
+
+                        lc = lcdict[curve]
+                        gmsh.model.mesh.field.add("Threshold", nfield)
+                        gmsh.model.mesh.field.setNumber(nfield, "IField", nfield - 1)
+                        gmsh.model.mesh.field.setNumber(nfield, "LcMin", lc / 3.0 * unit)
+                        gmsh.model.mesh.field.setNumber(nfield, "LcMax", lcar1 * unit)
+                        gmsh.model.mesh.field.setNumber(nfield, "DistMin", lc / 2.0 * unit)
+                        gmsh.model.mesh.field.setNumber(nfield, "DistMax", lc * unit)
+                        gmsh.model.mesh.field.setNumber(nfield, "StopAtDistMax", True)
+                        dfields.append(nfield)
+                        nfield += 1
+                """
+
+        # test Attractor: not working with actual gmsh package - need to check compile, support for mmg??
+        if not uniq is None:
+            for curve in list(set(uniq)):
+                gmsh.model.mesh.field.add("AttractorAnisoCurve", nfield)
+                gmsh.model.mesh.field.setNumbers(nfield, "CurvesList", [curve])
+                gmsh.model.mesh.field.setNumber(nfield, "DistMin", 0.01 * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "DistMax", 0.06 * unit)
+                sampling = int(sizedict[curve] / 0.05) * 10
+                print(f"curve: id={curve}, size={sizedict[curve]}, sampling={sampling}")
+                gmsh.model.mesh.field.setNumber(nfield, "Sampling", sampling)
+                gmsh.model.mesh.field.setNumber(nfield, "SizeMaxNormal", 0.01 * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "SizeMinNormal", 0.001 * unit)
+                gmsh.model.mesh.field.setNumber(
+                    nfield, "SizeMaxTangent", sizedict[curve] / 500.0 * unit
+                )
+                gmsh.model.mesh.field.setNumber(
+                    nfield, "SizeMinTangent", sizedict[curve] / 5000.0 * unit
+                )
+                nfield += 1
 
         # Let's use the minimum of all the fields as the mesh size field:
-        gmsh.model.mesh.field.add("Min", 4)
-        gmsh.model.mesh.field.setNumbers(4, "FieldsList", [1, 2, 3])
+        gmsh.model.mesh.field.add("Min", nfield)
+        gmsh.model.mesh.field.setNumbers(nfield, "FieldsList", dfields)  # dfields
+        print(f"Field[Min] = {nfield}, Min=[{dfields[0]},...,{dfields[-1]}]")
+
+        print(f"Apply background mesh {nfield}")
+        gmsh.model.mesh.field.setAsBackgroundMesh(nfield)
 
     gmsh.model.mesh.generate(2)
 

@@ -55,7 +55,7 @@ def main():
     parser.add_argument("--debug", help="activate debug mode", action="store_true")
 
     args = parser.parse_args()
-    print(f"Arguments: {args}")
+    print(f"Arguments: {args}, type={type(args)}")
 
     cwd = os.getcwd()
     if args.wd:
@@ -70,6 +70,7 @@ def main():
         if infty_Zratio < 1:
             raise RuntimeError(f"Infty_Zratio={infty_Zratio} should be greater than 1")
         AirData = (infty_Rratio, infty_Zratio)
+    print(f"AirData={AirData}, args.air={args.air}")
 
     with open(args.filename, "r") as f:
         Object = yaml.load(f, Loader=yaml.FullLoader)
@@ -98,6 +99,11 @@ def main():
 
     MyObject = import_module(import_dict[type(Object)], package="python_magnetgmsh")
 
+    # get BoudingBox for slit/channel
+    boxes = []
+    if args.thickslit:
+        boxes = MyObject.gmsh_box(Object, args.debug)
+
     # TODO: add args.thickness as optional param
     # or only for Bitter(s)
     ids = MyObject.gmsh_ids(Object, AirData, args.thickslit, args.debug)
@@ -122,13 +128,14 @@ def main():
             AirData = (z0_air, z0_air + dz_air, r0_air + dr_air, 10)
 
         meshAxiData = MeshAxiData(args.filename.replace(".yaml", ""), args.algo2d)
+        print(f"meshAxiData={meshAxiData}, args.lc={args.lc}")
         if args.lc:
             meshAxiData.load(air)
         else:
             meshAxiData.default(prefix, Object, AirData, "", args.debug)
             meshAxiData.dump(air)
 
-        gmsh_msh(args.algo2d, meshAxiData, air, args.scaling)
+        gmsh_msh(args.algo2d, meshAxiData, boxes, air, args.scaling)
         if not args.thickslit:
             gmsh_cracks(args.debug)
 

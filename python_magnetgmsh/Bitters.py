@@ -12,6 +12,39 @@ from .mesh.bcs import create_bcs
 import_dict = {Bitter: ".Bitter"}
 
 
+def gmsh_box(Bitters: Bitters, debug: bool = False) -> list:
+    """
+    get boundingbox for each slit
+    """
+
+    boxes = []
+
+    def magnet_box(f):
+        Magnet = yaml.load(f, Loader=yaml.FullLoader)
+        print(f"Magnet  {Magnet}")
+        from importlib import import_module
+
+        MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
+        box = MyMagnet.gmsh_box(Magnet, debug)
+        return boxes
+
+    if isinstance(Bitters.magnets, str):
+        # print(f"Bitters/gmsh/{Bitters.magnets} (str)")
+        with open(f"{Bitters.magnets}.yaml", "r") as f:
+            boxes.append(magnet_box(f))
+
+    elif isinstance(Bitters.magnets, list):
+        for mname in Bitters.magnets:
+            # print(f"Bitters/gmsh/{mname} (dict/list)")
+            with open(f"{mname}.yaml", "r") as f:
+                boxes.append(magnet_box(f))
+
+    else:
+        raise Exception(f"magnets: unsupported type {type(Bitters.magnets)}")
+
+    return boxes
+
+
 def gmsh_ids(
     Bitters: Bitters, AirData: tuple, thickslit: bool = False, debug: bool = False
 ) -> tuple:
@@ -66,11 +99,9 @@ def gmsh_ids(
         A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
         flat_list = flatten(gmsh_ids)
-        print(f'flat_list: {flat_list}')
+        print(f"flat_list: {flat_list}")
 
-        ov, ovv = gmsh.model.occ.fragment(
-            [(2, A_id)], [(2, j) for j in flat_list]
-        )
+        ov, ovv = gmsh.model.occ.fragment([(2, A_id)], [(2, j) for j in flat_list])
         """
         print(f'Air fragment map: A_id={A_id}')
         print("fragment produced surfaces:")
@@ -81,7 +112,7 @@ def gmsh_ids(
         for e in zip([(2, A_id)] + [(2, j) for j in flat_list], ovv):
             print("parent " + str(e[0]) + " -> child " + str(e[1]))
         """
-        
+
         gmsh.model.occ.synchronize()
         Air_data = (A_id, dr_air, z0_air, dz_air)
 

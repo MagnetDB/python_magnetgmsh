@@ -25,6 +25,7 @@ def gmsh_air(Object: ObjectType, AirData: tuple) -> tuple:
         dz = abs(z_max - z_min) * AirData[1]
     else:
         (r, z) = Object.boundingBox()
+        print(f"gmsh_air: r={r}, z={z}")
         r0 = 0
         dr = r[1] * AirData[0]
         z0 = z[0] * AirData[1]
@@ -49,17 +50,33 @@ def gmsh_boundingbox(name: str) -> tuple:
         dimGroup = iGroup[0]  # 1D, 2D or 3D
         tagGroup = iGroup[1]
         namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
+        print(f"namGroup={namGroup}, dimGroup={dimGroup}")
         if namGroup == name:
             vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
-            print(f"gmsh_boundingbox: {name}: {vEntities}")
-            for entity in vEntities:
-                (x0i, y0i, z0i, x1i, y1i, z1i) = gmsh.model.getBoundingBox(2, entity)
+            print(
+                f"gmsh_boundingbox: {name}: dimGroup{dimGroup}, entities={vEntities} (type={type(vEntities)})"
+            )
+            if isinstance(vEntities, int):
+                (x0i, y0i, z0i, x1i, y1i, z1i) = gmsh.model.getBoundingBox(2, vEntities)
+                print(f"x0i={x0i}")
                 x0.append(x0i)
                 y0.append(y0i)
                 z0.append(z0i)
                 x1.append(x1i)
                 y1.append(y1i)
                 z1.append(z1i)
+            else:
+                for entity in vEntities:
+                    (x0i, y0i, z0i, x1i, y1i, z1i) = gmsh.model.getBoundingBox(
+                        2, entity
+                    )
+                    print(f"x0i={x0i}")
+                    x0.append(x0i)
+                    y0.append(y0i)
+                    z0.append(z0i)
+                    x1.append(x1i)
+                    y1.append(y1i)
+                    z1.append(z1i)
 
     xmin = min(x0)
     xmax = max(x1)

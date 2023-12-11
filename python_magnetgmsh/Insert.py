@@ -2,7 +2,6 @@
 # encoding: UTF-8
 
 """defines Insert structure"""
-from typing import List
 
 import yaml
 from python_magnetgeo.Insert import Insert
@@ -15,6 +14,96 @@ from .Ring import gmsh_bcs as ring_bcs
 
 from .mesh.bcs import create_bcs
 from .utils.lists import flatten
+
+
+def gmsh_box(Insert: Insert, debug: bool = False) -> list:
+    """
+    get (boundingbox, size) for each channel
+    """
+
+    boxes = []
+
+    Helices = []
+    for name in Insert.Helices:
+        with open(f"{name}.yaml", "r") as f:
+            Object = yaml.load(f, Loader=yaml.FullLoader)
+            Helices.append(Object)
+
+    Rings = []
+    for name in Insert.Rings:
+        with open(f"{name}.yaml", "r") as f:
+            Object = yaml.load(f, Loader=yaml.FullLoader)
+            Rings.append(Object)
+
+    innerbore = Insert.innerbore
+    outerbore = Insert.outerbore
+
+    # channel0
+    r0 = innerbore
+    r1 = Helices[0].r[0]
+    z0 = Helices[0].z[0]
+
+    hring = abs(Rings[0].z[-1] - Rings[0].z[0])
+    z1 = Helices[0].z[1] + hring
+    lc = (r1 - r0) / 3.0
+    box = ([r0, z0, 0, r1, z1, 0], lc)
+    boxes.append(box)
+
+    # channel1
+    r0 = Helices[0].r[1]
+    r1 = Helices[1].r[0]
+    hring = abs(Rings[1].z[-1] - Rings[1].z[0])
+    z0 = min(Helices[0].z[0], Helices[1].z[0] - hring)
+    z1 = Helices[0].z[1]
+    lc = (r1 - r0) / 3.0
+    box = ([r0, z0, 0, r1, z1, 0], lc)
+    boxes.append(box)
+
+    iH = 1
+    for i in range(1, len(Rings) - 1):
+        print(f"Box channel[{i+1}]:")
+
+        r0 = Helices[iH].r[0]
+        r1 = Helices[iH + 1].r[0]
+
+        # check for HP (odd), BP (even)
+        hring = abs(Rings[i - 1].z[-1] - Rings[i - 1].z[0])
+        hring_ = abs(Rings[i + 1].z[-1] - Rings[i + 1].z[0])
+        if i % 2 != 0:
+            z0 = Helices[iH].z[0]
+            z1 = max(Helices[iH].z[1] + hring, Helices[iH + 1].z[1] + hring_)
+        else:
+            z0 = min(Helices[iH].z[0] - hring, Helices[iH + 1].z[0] - hring_)
+            z1 = Helices[iH].z[1]
+
+        lc = (r1 - r0) / 3.0
+        box = ([r0, z0, 0, r1, z1, 0], lc)
+        boxes.append(box)
+
+        if i % 2 != 0:
+            iH += 2
+
+    # Last but one channel
+    r0 = Helices[-2].r[1]
+    r1 = Helices[-1].r[0]
+    hring = abs(Rings[-2].z[-1] - Rings[-2].z[0])
+    z0 = min(Helices[-1].z[0], Helices[-2].z[0] - hring)
+    z1 = Helices[-1].z[1]
+    lc = (r1 - r0) / 3.0
+    box = ([r0, z0, 0, r1, z1, 0], lc)
+    boxes.append(box)
+
+    # last channel
+    r0 = Helices[-1].r[0]
+    r1 = outerbore
+    hring = abs(Rings[-1].z[-1] - Rings[-1].z[0])
+    z0 = Helices[-1].z[0]
+    z1 = Helices[-1].z[1] + hring
+    box = ([r0, z0, 0, r1, z1, 0], lc)
+    boxes.append(box)
+
+    print(f"gmsh_box(Insert): {boxes}")
+    return boxes
 
 
 def gmsh_ids(
@@ -188,6 +277,7 @@ def gmsh_bcs(
     # Group bcs by Channels
     Channels = Insert.get_channels(mname, False, debug)
     for i, channel in enumerate(Channels):
+        print(f"Channel{i}: {channel}")
         tags = []
         for bc in channel:
             if bc in defs:

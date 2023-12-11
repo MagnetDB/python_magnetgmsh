@@ -94,7 +94,7 @@ class MeshAxiData(yaml.YAMLObject):
 
         # Retreive main characteristics
         width = (10 * Data[2]) / 5
-        physsize = min(width / 100.0, 40)
+        physsize = min(width / 50.0, 80)
 
         # Params for InfR1
         infty = physsize
@@ -132,7 +132,9 @@ class MeshAxiData(yaml.YAMLObject):
             elif isinstance(Object.magnets, dict):
                 for i, key in enumerate(Object.magnets):
                     if isinstance(Object.magnets[key], str):
-                        print(f"Creating MeshAxiData for MSite {Object.name}, mname={mname}, key={key}")
+                        print(
+                            f"Creating MeshAxiData for MSite {Object.name}, mname={mname}, key={key}"
+                        )
                         YAMLFile = os.path.join(
                             workingDir, f"{Object.magnets[key]}.yaml"
                         )
@@ -142,11 +144,15 @@ class MeshAxiData(yaml.YAMLObject):
                             mesh_dict.update(_tmp)
                     elif isinstance(Object.magnets[key], list):
                         for j, pname in enumerate(Object.magnets[key]):
-                            print(f"Creating MeshAxiData for MSite {Object.name}, mname={mname}, key={key}, pname={pname}")
+                            print(
+                                f"Creating MeshAxiData for MSite {Object.name}, mname={mname}, key={key}, pname={pname}"
+                            )
                             YAMLFile = os.path.join(workingDir, f"{pname}.yaml")
                             with open(YAMLFile, "r") as istream:
                                 mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                                _tmp = self.default(f'{key}_{mObject.name}', mObject, (), workingDir)
+                                _tmp = self.default(
+                                    f"{key}_{mObject.name}", mObject, (), workingDir
+                                )
                                 mesh_dict.update(_tmp)
                     else:
                         raise RuntimeError(
@@ -161,8 +167,10 @@ class MeshAxiData(yaml.YAMLObject):
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
                     prefix = ""
                     if mname:
-                        prefix = f'{mname}_'
-                    _tmp = self.default(f'{prefix}{mObject.name}', mObject, (), workingDir)
+                        prefix = f"{mname}_"
+                    _tmp = self.default(
+                        f"{prefix}{mObject.name}", mObject, (), workingDir
+                    )
                     mesh_dict.update(_tmp)
 
         elif isinstance(Object, Supras):
@@ -173,15 +181,19 @@ class MeshAxiData(yaml.YAMLObject):
                     mObject = yaml.load(istream, Loader=yaml.FullLoader)
                     prefix = ""
                     if mname:
-                        prefix = f'{mname}_'
-                    _tmp = self.default(f'{prefix}{mObject.name}', mObject, (), workingDir)
+                        prefix = f"{mname}_"
+                    _tmp = self.default(
+                        f"{prefix}{mObject.name}", mObject, (), workingDir
+                    )
                     mesh_dict.update(_tmp)
 
         elif isinstance(Object, Screen):
             hypname = ""
             if mname:
                 hypname = f"{mname}_"
-            print(f"Creating MeshAxiData for Screen {Object.name}, mname={mname}, hypname={hypname}")
+            print(
+                f"Creating MeshAxiData for Screen {Object.name}, mname={mname}, hypname={hypname}"
+            )
             self.surfhypoths.append(
                 self.part_default(Object, f"{hypname}{Object.name}_Screen")
             )
@@ -191,8 +203,11 @@ class MeshAxiData(yaml.YAMLObject):
             hypname = ""
             if mname:
                 hypname = f"{mname}"
-            print(f"Creating MeshAxiData for Bitter {Object.name}, mname={mname}, hypname={hypname}")
+            print(
+                f"Creating MeshAxiData for Bitter {Object.name}, mname={mname}, hypname={hypname}"
+            )
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
+            print(f"psnames={psnames}")
             surfhypoths_names = [re.sub(r"_Slit\d+", "", psname) for psname in psnames]
             surfhypoths_names = list(set(surfhypoths_names))
             self.surfhypoths.append(self.part_default(Object, surfhypoths_names[0]))
@@ -330,7 +345,9 @@ class MeshAxiData(yaml.YAMLObject):
             hypname = ""
             if mname:
                 hypname = f"{mname}"
-            print(f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, hypname={hypname}")
+            print(
+                f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, hypname={hypname}"
+            )
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
             print(
                 f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, psnames={psnames}"
@@ -408,6 +425,7 @@ class MeshAxiData(yaml.YAMLObject):
         self.mesh_dict = data.mesh_dict
         self.surfhypoths = data.surfhypoths
         print(f"MeshAxiData/Load: {filename} (pwd={os.getcwd()})")
+        print(f"MeshAxiData/Load: hypoths={self.surfhypoths})")
         if debug:
             print("---------------------------------------------------------")
             print("surfhypoths: ", len(self.surfhypoths), self.surfhypoths)

@@ -8,7 +8,7 @@ with open("README.md") as readme_file:
     readme = readme_file.read()
 
 
-requirements = ["lxml", "gmsh>=4.8.4", "pyyaml", "python_magnetgeo"]
+requirements = ["xmltodict", "gmsh>=4.8.4", "pyyaml", "python_magnetgeo"]
 
 setup_requirements = ["pytest-runner"]
 

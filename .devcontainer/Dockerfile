@@ -1,4 +1,5 @@
-FROM nvidia/opengl:1.2-glvnd-runtime-ubuntu20.04
+#FROM nvidia/opengl:1.2-glvnd-runtime-ubuntu20.04
+FROM trophime/opengl:1.2-glvnd-runtime-debian11
 
 USER root
 
@@ -30,7 +31,7 @@ RUN apt-get update \
     && apt-get -y install build-essential \
     && apt-get -y install g++ cmake \
     #\
-    && apt-get -y install python3-minimal libpython3.8-dev swig \
+    && apt-get -y install python3-minimal libpython3-dev swig \
     && apt-get -y install python-is-python3 python3-pip python3-jinja2 \
     && apt-get -y install python3-autopep8 black yapf3 python3-bandit flake8 pydocstyle pylint python3-pytest mypy \
     && apt-get -y install python3-nlopt python3-tabulate python3-yaml \
@@ -38,6 +39,7 @@ RUN apt-get update \
     && apt-get -y install python3-matplotlib texlive-latex-base texlive-latex-extra dvipng \
     && apt-get -y install python3-pandas python3-seaborn \
     && apt-get -y install python3-numpy python3-scipy \
+    && apt-get -y install python3-xmltodict \
     && apt-get -y install apt-file \
     && apt-file update \
     #\

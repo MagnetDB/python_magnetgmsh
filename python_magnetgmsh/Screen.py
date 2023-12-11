@@ -12,6 +12,15 @@ import gmsh
 from .mesh.bcs import create_bcs
 
 
+def gmsh_box(Screen: Screen, debug: bool = False) -> list:
+    """
+    get boundingbox for each slit
+    """
+
+    boxes = []
+    return boxes
+
+
 def gmsh_ids(Screen: Screen, AirData: tuple, debug: bool = False) -> tuple:
     """
     create gmsh geometry
