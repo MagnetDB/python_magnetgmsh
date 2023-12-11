@@ -11,6 +11,39 @@ from .utils.lists import flatten
 import_dict = {Supra: ".Supra"}
 
 
+def gmsh_box(Supras: Supras, debug: bool = False) -> list:
+    """
+    get boundingbox for each slit
+    """
+
+    boxes = []
+
+    def magnet_box(f):
+        Magnet = yaml.load(f, Loader=yaml.FullLoader)
+        print(f"Magnet  {Magnet}")
+        from importlib import import_module
+
+        MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
+        box = MyMagnet.gmsh_box(Magnet, debug)
+        return boxes
+
+    if isinstance(Supras.magnets, str):
+        # print(f"Bitters/gmsh/{Bitters.magnets} (str)")
+        with open(f"{Supras.magnets}.yaml", "r") as f:
+            boxes.append(magnet_box(f))
+
+    elif isinstance(Supras.magnets, list):
+        for mname in Supras.magnets:
+            # print(f"Bitters/gmsh/{mname} (dict/list)")
+            with open(f"{mname}.yaml", "r") as f:
+                boxes.append(magnet_box(f))
+
+    else:
+        raise Exception(f"magnets: unsupported type {type(Supras.magnets)}")
+
+    return boxes
+
+
 def gmsh_ids(
     Supras: Supras, AirData: tuple, thickslit: bool = False, debug: bool = False
 ) -> tuple:
@@ -68,7 +101,7 @@ def gmsh_ids(
                 flat_list += flatten(sublist[0])
             else:
                 flat_list.append(sublist[0])
-            
+
             """    
             for elem in sublist:
                 # print("elem:", elem, type(elem))
@@ -80,10 +113,8 @@ def gmsh_ids(
                         elif isinstance(item, int):
                             flat_list.append(item)
             """
-            
-        ov, ovv = gmsh.model.occ.fragment(
-                [(2, A_id)], [(2, j) for j in flat_list]
-        )
+
+        ov, ovv = gmsh.model.occ.fragment([(2, A_id)], [(2, j) for j in flat_list])
         gmsh.model.occ.synchronize()
         Air_data = (A_id, dr_air, z0_air, dz_air)
 

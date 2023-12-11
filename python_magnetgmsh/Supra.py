@@ -18,6 +18,15 @@ from .mesh.bcs import create_bcs
 from .SupraStructure import insert_ids, insert_bcs
 
 
+def gmsh_box(Supra: Supra, debug: bool = False) -> list:
+    """
+    get boundingbox for each slit
+    """
+
+    boxes = []
+    return boxes
+
+
 def gmsh_ids(
     Supra: Supra, AirData: tuple, Thickslit: bool = False, debug: bool = False
 ):
@@ -55,7 +64,7 @@ def gmsh_ids(
         # call gmsh for struct
         gmsh_ids = insert_ids(nougat, Supra.detail, AirData, debug)
         # need to account for changes
-        
+
         return gmsh_ids
 
 

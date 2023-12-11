@@ -7,6 +7,13 @@ import gmsh
 
 
 def minmax(box: List[float], eps: float):
+    """
+    minmax:  add tolerance to Axi bounding box
+
+    box: boundingbox as a list [rmin, zmin, rmax, zmax]
+    eps: tolerance
+    """
+
     rmin = box[0] * (1 - eps)
     if box[0] < 0:
         rmin = box[0] * (1 + eps)
@@ -37,7 +44,15 @@ def minmax(box: List[float], eps: float):
 
 def create_bcs(name: str, box: list, dim: int = 1, eps: float = 1.0e-6):
     """
+    create BCs for name
+
+    name:
+    box:
+    dim:
+    eps:
     """
+
+    print(f"create BCs for {name}", flush=True)
 
     gmsh.model.occ.synchronize()
     ov = []
