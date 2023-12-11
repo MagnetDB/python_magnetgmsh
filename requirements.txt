@@ -1,4 +1,4 @@
 PyYAML
-lxml >= 4.9.2
+xmltodict
 gmsh >= 4.8.4
 
