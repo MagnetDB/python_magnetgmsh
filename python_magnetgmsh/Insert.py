@@ -52,7 +52,10 @@ def gmsh_box(Insert: Insert, debug: bool = False) -> list:
     # channel1
     r0 = Helices[0].r[1]
     r1 = Helices[1].r[0]
-    hring = abs(Rings[1].z[-1] - Rings[1].z[0])
+    if len(Rings) == 1:
+        hring = abs(Rings[0].z[-1] - Rings[0].z[0])
+    else:
+        hring = abs(Rings[1].z[-1] - Rings[1].z[0])
     z0 = min(Helices[0].z[0], Helices[1].z[0] - hring)
     z1 = Helices[0].z[1]
     lc = (r1 - r0) / 3.0
@@ -83,15 +86,16 @@ def gmsh_box(Insert: Insert, debug: bool = False) -> list:
         if i % 2 != 0:
             iH += 2
 
-    # Last but one channel
-    r0 = Helices[-2].r[1]
-    r1 = Helices[-1].r[0]
-    hring = abs(Rings[-2].z[-1] - Rings[-2].z[0])
-    z0 = min(Helices[-1].z[0], Helices[-2].z[0] - hring)
-    z1 = Helices[-1].z[1]
-    lc = (r1 - r0) / 3.0
-    box = ([r0, z0, 0, r1, z1, 0], lc)
-    boxes.append(box)
+    if len(Rings) > 1:
+        # Last but one channel
+        r0 = Helices[-2].r[1]
+        r1 = Helices[-1].r[0]
+        hring = abs(Rings[-2].z[-1] - Rings[-2].z[0])
+        z0 = min(Helices[-1].z[0], Helices[-2].z[0] - hring)
+        z1 = Helices[-1].z[1]
+        lc = (r1 - r0) / 3.0
+        box = ([r0, z0, 0, r1, z1, 0], lc)
+        boxes.append(box)
 
     # last channel
     r0 = Helices[-1].r[0]
