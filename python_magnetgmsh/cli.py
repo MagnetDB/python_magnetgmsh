@@ -1,5 +1,4 @@
 """Console script for python_magnetgeo."""
-from typing import List, Optional
 
 import argparse
 import sys
