@@ -15,6 +15,8 @@ from .Ring import gmsh_bcs as ring_bcs
 from .mesh.bcs import create_bcs
 from .utils.lists import flatten
 
+from numpy import ndarray
+
 
 def gmsh_box(Insert: Insert, debug: bool = False) -> list:
     """
@@ -43,7 +45,9 @@ def gmsh_box(Insert: Insert, debug: bool = False) -> list:
     r1 = Helices[0].r[0]
     z0 = Helices[0].z[0]
 
-    hring = abs(Rings[0].z[-1] - Rings[0].z[0])
+    hring = 0
+    if len(Rings) >= 1:
+        hring = abs(Rings[0].z[-1] - Rings[0].z[0])
     z1 = Helices[0].z[1] + hring
     lc = (r1 - r0) / 3.0
     box = ([r0, z0, 0, r1, z1, 0], lc)
@@ -52,7 +56,9 @@ def gmsh_box(Insert: Insert, debug: bool = False) -> list:
     # channel1
     r0 = Helices[0].r[1]
     r1 = Helices[1].r[0]
-    hring = abs(Rings[1].z[-1] - Rings[1].z[0])
+    hring = 0
+    if len(Rings) >= 2:
+        hring = abs(Rings[1].z[-1] - Rings[1].z[0])
     z0 = min(Helices[0].z[0], Helices[1].z[0] - hring)
     z1 = Helices[0].z[1]
     lc = (r1 - r0) / 3.0
@@ -86,7 +92,9 @@ def gmsh_box(Insert: Insert, debug: bool = False) -> list:
     # Last but one channel
     r0 = Helices[-2].r[1]
     r1 = Helices[-1].r[0]
-    hring = abs(Rings[-2].z[-1] - Rings[-2].z[0])
+    hring = 0
+    if len(Rings) >= 2:
+        hring = abs(Rings[-2].z[-1] - Rings[-2].z[0])
     z0 = min(Helices[-1].z[0], Helices[-2].z[0] - hring)
     z1 = Helices[-1].z[1]
     lc = (r1 - r0) / 3.0
@@ -113,8 +121,6 @@ def gmsh_ids(
     create gmsh geometry
     """
     print(f"gmsh_ids: Insert={Insert.name}")
-
-    gmsh_ids = ()
 
     # loop over Helices
     z = []
@@ -209,7 +215,6 @@ def gmsh_bcs(
 
     # loop over Helices
     z = []
-    H_Bc_ids = []
     NHelices = len(Insert.Helices)
     num = 0
     for i, name in enumerate(Insert.Helices):
@@ -238,8 +243,6 @@ def gmsh_bcs(
         num += len(Helix.axi.turns) + 2
 
     # loop over Rings
-    R_Bc_ids = []
-    NRings = len(Insert.Rings)
     for i, name in enumerate(Insert.Rings):
         Ring = None
         with open(f"{name}.yaml", "r") as f:
@@ -263,8 +266,8 @@ def gmsh_bcs(
         # TODO: Axis, Inf
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-        bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
-        bcs_defs[f"Infty"] = [
+        bcs_defs["ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
+        bcs_defs["Infty"] = [
             [0, z0_air, dr_air, z0_air],
             [dr_air, z0_air, dr_air, z0_air + dz_air],
             [0, z0_air + dz_air, dr_air, z0_air + dz_air],
@@ -284,7 +287,11 @@ def gmsh_bcs(
                 # print(f"{bc}: {defs[bc]}")
                 vEntities = gmsh.model.getEntitiesForPhysicalGroup(1, defs[bc])
                 # print(f"{bc}: vEntites={type(vEntities)}, tolist={vEntities.tolist()}")
-                tags += vEntities.tolist()
+                if isinstance(vEntities, ndarray):
+                    tags += vEntities.tolist()
+                else:
+                    raise RuntimeError(f"vEntities: {type(vEntities)} unsupported type")
+
         # print(f"{channel}: {tags}")
         ps = gmsh.model.addPhysicalGroup(1, tags)
         gmsh.model.setPhysicalName(1, ps, f"{prefix}Channel{i}")

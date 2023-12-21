@@ -26,8 +26,9 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
     dr = Helix.r[1] - Helix.r[0]
     y = -Helix.axi.h
 
-    _id = gmsh.model.occ.addRectangle(x, Helix.z[0], 0, dr, abs(y - Helix.z[0]))
-    gmsh_ids.append(_id)
+    if abs(y - Helix.z[0]) >= 0:
+        _id = gmsh.model.occ.addRectangle(x, Helix.z[0], 0, dr, abs(y - Helix.z[0]))
+        gmsh_ids.append(_id)
 
     for i, (n, pitch) in enumerate(zip(Helix.axi.turns, Helix.axi.pitch)):
         dz = n * pitch
@@ -36,8 +37,9 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
 
         y += dz
 
-    _id = gmsh.model.occ.addRectangle(x, y, 0, dr, abs(Helix.z[1] - y))
-    gmsh_ids.append(_id)
+    if abs(Helix.z[1] - y) >= 0:
+        _id = gmsh.model.occ.addRectangle(x, y, 0, dr, abs(Helix.z[1] - y))
+        gmsh_ids.append(_id)
 
     # Now create air
     if AirData:
