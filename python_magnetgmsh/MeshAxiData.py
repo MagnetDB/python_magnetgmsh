@@ -2,8 +2,6 @@
 # encoding: UTF-8
 
 """Enable to define mesh hypothesis (aka params) for Gmsh surfacic and volumic meshes"""
-from typing import Union
-
 import os
 import re
 import yaml
@@ -19,7 +17,7 @@ from python_magnetgeo.Screen import Screen
 from python_magnetgeo.Ring import Ring
 from python_magnetgeo.Helix import Helix
 
-ObjectType = Union[MSite, Bitters, Supras, Insert, Bitter, Supra, Screen, Helix, Ring]
+ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix | Ring
 
 
 class MeshAxiData(yaml.YAMLObject):
@@ -53,14 +51,20 @@ class MeshAxiData(yaml.YAMLObject):
 
     yaml_tag = "MeshAxiData"
 
-    def __init__(self, name: str, algosurf: str = "BLSURF"):
+    def __init__(
+        self,
+        name: str,
+        algosurf: str = "BLSURF",
+        hypoths: list = [],
+        mesh_dict: dict = {},
+    ):
         """constructor"""
         self.name = name
         self.algosurf = algosurf
 
         # depending of geometry type
-        self.surfhypoths = []
-        self.mesh_dict = {}
+        self.surfhypoths = hypoths
+        self.mesh_dict = mesh_dict
 
     def __repr__(self):
         """representation"""
@@ -76,7 +80,7 @@ class MeshAxiData(yaml.YAMLObject):
         print("set surfacic mesh algo - not implemented yet")
 
     def part_default(
-        self, H: Union[Helix, Bitter, Supra, Screen, Ring], addname: str = ""
+        self, H: Helix | Bitter | Supra | Screen | Ring, addname: str = ""
     ):
         """
         Define default mesh params for Helix
@@ -88,9 +92,6 @@ class MeshAxiData(yaml.YAMLObject):
         """
         Define default mesh params for Air
         """
-
-        # print("Define default mesh params for Air")
-        name = "Air"
 
         # Retreive main characteristics
         width = (10 * Data[2]) / 5
@@ -456,7 +457,7 @@ def MeshAxiData_constructor(loader, node):
     algosurf = values["algosurf"]
     surfhypoths = values["surfhypoths"]
     mesh_dict = values["mesh_dict"]
-    return MeshAxiData(name, algosurf)
+    return MeshAxiData(name, algosurf, surfhypoths, mesh_dict)
 
 
 yaml.add_constructor("!MeshAxiData", MeshAxiData_constructor)

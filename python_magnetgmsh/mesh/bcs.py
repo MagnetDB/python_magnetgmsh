@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-from typing import Type, List, Union
-
 import gmsh
 
 
-def minmax(box: List[float], eps: float):
+def minmax(box: list[float], eps: float):
     """
     minmax:  add tolerance to Axi bounding box
 
