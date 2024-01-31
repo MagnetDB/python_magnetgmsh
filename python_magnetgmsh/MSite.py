@@ -229,8 +229,8 @@ def gmsh_bcs(
         # TODO: Axis, Inf
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-        bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
-        bcs_defs[f"Infty"] = [
+        bcs_defs["ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
+        bcs_defs["Infty"] = [
             [0, z0_air, dr_air, z0_air],
             [dr_air, z0_air, dr_air, z0_air + dz_air],
             [0, z0_air + dz_air, dr_air, z0_air + dz_air],

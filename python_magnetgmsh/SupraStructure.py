@@ -1,7 +1,6 @@
 """
 Define HTS insert geometry
 """
-from typing import Union, List, Optional
 
 import gmsh
 from python_magnetgeo.SupraStructure import (
@@ -34,7 +33,7 @@ def tape_ids(tape: tape, x0: float, y0: float, detail: str) -> list:
 
 def pancake_ids(
     pancake: pancake, x0: float, y0: float, detail: str
-) -> Union[int, list]:
+) -> int | list:
     """
     create pancake for gmsh
 
