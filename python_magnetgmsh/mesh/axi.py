@@ -1,5 +1,8 @@
-import gmsh
 import re
+
+from math import copysign
+import gmsh
+from ..MeshAxiData import MeshAxiData
 
 MeshAlgo2D = {
     "MeshAdapt": 1,
@@ -9,8 +12,6 @@ MeshAlgo2D = {
     "Frontal-Delaunay": 6,
     "BAMG": 7,
 }
-
-from ..MeshAxiData import MeshAxiData
 
 
 def get_allowed_algo() -> list:
@@ -65,6 +66,7 @@ def gmsh_msh(
     # print(f"lcs: {lcs}")
 
     eps = {}
+    min_eps = 0.5 * unit
     """
     eps = {
         "Slit1": 0.16899920781621336,
@@ -104,18 +106,25 @@ def gmsh_msh(
             ymax = 0
             zmax = 0
             lc_data[namGroup] = {"box": [], "pts": [], "lc": lcar1}
-            for i, entity in enumerate(vEntities):
-                (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(
-                    2, entity
-                )
-                _ov = gmsh.model.getEntitiesInBoundingBox(
-                    xmin, ymin, zmin, xmax, ymax, zmax, 0
-                )
-                ov += _ov
+            if isinstance(vEntities, list):
+                for i, entity in enumerate(vEntities):
+                    (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(
+                        2, entity
+                    )
+                    _ov = gmsh.model.getEntitiesInBoundingBox(
+                        xmin, ymin, zmin, xmax, ymax, zmax, 0
+                    )
+                    ov += _ov
 
-                lc_data[namGroup]["box"].append((xmin, ymin, zmin, xmax, ymax, zmax))
-                lc_data[namGroup]["pts"] += [tag for (dimtag, tag) in ov]
-                lc_data[namGroup]["lc"] = lc
+                    lc_data[namGroup]["box"].append(
+                        (xmin, ymin, zmin, xmax, ymax, zmax)
+                    )
+                    lc_data[namGroup]["pts"] += [tag for (dimtag, tag) in ov]
+                    lc_data[namGroup]["lc"] = lc
+            else:
+                raise RuntimeError(
+                    f"vEntities: {type(vEntities)} unsupported return type"
+                )
 
             # print(f"lc[{namGroup}]: {lc_data[namGroup]}")
         # else:
@@ -126,25 +135,30 @@ def gmsh_msh(
             ov = []
             lv = []
             size = []
-            for i, entity in enumerate(vEntities):
-                (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(
-                    1, entity
+            if isinstance(vEntities, list):
+                for i, entity in enumerate(vEntities):
+                    (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(
+                        1, entity
+                    )
+                    _ov = gmsh.model.getEntitiesInBoundingBox(
+                        xmin, ymin, zmin, xmax, ymax, zmax, 0
+                    )
+                    ov += _ov
+                    _lv = gmsh.model.getEntitiesInBoundingBox(
+                        xmin, ymin, zmin, xmax, ymax, zmax, 1
+                    )
+                    # print(
+                    #     f"{namGroup}: entity={entity}, _lv={_lv}, xmin={xmin}, ymin={ymin}, zmin={zmin}, xmax={xmax}, ymax={ymax}, zmax={zmax}"
+                    # )
+                    lv += _lv
+                    size.append(max(abs(xmax - xmin), abs(ymax - ymin)))
+            else:
+                raise RuntimeError(
+                    f"vEntities: {type(vEntities)} unsupported return type"
                 )
-                _ov = gmsh.model.getEntitiesInBoundingBox(
-                    xmin, ymin, zmin, xmax, ymax, zmax, 0
-                )
-                ov += _ov
-                _lv = gmsh.model.getEntitiesInBoundingBox(
-                    xmin, ymin, zmin, xmax, ymax, zmax, 1
-                )
-                # print(
-                #     f"{namGroup}: entity={entity}, _lv={_lv}, xmin={xmin}, ymin={ymin}, zmin={zmin}, xmax={xmax}, ymax={ymax}, zmax={zmax}"
-                # )
-                lv += _lv
-                size.append(max(abs(xmax - xmin), abs(ymax - ymin)))
             lc = lcar1
 
-            if not eps is None:
+            if eps is not None:
                 if namGroup in eps:
                     lc = eps[namGroup]
 
@@ -219,14 +233,30 @@ def gmsh_msh(
 
             # use a `Box' field to impose a step change in element sizes
             # inside a box
+            max_xmin = 0
+            max_zmax = 0
+            min_zmin = 0
+            for key, values in reversed(lc_data.items()):
+                for box in values["box"]:
+                    (xmin, ymin, zmin, xmax, ymax, zmax) = box
+                    max_xmin = max(xmin, max_xmin)
+                    max_zmax = max(zmax, max_zmax)
+                    min_zmin = min(zmin, min_zmin)
+
+            # correct zmax/zmin bound if zero ??
+
             print(f"Field[Box] for Air: {nfield}")
             gmsh.model.mesh.field.add("Box", nfield)
             gmsh.model.mesh.field.setNumber(nfield, "VIn", lcar1 / 30.0 * unit)
             gmsh.model.mesh.field.setNumber(nfield, "VOut", lcar1 * unit)
             gmsh.model.mesh.field.setNumber(nfield, "XMin", 0 * unit)
-            gmsh.model.mesh.field.setNumber(nfield, "XMax", 30 * unit)
-            gmsh.model.mesh.field.setNumber(nfield, "YMin", -120 * unit)
-            gmsh.model.mesh.field.setNumber(nfield, "YMax", 120 * unit)
+            gmsh.model.mesh.field.setNumber(nfield, "XMax", 0.8 * max_xmin)
+            gmsh.model.mesh.field.setNumber(
+                nfield, "YMin", copysign(1.2 * min_zmin, min_zmin)
+            )
+            gmsh.model.mesh.field.setNumber(
+                nfield, "YMax", copysign(1.2 * max_zmax, max_zmax)
+            )
             gmsh.model.mesh.field.setNumber(nfield, "Thickness", 0.3 * unit)
             dfields.append(nfield)
             nfield += 1
@@ -256,7 +286,6 @@ def gmsh_msh(
             # special treatment for Slit: Try with refinedboxes
             for box in refinedboxes:
                 (xmin, ymin, zmin, xmax, ymax, zmax) = box[0]
-                dl = max(abs(xmax - xmin), abs(ymax - ymin))
                 hsize = box[1]  # almost working except a HP/BP
                 gmsh.model.mesh.field.add("Box", nfield)
                 gmsh.model.mesh.field.setNumber(nfield, "VIn", hsize * unit)
@@ -274,10 +303,10 @@ def gmsh_msh(
         # TODO better to get curve list before, create just like gmsh_box but in gmsh_ids?
         uniq = []
         uniqpts = []
+        sizedict = {}
         """
         curvelist = []
         ptslist = []
-        sizedict = {}
         lcdict = {}
         for key, values in lc_sdata.items():
             if not key in ["ZAxis", "Infty"]:
@@ -326,7 +355,7 @@ def gmsh_msh(
 
             # refine pts: working needed in addition with refine curves
             # TODO give charact according to curve
-            if not uniqpts is None:
+            if uniqpts is not None:
                 gmsh.model.mesh.field.add("Distance", nfield)
                 gmsh.model.mesh.field.setNumbers(nfield, "NodesList", uniqpts)
                 nfield += 1
@@ -367,7 +396,7 @@ def gmsh_msh(
                 """
 
         # test Attractor: not working with actual gmsh package - need to check compile, support for mmg??
-        if not uniq is None:
+        if uniq is not None:
             for curve in list(set(uniq)):
                 gmsh.model.mesh.field.add("AttractorAnisoCurve", nfield)
                 gmsh.model.mesh.field.setNumbers(nfield, "CurvesList", [curve])

@@ -25,7 +25,8 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
     x = Helix.r[0]
     dr = Helix.r[1] - Helix.r[0]
     y = -Helix.axi.h
-    if abs(y - Helix.z[0]) != 0:
+
+    if abs(y - Helix.z[0]) >= 0:
         _id = gmsh.model.occ.addRectangle(x, Helix.z[0], 0, dr, abs(y - Helix.z[0]))
         gmsh_ids.append(_id)
 
@@ -36,7 +37,7 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
 
         y += dz
 
-    if abs(Helix.z[1] - y) != 0:
+    if abs(Helix.z[1] - y) >= 0:
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, abs(Helix.z[1] - y))
         gmsh_ids.append(_id)
 

@@ -1,5 +1,3 @@
-from typing import Union, Tuple
-
 # Load Modules for geometrical Objects
 from python_magnetgeo.Insert import Insert
 from python_magnetgeo.MSite import MSite
@@ -10,7 +8,7 @@ from python_magnetgeo.Supras import Supras
 from python_magnetgeo.Screen import Screen
 from python_magnetgeo.Helix import Helix
 
-ObjectType = Union[MSite, Bitters, Supras, Insert, Bitter, Supra, Screen, Helix]
+ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix
 
 
 def gmsh_air(Object: ObjectType, AirData: tuple) -> tuple:

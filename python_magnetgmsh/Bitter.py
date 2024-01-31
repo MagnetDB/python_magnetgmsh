@@ -18,7 +18,6 @@ def gmsh_box(Bitter: Bitter, debug: bool = False) -> list:
     if Bitter.coolingslits is None:
         return []
 
-    f = 1.1
     z0 = Bitter.z[1]
     z1 = Bitter.z[0]
     boxes = []
@@ -50,7 +49,7 @@ def gmsh_ids(
     gmsh_cracks = []
 
     coolingslit = False
-    if not Bitter.coolingslits is None:
+    if Bitter.coolingslits is not None:
         coolingslit = True
 
     x = Bitter.r[0]
@@ -159,10 +158,6 @@ def gmsh_bcs(
     retreive ids for bcs in gmsh geometry
     """
 
-    coolingslit = False
-    if Bitter.coolingslits:
-        coolingslit = True
-
     defs = {}
     (B_ids, Cracks_ids, Air_data) = ids
     print(
@@ -209,13 +204,13 @@ def gmsh_bcs(
     }
 
     n_slits = 0
-    if not Bitter.coolingslits is None:
+    if Bitter.coolingslits is not None:
         n_slits = len(Bitter.coolingslits)
 
     bcs_defs[f"{prefix}Slit0"] = [Bitter.r[0], Bitter.z[0], Bitter.r[0], Bitter.z[1]]
 
     # Cooling Channels
-    if not Bitter.coolingslits is None:
+    if Bitter.coolingslits is not None:
         print(f"Cracks_ids={Cracks_ids}")
         if len(Cracks_ids) > 0:
             for i, id in enumerate(Cracks_ids):
@@ -267,8 +262,8 @@ def gmsh_bcs(
         # TODO: Axis, Inf
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-        bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
-        bcs_defs[f"Infty"] = [
+        bcs_defs["ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
+        bcs_defs["Infty"] = [
             [0, z0_air, dr_air, z0_air],
             [dr_air, z0_air, dr_air, z0_air + dz_air],
             [0, z0_air + dz_air, dr_air, z0_air + dz_air],
