@@ -35,16 +35,19 @@ pip install -r requirements.txt
 Examples
 ========
 
-Use Gmsh API to create a msh file from a magnetgeo yaml file
+Use Gmsh API to create a msh file from a magnetgeo yaml file:
 
 ```
 python3 -m python_magnetgmsh.cli --wd /data/geometries test.yaml [--thickslit] --mesh [--lc] --show
 ```
 
-[NOTE]
-===
-group/hide options is not implement in python_magnetgmsh.cli
-===
+Use Gmsh API to create a 2D msh file for a Bitter sector:
+
+```
+python -m python_magnetgmsh.Bitter2D --wd data/geometries M9_Bi.yaml --mesh --lc 20 --show
+```
+
+
 
 Create a gmsh msh file from Salome xao file:
 
@@ -53,6 +56,9 @@ python3 -m python_magnetgmsh.xao2msh --wd /data/geometries test-Axi.xao --geo te
 python3 -m python_magnetgmsh.xao2msh --wd /data/geometries M9_HLtest-Axi.xao --geo M9_HLtest.yaml mesh --group CoolingChannels
 python3 -m python_magnetgmsh.xao2msh --wd /data/geometries Pancakes-pancake-Axi.xao --geo HTS-pancake-test.yaml [mesh []]
 ```
+
+> [!CAUTION]
+> group/hide options is not implement in python_magnetgmsh.cli
 
 Credits
 =======

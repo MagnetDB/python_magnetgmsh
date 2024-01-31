@@ -1,5 +1,6 @@
 #FROM nvidia/opengl:1.2-glvnd-runtime-ubuntu20.04
-FROM trophime/opengl:1.2-glvnd-runtime-debian11
+#FROM trophime/opengl:1.2-glvnd-runtime-debian11
+FROM trophime/opengl:1.3.2-runtime-debian12
 
 USER root
 
@@ -32,7 +33,7 @@ RUN apt-get update \
     && apt-get -y install g++ cmake \
     #\
     && apt-get -y install python3-minimal libpython3-dev swig \
-    && apt-get -y install python-is-python3 python3-pip python3-jinja2 \
+    && apt-get -y install python-is-python3 python3-pip python3-jinja2 python3-venv \
     && apt-get -y install python3-autopep8 black yapf3 python3-bandit flake8 pydocstyle pylint python3-pytest mypy \
     && apt-get -y install python3-nlopt python3-tabulate python3-yaml \
     && apt-get -y install python3-statsmodels \
@@ -66,8 +67,9 @@ RUN apt update \
     && apt-get -y install python3-magnetgeo
 
 # Install latest gmsh dev version (support for BoundingBox) ?
-RUN apt-get -y install libglu1-mesa libfltk-gl1.3 \
-    && python3 -m pip install -i https://gmsh.info/python-packages --force-reinstall --no-cache-dir gmsh
+RUN apt-get -y install libglu1-mesa libfltk-gl1.3
+
+# how to properly add python3-gmsh??
 
 # Clean up
 RUN apt-get autoremove -y \
