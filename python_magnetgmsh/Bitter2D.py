@@ -97,10 +97,13 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         for j, slit in enumerate(Bitter.coolingslits):
             _names = []
             print(
-                f"slit[{j+1}]: nslits={slit.n}, r={slit.r}, tierod={tierod.r}", flush=True
+                f"slit[{j+1}]: nslits={slit.n}, r={slit.r}", end=""
             )
+            if Bitter.tierod:
+                print(f', tierod={tierod.r}', end="")
+            print(flush=True)
             nslits = slit.n
-            if slit.r == tierod.r:
+            if Bitter.tierod and slit.r == tierod.r:
                 nslits += tierod.n
 
             theta_s = 2 * pi / float(nslits)
@@ -113,7 +116,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
                 gmsh.model.occ.rotate([(2, slit_id)], 0, 0, 0, 0, 0, 1, angle)
                 print(f"slit[{j+1}][0]: rotate {angle} init")
 
-            if slit.r == tierod.r and angle == 0:
+            if Bitter.tierod and (slit.r == tierod.r and angle == 0):
                 print("skip slit")
             else:
                 holes.append(slit_id)
@@ -133,7 +136,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
 
                 names.append(_names)
 
-            if slit.r == tierod.r and angle == 0:
+            if Bitter.tierod and (slit.r == tierod.r and angle == 0):
                 print(f"remove slit{j+1}_0: {slit_id}")
                 gmsh.model.occ.remove([(2, slit_id)], recursive=True)
                 gmsh.model.occ.synchronize()
@@ -183,7 +186,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         return ids
 
     gmsh.model.occ.removeAllDuplicates()
-    if isinstance(cad, int):
+    if isinstance(cad, int) or Bitter.tierod is None:
         tierod_ids = []
     else:
         tierod_ids = create_bcgroup(cad[0][0][1], tierod_id, "tierod")
