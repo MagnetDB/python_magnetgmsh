@@ -132,7 +132,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
                     holes.append(_id)
                     _names.append(f"slit{j+1}_{n}")
 
-                names.append(_names)
+            names.append(_names)
 
             if Bitter.tierod and (slit.r == tierod.r and angle == 0):
                 print(f"remove slit{j+1}_0: {slit_id}")
@@ -141,7 +141,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
 
     print(f"holes={holes}")
     print(f"names={names}")
-    cad = sector
+
     if holes:
         cad = gmsh.model.occ.cut(
             [(2, sector)], [(2, _id) for _id in holes], removeTool=False
@@ -156,6 +156,8 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         gmsh.model.setPhysicalName(2, ps, Bitter.name)
         print(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}", flush=True)
     else:
+        cad = sector
+        gmsh.model.occ.synchronize()
         ps = gmsh.model.addPhysicalGroup(2, [cad])
         gmsh.model.setPhysicalName(2, ps, Bitter.name)
         print(f"PhysicalGroup[{Bitter.name}]: ids={[cad]} (sector only)", flush=True)
@@ -196,7 +198,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         _ids = create_bcgroup(cad[0][0][1], holes[i], slit_names[i - 1])
         hole_ids.append(_ids)
     for hole in holes:
-        gmsh.model.occ.remove([(2, hole)], recursive=True)
+        gmsh.model.occ.remove([(2, hole)])
     gmsh.model.occ.synchronize()
 
     # TODO physical for Rint, Rext, V0, V1
