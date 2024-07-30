@@ -17,7 +17,7 @@ def create_shape(x: float, y: float, shape: Shape2D):
     """
 
     _cl = None
-    print(f"shape: {shape}, name={shape.name}")
+    print(f"shape: {shape}, name={shape.name}, x={x}, y={y}", flush=True)
     if shape.name.startswith("circle"):
         r = float(shape.name.split("-")[-1].replace("mm", "")) / 2.0
         curv = gmsh.model.occ.addCircle(x, y, 0, r)  # , angle1=, angle2 = )
@@ -27,7 +27,9 @@ def create_shape(x: float, y: float, shape: Shape2D):
         curv = []
         pts = []
         for i, pt in enumerate(shape.pts):
+            print(f'pt[{i}]: {pt}')
             pts.append(gmsh.model.occ.addPoint(x + pt[0], pt[1], 0))
+            print(f'addPoint({x + pt[0]}, {pt[1]})', flush=True)
             if i >= 1:
                 curv.append(gmsh.model.occ.addLine(pts[i - 1], pts[i]))
         curv.append(gmsh.model.occ.addLine(pts[-1], pts[0]))
@@ -46,8 +48,11 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
 
     from math import pi, cos, sin
 
-    tierod = Bitter.tierod
-    theta = 2 * pi / float(tierod.n)
+    theta = 2 * pi / 32.
+    if Bitter.tierod:
+        tierod = Bitter.tierod
+        theta = 2 * pi / float(tierod.n)
+        
     Origin = gmsh.model.occ.addPoint(0, 0, 0)
 
     # Bitter sector
@@ -78,73 +83,82 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
     print(f"Bitter sector: {cl} = {curv}")
     del curv
 
-    _ltierod = create_shape(tierod.r, 0, tierod.shape)
-    print(f"_ltierod: {_ltierod}", flush=True)
-    tierod_id = gmsh.model.occ.addPlaneSurface([_ltierod])
-    print(f"tierod_id: {tierod_id}", flush=True)
+    holes = []
+    names = []
+    if Bitter.tierod:
+        _ltierod = create_shape(tierod.r, 0, tierod.shape)
+        print(f"_ltierod: {_ltierod}", flush=True)
+        tierod_id = gmsh.model.occ.addPlaneSurface([_ltierod])
+        print(f"tierod_id: {tierod_id}", flush=True)
+        holes = [tierod_id]
 
     # CoolingSlits
-    holes = [tierod_id]
-    names = []
-    for j, slit in enumerate(Bitter.coolingslits):
-        _names = []
-        print(
-            f"slit[{j+1}]: nslits={slit.n}, r={slit.r}, tierod={tierod.r}", flush=True
-        )
-        nslits = slit.n
-        if slit.r == tierod.r:
-            nslits += tierod.n
+    if Bitter.coolingslits:
+        for j, slit in enumerate(Bitter.coolingslits):
+            _names = []
+            print(
+                f"slit[{j+1}]: nslits={slit.n}, r={slit.r}, tierod={tierod.r}", flush=True
+            )
+            nslits = slit.n
+            if slit.r == tierod.r:
+                nslits += tierod.n
 
-        theta_s = 2 * pi / float(nslits)
-        angle = slit.angle * pi / 180.0
+            theta_s = 2 * pi / float(nslits)
+            angle = slit.angle * pi / 180.0
 
-        # create Shape for slit
-        _lc = create_shape(x=slit.r, y=0, shape=slit.shape)
-        slit_id = gmsh.model.occ.addPlaneSurface([_lc])
-        if angle != 0:
-            gmsh.model.occ.rotate([(2, slit_id)], 0, 0, 0, 0, 0, 1, angle)
-            print(f"slit[{j+1}][0]: rotate {angle} init")
+            # create Shape for slit
+            _lc = create_shape(x=slit.r, y=0, shape=slit.shape)
+            slit_id = gmsh.model.occ.addPlaneSurface([_lc])
+            if angle != 0:
+                gmsh.model.occ.rotate([(2, slit_id)], 0, 0, 0, 0, 0, 1, angle)
+                print(f"slit[{j+1}][0]: rotate {angle} init")
 
-        if slit.r == tierod.r and angle == 0:
-            print("skip slit")
-        else:
-            holes.append(slit_id)
-            _names.append(f"slit{j+1}_0")
+            if slit.r == tierod.r and angle == 0:
+                print("skip slit")
+            else:
+                holes.append(slit_id)
+                _names.append(f"slit{j+1}_0")
 
-        for n in range(1, nslits):
-            if (
-                n * theta_s + angle <= theta / 2.0
-                or n * theta_s + angle >= 2 * pi - theta / 2.0
-            ):
-                res = gmsh.model.occ.copy([(2, slit_id)])
-                # print(f"res={res}")
-                _id = res[0][1]
-                gmsh.model.occ.rotate([(2, _id)], 0, 0, 0, 0, 0, 1, n * theta_s)
-                holes.append(_id)
-                _names.append(f"slit{j+1}_{n}")
+            for n in range(1, nslits):
+                if (
+                        n * theta_s + angle <= theta / 2.0
+                        or n * theta_s + angle >= 2 * pi - theta / 2.0
+                ):
+                    res = gmsh.model.occ.copy([(2, slit_id)])
+                    # print(f"res={res}")
+                    _id = res[0][1]
+                    gmsh.model.occ.rotate([(2, _id)], 0, 0, 0, 0, 0, 1, n * theta_s)
+                    holes.append(_id)
+                    _names.append(f"slit{j+1}_{n}")
 
-        names.append(_names)
+                names.append(_names)
 
-        if slit.r == tierod.r and angle == 0:
-            print(f"remove slit{j+1}_0: {slit_id}")
-            gmsh.model.occ.remove([(2, slit_id)], recursive=True)
-            gmsh.model.occ.synchronize()
+            if slit.r == tierod.r and angle == 0:
+                print(f"remove slit{j+1}_0: {slit_id}")
+                gmsh.model.occ.remove([(2, slit_id)], recursive=True)
+                gmsh.model.occ.synchronize()
 
     print(f"holes={holes}")
     print(f"names={names}")
-    cad = gmsh.model.occ.cut(
-        [(2, sector)], [(2, _id) for _id in holes], removeTool=False
-    )
-    gmsh.model.occ.synchronize()
+    cad = sector
+    if holes:
+        cad = gmsh.model.occ.cut(
+            [(2, sector)], [(2, _id) for _id in holes], removeTool=False
+        )
+        gmsh.model.occ.synchronize()
 
-    print(f"cad: {cad}")
-    print(f"cad[1]: {cad[1]}")
-    print(f"cad[1][0]: {cad[1][0]}")
-    print(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}", flush=True)
-    ps = gmsh.model.addPhysicalGroup(2, [cad[0][0][1]])
-    gmsh.model.setPhysicalName(2, ps, Bitter.name)
-    print(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}", flush=True)
-
+        print(f"cad: {cad}")
+        print(f"cad[1]: {cad[1]}")
+        print(f"cad[1][0]: {cad[1][0]}")
+        print(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}", flush=True)
+        ps = gmsh.model.addPhysicalGroup(2, [cad[0][0][1]])
+        gmsh.model.setPhysicalName(2, ps, Bitter.name)
+        print(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}", flush=True)
+    else:
+        ps = gmsh.model.addPhysicalGroup(2, [cad])
+        gmsh.model.setPhysicalName(2, ps, Bitter.name)
+        print(f"PhysicalGroup[{Bitter.name}]: ids={[cad]} (sector only)", flush=True)
+        
     # get BCs ids
     # use
     # gmsh/model/occ/getBoundingBox
@@ -169,7 +183,10 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         return ids
 
     gmsh.model.occ.removeAllDuplicates()
-    tierod_ids = create_bcgroup(cad[0][0][1], tierod_id, "tierod")
+    if isinstance(cad, int):
+        tierod_ids = []
+    else:
+        tierod_ids = create_bcgroup(cad[0][0][1], tierod_id, "tierod")
 
     slit_names = flatten(names)
     print(f"slit_names: {len(slit_names)} names, {len(holes)} slits")
@@ -178,7 +195,8 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         _ids = create_bcgroup(cad[0][0][1], holes[i], slit_names[i - 1])
         hole_ids.append(_ids)
     for hole in holes:
-        gmsh.model.occ.remove([(2, hole)], recursive=True)
+        gmsh.model.occ.remove([(2, hole)])
+    gmsh.model.occ.synchronize()
 
     # TODO physical for Rint, Rext, V0, V1
     eps = 0.1
@@ -276,18 +294,29 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
     ps = gmsh.model.addPhysicalGroup(1, rint_ids)
     gmsh.model.setPhysicalName(1, ps, "slit0")
     ps = gmsh.model.addPhysicalGroup(1, rext_ids)
-    gmsh.model.setPhysicalName(1, ps, f"slit{len(Bitter.coolingslits)+1}")
+    if Bitter.coolingslits:
+        gmsh.model.setPhysicalName(1, ps, f"slit{len(Bitter.coolingslits)+1}")
+    else:
+        gmsh.model.setPhysicalName(1, ps, "slit1")
     ps = gmsh.model.addPhysicalGroup(1, V0_ids)
     gmsh.model.setPhysicalName(1, ps, "V0")
     ps = gmsh.model.addPhysicalGroup(1, V1_ids)
     gmsh.model.setPhysicalName(1, ps, "V1")
 
-    return (
-        [cad[1][0][0][1]],
-        (rint_ids + rext_ids + V0_ids + V1_ids),
-        flatten(hole_ids),
-        tierod_ids,
-    )
+    if isinstance(cad, int):
+        return (
+            [cad],
+            (rint_ids + rext_ids + V0_ids + V1_ids),
+            flatten(hole_ids),
+            tierod_ids,
+        )
+    else:
+        return (
+            [cad[1][0][0][1]],
+            (rint_ids + rext_ids + V0_ids + V1_ids),
+            flatten(hole_ids),
+            tierod_ids,
+        )
 
 
 def main():
@@ -380,28 +409,32 @@ def main():
             nfield += 1
 
         # Tierod
-        r_tierod = min(0.5, Object.tierod.r)
-        for bc in result[3]:
-            gmsh.model.mesh.field.add("Distance", nfield)
-            gmsh.model.mesh.field.setNumbers(nfield, "CurvesList", [bc])
-            gmsh.model.mesh.field.setNumbers(nfield, "Sampling", [100])
-            nfield += 1
+        if Object.tierod:
+            r_tierod = min(0.5, Object.tierod.r)
+            for bc in result[3]:
+                gmsh.model.mesh.field.add("Distance", nfield)
+                gmsh.model.mesh.field.setNumbers(nfield, "CurvesList", [bc])
+                gmsh.model.mesh.field.setNumbers(nfield, "Sampling", [100])
+                nfield += 1
 
-            # Field 2: Threshold that dictates the mesh size of the background field
-            print(f"Field[Thresold] for cooling holes: {nfield}")
-            gmsh.model.mesh.field.add("Threshold", nfield)
-            gmsh.model.mesh.field.setNumber(nfield, "IField", nfield - 1)
-            gmsh.model.mesh.field.setNumber(nfield, "LcMin", args.lc / 20.0 * unit)
-            gmsh.model.mesh.field.setNumber(nfield, "LcMax", args.lc * unit)
-            gmsh.model.mesh.field.setNumber(nfield, "DistMin", r_tierod * unit)
-            gmsh.model.mesh.field.setNumber(nfield, "DistMax", 1.1 * r_tierod * unit)
-            gmsh.model.mesh.field.setNumber(nfield, "StopAtDistMax", True)
-            dfields.append(nfield)
-            nfield += 1
+                # Field 2: Threshold that dictates the mesh size of the background field
+                print(f"Field[Thresold] for cooling holes: {nfield}")
+                gmsh.model.mesh.field.add("Threshold", nfield)
+                gmsh.model.mesh.field.setNumber(nfield, "IField", nfield - 1)
+                gmsh.model.mesh.field.setNumber(nfield, "LcMin", args.lc / 20.0 * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "LcMax", args.lc * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "DistMin", r_tierod * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "DistMax", 1.1 * r_tierod * unit)
+                gmsh.model.mesh.field.setNumber(nfield, "StopAtDistMax", True)
+                dfields.append(nfield)
+                nfield += 1
 
         # Cooling holes
-        lst = [slit.dh for slit in Object.coolingslits]
-        r_holes = min(2, sum(lst) / len(lst))
+        lst = []
+        r_holes = 2
+        if Object.coolingslits:
+            lst = [slit.dh for slit in Object.coolingslits]
+            r_holes = min(2, sum(lst) / len(lst))
         for bc in result[2]:
             gmsh.model.mesh.field.add("Distance", nfield)
             gmsh.model.mesh.field.setNumbers(nfield, "CurvesList", [bc])

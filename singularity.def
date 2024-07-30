@@ -1,6 +1,6 @@
 Bootstrap: docker
 #From: ubuntu:focal
-From: debian:bullseye
+From: debian:bookworm
 
 %environment
 
