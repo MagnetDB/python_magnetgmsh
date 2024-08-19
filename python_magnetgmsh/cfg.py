@@ -209,5 +209,9 @@ def loadcfg(
             )
             Channels = cad.get_channels(mname)
 
+            # quick hack for Biiter
+            if isinstance(cad, Bitter):
+                Channels.append("Tierod")
+
     print(f"cfg: solid_names={solid_names}, Channels={Channels}")
     return (solid_names, Channels)

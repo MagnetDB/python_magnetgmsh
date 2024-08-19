@@ -1,4 +1,4 @@
-"""Console script for python_magnetgeo."""
+"""Console script for python_magnetgmsh."""
 
 import argparse
 import sys
@@ -19,7 +19,7 @@ from .mesh.axi import get_allowed_algo, gmsh_msh, gmsh_cracks
 
 
 def main():
-    """Console script for python_magnetgeo."""
+    """Console script for python_magnetgmsh."""
     parser = argparse.ArgumentParser()
 
     parser.add_argument(

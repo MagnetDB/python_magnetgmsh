@@ -6,7 +6,7 @@ import xmltodict
 from collections import OrderedDict
 
 
-def load_Xao_groups(xml_dict: dict) -> tuple:
+def load_Xao_groups(xml_dict: dict, debug: bool = False) -> tuple:
     """
     load Xao as an xmldict
     Returns tuple for vtags, stags, ltags
@@ -18,23 +18,28 @@ def load_Xao_groups(xml_dict: dict) -> tuple:
 
     # load group name definition
     for key, value in xml_dict["XAO"]["groups"].items():
-        # print(f'key={key}, value={value}')
+        # print(f"key={key}, value={value}")
         if key == "group":
             for i, item in enumerate(value):
                 name = item["@name"]
                 dimension = item["@dimension"]
                 count = item["@count"]
+                if debug:
+                    print("item[element]: ", item["element"], type(item["element"]))
                 elements = []
                 if isinstance(item["element"], list):
                     for evalue in item["element"]:
                         # print(f'evalue={list(evalue.values())}')
                         elements += [int(v) + 1 for v in list(evalue.values())]
-                elif isinstance(item["element"], OrderedDict):
+                elif isinstance(item["element"], dict) or isinstance(
+                    item["element"], OrderedDict
+                ):
                     # print(f"evalue={list(item['element'].values())}")
                     elements += [int(v) + 1 for v in list(item["element"].values())]
-                print(
-                    f"item[{i}]: name={name}, dim={dimension}, count={count}, elements={elements} ({len(elements)}))"
-                )
+                if debug:
+                    print(
+                        f"item[{i}]: name={name}, dim={dimension}, count={count}, elements={elements} ({len(elements)}))"
+                    )
 
                 if dimension == "solid":
                     vtags[name] = elements

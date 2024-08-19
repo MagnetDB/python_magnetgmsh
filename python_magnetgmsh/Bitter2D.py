@@ -153,11 +153,12 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         print(f"cad: {cad}")
         print(f"cad[1]: {cad[1]}")
         print(f"cad[1][0]: {cad[1][0]}")
-        print(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}", flush=True)
         ps = gmsh.model.addPhysicalGroup(2, [cad[0][0][1]])
         gmsh.model.setPhysicalName(2, ps, Bitter.name)
         print(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}", flush=True)
     else:
+        gmsh.model.occ.synchronize()
+        print(f"cad: {cad}")
         ps = gmsh.model.addPhysicalGroup(2, [cad])
         gmsh.model.setPhysicalName(2, ps, Bitter.name)
         print(f"PhysicalGroup[{Bitter.name}]: ids={[cad]} (sector only)", flush=True)

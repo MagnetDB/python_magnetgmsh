@@ -91,6 +91,51 @@ def gmsh_ids(
 
         else:
             gmsh_slits = []
+            gmsh_tierod = []
+
+            """
+            # if angle == 0
+            if not Bitter.tierod is None:
+                eps = Bitter.tierod.dh / 2.0
+                _id = gmsh.model.occ.addRectangle(
+                    x - eps / 2.0, Bitter.z[0], 0, eps, abs(Bitter.z[1] - Bitter.z[0])
+                )
+                gmsh_tierod.append(_id)
+
+            for i, slit in enumerate(Bitter.coolingslits):
+                if slit.angle == 0:
+                    x = slit.r
+                    eps = slit.dh / 2.0
+                    print(f"slit[{i}]: eps={eps}")
+
+                    _id = gmsh.model.occ.addRectangle(
+                        x - eps / 2.0,
+                        Bitter.z[0],
+                        0,
+                        eps,
+                        abs(Bitter.z[1] - Bitter.z[0]),
+                    )
+                    gmsh_slits.append(_id)
+            """
+
+            """
+            # if angle != 0
+            for i, slit in enumerate(Bitter.coolingslits):
+                if slit.angle != 0:
+                    x = slit.r
+                    eps = slit.dh / 2.0
+                    print(f"slit[{i}]: eps={eps}")
+
+                    _id = gmsh.model.occ.addRectangle(
+                        x - eps / 2.0,
+                        Bitter.z[0],
+                        0,
+                        eps,
+                        abs(Bitter.z[1] - Bitter.z[0]),
+                    )
+                    gmsh_slits.append(_id)
+            """
+
             for i, slit in enumerate(Bitter.coolingslits):
                 # eps: thickness of annular ring equivalent to n * coolingslit surface
                 x = slit.r
@@ -104,7 +149,7 @@ def gmsh_ids(
 
             o, m = gmsh.model.occ.cut(
                 [(2, _id) for _id in gmsh_ids],
-                [(2, _id) for _id in gmsh_slits],
+                [(2, _id) for _id in gmsh_slits + gmsh_tierod],
                 removeTool=True,
             )
             gmsh.model.occ.synchronize()
@@ -176,6 +221,12 @@ def gmsh_bcs(
     # set physical name
     if not psnames:
         psnames.append(f"{mname}_B1_Slit0")
+
+    # if alpha == 0
+    #  1st tierod
+    #  slits if slit.angle ==0
+    # else
+    #  slits if slit.angle != 0
     num = 0
     for i, id in enumerate(B_ids):
         if isinstance(id, int):

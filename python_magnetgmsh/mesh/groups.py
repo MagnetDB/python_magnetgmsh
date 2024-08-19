@@ -24,6 +24,9 @@ def create_physicalgroups(
     """
 
     print(f"create_physicalgroups: is2D={is2D}")
+    print(f"stags={stags.keys()}")
+    print(f"vtags={vtags.keys()}")
+    print(f"excluded_tags={excluded_tags}")
 
     dict_tags = {}
 
@@ -66,20 +69,30 @@ def create_physicalgroups(
                 )
                 # gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, sname)
                 # if debug:
-                print(f"{sname}: _ids={_ids}, pgrp={pgrp}")
+                print(
+                    f"{sname}: _ids={len(_ids)} items, pgrp={pgrp}, dim={GeomParams['Solid'][0]}"
+                )
 
-    else:
-        raise RuntimeError("3D case not implemented")
+    print("set physical for vtags")
+    vdim = GeomParams["Solid"][0]
+    sdim = GeomParams["Face"][0]
+
+    if is2D:
+        sdim = GeomParams["Solid"][0]
+
+    for vname in vtags:
+        pgrp = gmsh.model.addPhysicalGroup(vdim, vtags[vname], name=vname)
+        # gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, sname)
+        # if debug:
+        print(f"{vname}: {len(vtags[vname])}, pgrp={pgrp}, dim={vdim}")
 
     print("set physical for stags - ignore exclude_tags")
     for sname in stags:
         if not sname in excluded_tags:
-            pgrp = gmsh.model.addPhysicalGroup(
-                GeomParams["Solid"][0], stags[sname], name=sname
-            )
+            pgrp = gmsh.model.addPhysicalGroup(sdim, stags[sname], name=sname)
             # gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, sname)
             # if debug:
-            print(f"{sname}: {stags[sname]}, pgrp={pgrp}")
+            print(f"{sname}: {len(stags[sname])}, pgrp={pgrp}, dim={sdim}")
 
     print("PhysicalGroups:")
     vGroups = gmsh.model.getPhysicalGroups()
@@ -87,9 +100,9 @@ def create_physicalgroups(
         dimGroup = iGroup[0]  # 1D, 2D or 3D
         tagGroup = iGroup[1]
         namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
-        print(namGroup)
+        print(f"namGroup: {namGroup}, dim: {dimGroup}")
 
-    # get groups
+    pass
 
 
 def create_physicalbcs(
@@ -101,8 +114,11 @@ def create_physicalbcs(
     groupIsolant: bool,
     debug: bool = False,
 ) -> None:
-    exclude_tags = {}
+    print(
+        f"create_physicalbcs: groupCoolingChannels={groupCoolingChannels}, Channels={Channels}, bctags={bctags}"
+    )
 
+    exclude_tags = {}
     if hideIsolant:
         # populate exlude_tags
         raise RuntimeError("hideIsolant case not implemented")
@@ -112,10 +128,17 @@ def create_physicalbcs(
         # populate exclude_tags
         raise RuntimeError("groupIsolant not implemented")
 
+    def bc_match(name: str, cond: str):
+        import re
+
+        # create regexp from cond
+        regexp = rf"[i]{cond.capitalize()}_\d+"
+        return re.search(regexp, name)
+
     if groupCoolingChannels:
         print(f"group cooling channels: {Channels}")
-        print(f"registered bctags: {bctags.keys()}")
         if isinstance(Channels, dict):
+            print(f"Channels (dict): {Channels}")
             for key in Channels:
                 print(f"Channels[{key}]]: {Channels[key]}")
                 for i, channel in enumerate(Channels[key]):
@@ -136,6 +159,7 @@ def create_physicalbcs(
                             print(f"{schannel}, listcase")
 
         elif isinstance(Channels, list):
+            print(f"Channels (list): {Channels}")
             for i, channel in enumerate(Channels):
                 print(f"Channel[{i}]: {channel}")
                 tags = []
@@ -147,9 +171,14 @@ def create_physicalbcs(
                     print(f"Channel{i}: tags={tags}")
                     bctags[f"Channel{i}"] = tags
 
+        print(f"registered bctags: {bctags.keys()}")
+
     # Physical Surfaces
     if debug:
         print("BCtags:")
+    print(f"bctags={bctags}")
+    print(f"exlude_tags={exclude_tags}")
+    print("create physcicalgroups")
     for bctag in bctags:
         if not bctag in exclude_tags:
             pgrp = gmsh.model.addPhysicalGroup(GeomParams["Face"][0], bctags[bctag])
@@ -157,3 +186,5 @@ def create_physicalbcs(
             print(bctag, bctags[bctag], pgrp)
             if debug:
                 print(bctag, bctags[bctag], pgrp)
+
+    print("create_physicalbcs done")

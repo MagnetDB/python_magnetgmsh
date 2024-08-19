@@ -32,6 +32,13 @@ source ./magnetgmsh-env/bin/activate
 pip install -r requirements.txt
 ```
 
+If you wish to use latest dev gmsh version, you can install the latest gmsh dev version in the virtual env 
+
+```
+pip install -i https://gmsh.info/python-packages-dev --force-reinstall --no-cache-dir gmsh
+```
+
+
 Examples
 ========
 

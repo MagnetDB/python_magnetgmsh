@@ -25,7 +25,7 @@ import gmsh
 from .utils.files import load_Xao
 from .mesh.groups import create_physicalbcs, create_physicalgroups
 from .mesh.axi import get_allowed_algo as get_allowed_algo2D
-from .mesh.axi import gmsh_msh
+
 from .mesh.m3d import get_allowed_algo as get_allowed_algo3D
 from .utils.lists import flatten
 from .cfg import loadcfg
@@ -67,7 +67,7 @@ def main():
         help="select an algorithm for 3d mesh",
         type=str,
         choices=get_allowed_algo3D(),
-        default="None",
+        default="HXT",
     )
     parser_mesh.add_argument(
         "--lc", help="load mesh size from file", action="store_true"
@@ -160,6 +160,8 @@ def main():
     file = args.input_file  # r"HL-31_H1.xao"
     (gname, tags) = load_Xao(file, GeomParams, args.debug)
     (vtags, stags, ltags) = tags
+    print(f"stags={stags.keys()}")
+    print(f"vtags={vtags.keys()}")
 
     # Loading yaml file to get infos on volumes
     cfgfile = ""
@@ -173,11 +175,16 @@ def main():
     (solid_names, Channels) = loadcfg(cfgfile, gname, is2D, args.verbose)
     print(f"input_file: {args.input_file}")
     print(f"solid_names: {solid_names}")
+    print(f"Channels: {Channels}")
     mdict = {}
     for name in solid_names:
         mdict[name] = ""
 
-    excluded_tags = [name for name in stags if not name in mdict and not name == "Air"]
+    excluded_tags = []
+    if is2D:
+        excluded_tags = [
+            name for name in stags if not name in mdict and not name == "Air"
+        ]
     print(f"excluded_tags: {excluded_tags}")
     # remove exclude_tags from stags
 
@@ -217,17 +224,21 @@ def main():
     )
 
     if args.command == "mesh" and not args.dry_run:
+        refinedboxes = []
+
         air = False
+        AirData = ()
         if "Air" in args.input_file:
             air = True
+
+        with open(cfgfile, "r") as f:
+            Object = yaml.load(f, Loader=yaml.FullLoader)
+        print(f"Object={Object}, type={type(Object)}")
+
         if is2D:
             from .MeshAxiData import MeshAxiData
+            from .mesh.axi import gmsh_msh
 
-            with open(cfgfile, "r") as f:
-                Object = yaml.load(f, Loader=yaml.FullLoader)
-            print(f"Object={Object}, type={type(Object)}")
-
-            AirData = ()
             if air:
                 from .Air import gmsh_boundingbox
 
@@ -242,8 +253,19 @@ def main():
                 meshAxiData.dump(air)
 
             cracks = {}
-            gmsh_msh(args.algo2d, meshAxiData, air, args.scaling)
+            gmsh_msh(args.algo2d, meshAxiData, refinedboxes, air, args.scaling)
         else:
+            from .MeshData import MeshData
+            from .mesh.m3d import gmsh_msh
+
+            meshData = MeshData(cfgfile.replace(".yaml", ""), args.algo2d, args.algo3d)
+            if args.lc:
+                meshData.load(air)
+            else:
+                meshData.default("", Object, AirData)
+                meshData.dump(air)
+
+            gmsh_msh(args.algo3d, meshData, refinedboxes, air, args.scaling)
             print("xao2msh: gmsh_msh for 3D not implemented")
 
         meshname = file.replace(".xao", ".msh")
