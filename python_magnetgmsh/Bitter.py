@@ -54,7 +54,7 @@ def gmsh_ids(
 
     x = Bitter.r[0]
     dr = Bitter.r[1] - Bitter.r[0]
-    y = -Bitter.axi.h
+    y = -Bitter.modelaxi.h
     # print("y=", y)
     tol = 1e-10
     if abs(y - Bitter.z[0]) >= tol:
@@ -63,7 +63,7 @@ def gmsh_ids(
 
     # print("gmsh_ids=", gmsh_ids)
 
-    for i, (n, pitch) in enumerate(zip(Bitter.axi.turns, Bitter.axi.pitch)):
+    for i, (n, pitch) in enumerate(zip(Bitter.modelaxi.turns, Bitter.modelaxi.pitch)):
         dz = n * pitch
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, dz)
         gmsh_ids.append(_id)

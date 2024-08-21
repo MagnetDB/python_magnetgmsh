@@ -359,20 +359,20 @@ class MeshAxiData(yaml.YAMLObject):
                 with open(f"{H_cfg}.yaml", "r") as f:
                     H = yaml.load(f, Loader=yaml.FullLoader)
                     print(
-                        f"MeshAxiData for H: {H_cfg}, nturns={len(H.axi.turns)}, psname[{num}]={psnames[num]}"
+                        f"MeshAxiData for H: {H_cfg}, nturns={len(H.modelaxi.turns)}, psname[{num}]={psnames[num]}"
                     )
 
                     psname = re.sub(r"_Cu\d+", "", psnames[num])
                     self.surfhypoths.append(self.part_default(H, psname))
-                    for n in range(len(H.axi.turns) + 2):
+                    for n in range(len(H.modelaxi.turns) + 2):
                         mesh_dict[psnames[num]] = len(self.surfhypoths) - 1
                         num += 1
                 """
                 self.surfhypoths.append(self.part_default(H, f"{hypname}H{i+1}_Cu0"))
                 mesh_dict[f"{hypname}H{i+1}_Cu0"] = len(self.surfhypoths) - 1
-                for j in range(len(H.axi.turns)):
+                for j in range(len(H.modelaxi.turns)):
                     mesh_dict[f"{hypname}H{i+1}_Cu{j+1}"] = len(self.surfhypoths) - 1
-                mesh_dict[f"{hypname}H{i+1}_Cu{len(H.axi.turns)+1}"] = (
+                mesh_dict[f"{hypname}H{i+1}_Cu{len(H.modelaxi.turns)+1}"] = (
                     len(self.surfhypoths) - 1
                 )
                 """

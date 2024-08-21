@@ -24,13 +24,13 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
     gmsh_ids = []
     x = Helix.r[0]
     dr = Helix.r[1] - Helix.r[0]
-    y = -Helix.axi.h
+    y = -Helix.modelaxi.h
 
     if abs(y - Helix.z[0]) >= 0:
         _id = gmsh.model.occ.addRectangle(x, Helix.z[0], 0, dr, abs(y - Helix.z[0]))
         gmsh_ids.append(_id)
 
-    for i, (n, pitch) in enumerate(zip(Helix.axi.turns, Helix.axi.pitch)):
+    for i, (n, pitch) in enumerate(zip(Helix.modelaxi.turns, Helix.modelaxi.pitch)):
         dz = n * pitch
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, dz)
         gmsh_ids.append(_id)

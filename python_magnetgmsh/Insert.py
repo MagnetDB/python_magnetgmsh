@@ -240,7 +240,7 @@ def gmsh_bcs(
         if i == NHelices - 1:
             bcs_defs[f"{hname}_BP"] = [Helix.r[0], Helix.z[0], Helix.r[1], Helix.z[0]]
 
-        num += len(Helix.axi.turns) + 2
+        num += len(Helix.modelaxi.turns) + 2
 
     # loop over Rings
     for i, name in enumerate(Insert.Rings):
