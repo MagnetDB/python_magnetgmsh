@@ -79,3 +79,26 @@ RUN apt-get autoremove -y \
 # Switch back to dialog for any ad-hoc use of apt-get
 ENV DEBIAN_FRONTEND=dialog
 
+
+# add motd see https://gist.github.com/ashgillman/a6aa7a5afc9e146a65fb
+RUN echo '[ ! -z "$TERM" -a -r /etc/motd ] && cat /etc/issue && cat /etc/motd' \
+    >> /etc/bash.bashrc \
+    ; echo "\
+    ===================================================================\n\
+    = Python MagnetRun Docker container                               =\n\
+    ===================================================================\n\
+    \n\
+    * To create the virtual env:\n\
+    python -m venv ./magnetgmsh-env\n\
+    * To start the virtual env:\n\
+    source ./magnetgmsh-env/bin/activate\n\
+    \n\
+    * To quit the virtual env:\n\
+    deactivate\n"\
+
+    > /etc/motd
+
+# Switch to USERNAME
+USER ${USERNAME}
+WORKDIR /home/${USERNAME}
+CMD ["bash"]
