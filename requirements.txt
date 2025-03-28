@@ -1,4 +1,5 @@
-PyYAML
-xmltodict
-gmsh >= 4.8.4
+PyYAML >= 6.0
+xmltodict >= 0.14.2
+gmsh >= 4.13.1
+python_magnetgeo
 
