@@ -5,7 +5,7 @@ set +x
 # pwd shall contains requirements.txt
 
 VENVDIR=./magnetgmsh-env
-USE_SYSTEM_PACKAGES=0
+USE_SYSTEM_PACKAGES=1
 
 if [ ! -d $VENVDIR ]; then
    echo "create Python Virtualenv: VENVDIR=${VENVDIR}"
