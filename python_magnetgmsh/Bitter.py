@@ -57,6 +57,7 @@ def gmsh_ids(
     y = -Bitter.modelaxi.h
     # print("y=", y)
     tol = 1e-10
+    
     if abs(y - Bitter.z[0]) >= tol:
         _id = gmsh.model.occ.addRectangle(x, Bitter.z[0], 0, dr, abs(y - Bitter.z[0]))
         gmsh_ids.append(_id)
@@ -70,6 +71,7 @@ def gmsh_ids(
         y += dz
         # print("(n=", n, " pitch=", pitch, ")dz=", dz, " gmsh_ids=", gmsh_ids, " y=", y)
 
+    # Add chamfer on BP here
     if abs(y - Bitter.z[1]) >= tol:
         # print("abs(y - Bitter.z[1])=", abs(y - Bitter.z[1]))
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, abs(y - Bitter.z[1]))
