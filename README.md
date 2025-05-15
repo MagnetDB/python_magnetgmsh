@@ -67,6 +67,14 @@ python3 -m python_magnetgmsh.xao2msh --wd /data/geometries Pancakes-pancake-Axi.
 > [!CAUTION]
 > group/hide options is not implement in python_magnetgmsh.cli
 
+Rotate a mesh vs Ox axis
+
+```
+python -m python_magnetgmsh.rotate HL-31_H1.msh --wd /data/meshes --rotate 45
+```
+
+The output mesh is saved as `HL-31_H1-rotate-45.0deg.msh`
+
 Credits
 =======
 
