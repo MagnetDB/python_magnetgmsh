@@ -17,7 +17,7 @@ ENV LANG=en_US.UTF-8 \
 # property in devcontainer.json to use it. On Linux, the container user's GID/UIDs
 # will be updated to match your local UID/GID (when using the dockerFile property).
 # See https://aka.ms/vscode-remote/containers/non-root-user for details.
-ARG USERNAME=vscode
+ARG USERNAME=feelpp
 ARG USER_UID=1001
 ARG USER_GID=$USER_UID
 
@@ -53,9 +53,9 @@ RUN apt-get update \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME\
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     # add github ssh key
-    && mkdir ~vscode/.ssh/ \
-    && ssh-keyscan github.com >> ~vscode/.ssh/known_hosts \
-    && chown -R vscode.$USER_GID ~vscode/.ssh
+    && mkdir -p ~$USERNAME/.ssh/ \
+    && ssh-keyscan github.com >> ~$USERNAME/.ssh/known_hosts \
+    && chown -R $USERNAME.$USER_GID ~$USERNAME/.ssh
 
 # install prerequistes from Lncmi debian repo
 RUN apt update \
