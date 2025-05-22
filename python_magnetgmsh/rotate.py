@@ -1,14 +1,9 @@
 import gmsh
-import sys
+import os
 from math import pi, cos, sin
 
-# script showing how the coordinates of the nodes of a mesh can be transformed,
-# here by setting all the z coordinates to 0; this is less general, but much
-# simpler, than the approach followed in `flatten.py'
+# see `flatten.py' gmsh example
 
-if len(sys.argv) < 2:
-    print("Usage: " + sys.argv[0] + " file.msh")
-    exit(0)
 
 import argparse
 def main():
@@ -19,8 +14,7 @@ def main():
     parser.add_argument("--show", help="display mesh (requires X11)", action="store_true")
 
     args = parser.parse_args()
-    if args.debug:
-        print(args)
+    print(args)
 
     cwd = os.getcwd()
     if args.wd:
@@ -37,7 +31,7 @@ def main():
 
     if args.show:
         gmsh.fltk.run()
-    gmsh.write(f'{basename}-rotate-{arg.rotate:f.1}deg.msh')
+    gmsh.write(f'{basename}-rotate-{args.rotate:.1f}deg.msh')
 
     gmsh.finalize()
     return 0
