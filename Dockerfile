@@ -1,4 +1,6 @@
-FROM nvidia/opengl:1.2-glvnd-runtime-ubuntu20.04
+ARG from=trophime/opengl:1.7.0-glvnd-runtime-ubuntu24.04
+FROM ${from}
+LABEL maintainer Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
 
 USER root
 
