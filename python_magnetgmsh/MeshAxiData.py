@@ -124,70 +124,19 @@ class MeshAxiData(yaml.YAMLObject):
 
         if isinstance(Object, MSite):
             print(f"Creating MeshAxiData for MSite {Object.name}, mname={mname}")
-            if isinstance(Object.magnets, str):
-                YAMLFile = os.path.join(workingDir, f"{Object.magnets}.yaml")
-                with open(YAMLFile, "r") as istream:
-                    mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    _tmp = self.default(Object.magnets, mObject, (), workingDir)
-                    mesh_dict.update(_tmp)
-            elif isinstance(Object.magnets, dict):
-                for i, key in enumerate(Object.magnets):
-                    if isinstance(Object.magnets[key], str):
-                        print(
-                            f"Creating MeshAxiData for MSite {Object.name}, mname={mname}, key={key}"
-                        )
-                        YAMLFile = os.path.join(
-                            workingDir, f"{Object.magnets[key]}.yaml"
-                        )
-                        with open(YAMLFile, "r") as istream:
-                            mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                            _tmp = self.default(key, mObject, (), workingDir)
-                            mesh_dict.update(_tmp)
-                    elif isinstance(Object.magnets[key], list):
-                        for j, pname in enumerate(Object.magnets[key]):
-                            print(
-                                f"Creating MeshAxiData for MSite {Object.name}, mname={mname}, key={key}, pname={pname}"
-                            )
-                            YAMLFile = os.path.join(workingDir, f"{pname}.yaml")
-                            with open(YAMLFile, "r") as istream:
-                                mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                                _tmp = self.default(
-                                    f"{key}_{mObject.name}", mObject, (), workingDir
-                                )
-                                mesh_dict.update(_tmp)
-                    else:
-                        raise RuntimeError(
-                            f"magnets: unsupported type ({type(Object.magnets[key])})"
-                        )
-
+            for magnet in Object.magnets:
+                _tmp = self.default(magnet.name, magnet, (), workingDir)
+                mesh_dict.update(_tmp)
         elif isinstance(Object, Bitters):
             print(f"Creating MeshAxiData for Bitters {Object.name}, (mname={mname})")
-            for part in Object.magnets:
-                YAMLFile = os.path.join(workingDir, f"{part}.yaml")
-                with open(YAMLFile, "r") as istream:
-                    mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    prefix = ""
-                    if mname:
-                        prefix = f"{mname}_"
-                    _tmp = self.default(
-                        f"{prefix}{mObject.name}", mObject, (), workingDir
-                    )
-                    mesh_dict.update(_tmp)
-
+            for magnet in Object.magnets:
+                _tmp = self.default(magnet.name, magnet, (), workingDir)
+                mesh_dict.update(_tmp)
         elif isinstance(Object, Supras):
             print(f"Creating MeshAxiData for Supras {Object.name}, mname={mname}")
-            for part in Object.magnets:
-                YAMLFile = os.path.join(workingDir, f"{part}.yaml")
-                with open(YAMLFile, "r") as istream:
-                    mObject = yaml.load(istream, Loader=yaml.FullLoader)
-                    prefix = ""
-                    if mname:
-                        prefix = f"{mname}_"
-                    _tmp = self.default(
-                        f"{prefix}{mObject.name}", mObject, (), workingDir
-                    )
-                    mesh_dict.update(_tmp)
-
+            for magnet in Object.magnets:
+                _tmp = self.default(magnet.name, magnet, (), workingDir)
+                mesh_dict.update(_tmp)
         elif isinstance(Object, Screen):
             hypname = ""
             if mname:
@@ -341,51 +290,30 @@ class MeshAxiData(yaml.YAMLObject):
                 raise RuntimeError(
                     f"MeshAxiData: Unknow detail level ({Object.detail}) for Supra {Object.name}"
                 )
-
+            
         elif isinstance(Object, Insert):
-            hypname = ""
-            if mname:
-                hypname = f"{mname}"
-            print(
-                f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, hypname={hypname}"
-            )
-            psnames = Object.get_names(hypname, is2D=True, verbose=debug)
-            print(
-                f"Creating MeshAxiData for Insert {Object.name}, mname={mname}, psnames={psnames}"
-            )
+            print(f"Creating MeshAxiData for Insert {Object.name}, mname={mname}")
+            psnames = Object.get_names(mname, is2D=True, verbose=debug)
+            print(f"psnames={psnames}")
             num = 0
-            for i, H_cfg in enumerate(Object.Helices):
+            for i, H in enumerate(Object.Helices):
                 H = None
-                with open(f"{H_cfg}.yaml", "r") as f:
-                    H = yaml.load(f, Loader=yaml.FullLoader)
-                    print(
-                        f"MeshAxiData for H: {H_cfg}, nturns={len(H.modelaxi.turns)}, psname[{num}]={psnames[num]}"
-                    )
-
-                    psname = re.sub(r"_Cu\d+", "", psnames[num])
-                    self.surfhypoths.append(self.part_default(H, psname))
-                    for n in range(len(H.modelaxi.turns) + 2):
-                        mesh_dict[psnames[num]] = len(self.surfhypoths) - 1
-                        num += 1
-                """
-                self.surfhypoths.append(self.part_default(H, f"{hypname}H{i+1}_Cu0"))
-                mesh_dict[f"{hypname}H{i+1}_Cu0"] = len(self.surfhypoths) - 1
-                for j in range(len(H.modelaxi.turns)):
-                    mesh_dict[f"{hypname}H{i+1}_Cu{j+1}"] = len(self.surfhypoths) - 1
-                mesh_dict[f"{hypname}H{i+1}_Cu{len(H.modelaxi.turns)+1}"] = (
-                    len(self.surfhypoths) - 1
+                print(
+                    f"MeshAxiData for H: {H.name}, nturns={len(H.modelaxi.turns)}, psname[{num}]={psnames[num]}"
                 )
-                """
 
-            if Object.Rings:
-                for i, R_cfg in enumerate(Object.Rings):
-                    print(f"MeshAxiData for R: {R_cfg}")
-                    R = None
-                    with open(f"{R_cfg}.yaml", "r") as f:
-                        R = yaml.load(f, Loader=yaml.FullLoader)
-                    self.surfhypoths.append(self.part_default(R, psnames[i + num]))
-                    mesh_dict[psnames[i + num]] = len(self.surfhypoths) - 1
+                psname = re.sub(r"_Cu\d+", "", psnames[num])
+                self.surfhypoths.append(self.part_default(H, psname))
+                for n in range(len(H.modelaxi.turns) + 2):
+                    mesh_dict[psnames[num]] = len(self.surfhypoths) - 1
+                    num += 1
 
+            for i, R in enumerate(Object.Rings):
+                print(f"MeshAxiData for R: {R.name}")
+                self.surfhypoths.append(self.part_default(R, psnames[i + num]))
+                mesh_dict[psnames[i + num]] = len(self.surfhypoths) - 1    
+
+        
         if Air:
             print("MeshAxiData for Air")
             [Air_, Biot_] = self.air_default(Air)

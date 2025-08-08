@@ -25,17 +25,9 @@ def gmsh_box(Insert: Insert, debug: bool = False) -> list:
 
     boxes = []
 
-    Helices = []
-    for name in Insert.Helices:
-        with open(f"{name}.yaml", "r") as f:
-            Object = yaml.load(f, Loader=yaml.FullLoader)
-            Helices.append(Object)
+    Helices = Insert.helices
 
-    Rings = []
-    for name in Insert.Rings:
-        with open(f"{name}.yaml", "r") as f:
-            Object = yaml.load(f, Loader=yaml.FullLoader)
-            Rings.append(Object)
+    Rings = Insert.rings
 
     innerbore = Insert.innerbore
     outerbore = Insert.outerbore
@@ -125,10 +117,7 @@ def gmsh_ids(
     # loop over Helices
     z = []
     H_ids = []
-    for i, name in enumerate(Insert.Helices):
-        with open(f"{name}.yaml", "r") as f:
-            Helix = yaml.load(f, Loader=yaml.FullLoader)
-
+    for i, Helix in enumerate(Insert.Helices):
         _ids = helix_ids(Helix, (), debug)
         if i % 2 == 0:
             z.append(Helix.z[1])
@@ -139,10 +128,7 @@ def gmsh_ids(
     # loop over Rings
     R_ids = []
     if Insert.Rings:
-        for i, name in enumerate(Insert.Rings):
-            with open(f"{name}.yaml", "r") as f:
-                Ring = yaml.load(f, Loader=yaml.FullLoader)
-
+        for i, Ring in enumerate(Insert.Rings):
             y = z[i]
             if i % 2 != 0:
                 y -= Ring.z[-1] - Ring.z[0]
@@ -217,10 +203,7 @@ def gmsh_bcs(
     z = []
     NHelices = len(Insert.Helices)
     num = 0
-    for i, name in enumerate(Insert.Helices):
-        Helix = None
-        with open(f"{name}.yaml", "r") as f:
-            Helix = yaml.load(f, Loader=yaml.FullLoader)
+    for i, Helix in enumerate(Insert.Helices):
 
         hname = psnames[num].replace("_Cu0", "")
         hdefs = helix_bcs(Helix, hname, (H_ids[i], ()), debug)
