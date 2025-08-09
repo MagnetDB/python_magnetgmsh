@@ -117,7 +117,8 @@ def gmsh_ids(
     # loop over Helices
     z = []
     H_ids = []
-    for i, Helix in enumerate(Insert.Helices):
+    for i, Helix in enumerate(Insert.helices):
+        print(f"H[{i}]: {Helix.name}, r={Helix.r}, z={Helix.z}")
         _ids = helix_ids(Helix, (), debug)
         if i % 2 == 0:
             z.append(Helix.z[1])
@@ -127,8 +128,8 @@ def gmsh_ids(
 
     # loop over Rings
     R_ids = []
-    if Insert.Rings:
-        for i, Ring in enumerate(Insert.Rings):
+    if Insert.rings:
+        for i, Ring in enumerate(Insert.rings):
             y = z[i]
             if i % 2 != 0:
                 y -= Ring.z[-1] - Ring.z[0]
@@ -201,9 +202,9 @@ def gmsh_bcs(
 
     # loop over Helices
     z = []
-    NHelices = len(Insert.Helices)
+    NHelices = len(Insert.helices)
     num = 0
-    for i, Helix in enumerate(Insert.Helices):
+    for i, Helix in enumerate(Insert.helices):
 
         hname = psnames[num].replace("_Cu0", "")
         hdefs = helix_bcs(Helix, hname, (H_ids[i], ()), debug)
@@ -226,10 +227,7 @@ def gmsh_bcs(
         num += len(Helix.modelaxi.turns) + 2
 
     # loop over Rings
-    for i, name in enumerate(Insert.Rings):
-        Ring = None
-        with open(f"{name}.yaml", "r") as f:
-            Ring = yaml.load(f, Loader=yaml.FullLoader)
+    for i, Ring in enumerate(Insert.rings):
 
         y = z[i]
         if i % 2 != 0:

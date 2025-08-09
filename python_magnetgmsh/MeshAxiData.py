@@ -296,8 +296,7 @@ class MeshAxiData(yaml.YAMLObject):
             psnames = Object.get_names(mname, is2D=True, verbose=debug)
             print(f"psnames={psnames}")
             num = 0
-            for i, H in enumerate(Object.Helices):
-                H = None
+            for i, H in enumerate(Object.helices):
                 print(
                     f"MeshAxiData for H: {H.name}, nturns={len(H.modelaxi.turns)}, psname[{num}]={psnames[num]}"
                 )
@@ -308,7 +307,7 @@ class MeshAxiData(yaml.YAMLObject):
                     mesh_dict[psnames[num]] = len(self.surfhypoths) - 1
                     num += 1
 
-            for i, R in enumerate(Object.Rings):
+            for i, R in enumerate(Object.rings):
                 print(f"MeshAxiData for R: {R.name}")
                 self.surfhypoths.append(self.part_default(R, psnames[i + num]))
                 mesh_dict[psnames[i + num]] = len(self.surfhypoths) - 1    

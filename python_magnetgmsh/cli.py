@@ -73,6 +73,7 @@ def main():
 
     with open(args.filename, "r") as f:
         Object = yaml.load(f, Loader=yaml.FullLoader)
+        Object.update()
         print(f"Object={Object}, type={type(Object)}")
 
     gmsh.initialize()

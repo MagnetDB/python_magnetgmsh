@@ -30,8 +30,8 @@ def gmsh_chamfer(r: float, z: float, chamfer: Chamfer, debug: bool = False) -> i
     side = chamfer.side # HP/BP
     rside = chamfer.rside # rint/rext
     alpha = chamfer.alpha
-    L = float(chamfer.L)
-    cradius = chamfer.getRadius()
+    L = float(chamfer.l)
+    cradius = chamfer.getDr()
     print(side, rside, alpha, L, cradius, r, z)
     
     contour = None
