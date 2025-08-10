@@ -32,39 +32,15 @@ def gmsh_box(MSite, debug: bool = False) -> list:
     get boundingbox for each channel
     """
     print(f"gmsh_box: MSite={MSite.name}")
+    from importlib import import_module
 
     boxes = []
 
-    def magnet_box(f):
-        Magnet = yaml.load(f, Loader=yaml.FullLoader)
-        print(f"Magnet  {Magnet}")
-        from importlib import import_module
-
-        MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        box = MyMagnet.gmsh_box(Magnet, (), debug)
-        return boxes
-
-    if isinstance(MSite.magnets, str):
-        # print(f"msite/gmsh/{MSite.magnets} (str)")
-        with open(f"{MSite.magnets}.yaml", "r") as f:
-            boxes.append(magnet_box(f))
-
-    elif isinstance(MSite.magnets, dict):
-        for key in MSite.magnets:
-            # print(f"msite/gmsh/{key} (dict)")
-            if isinstance(MSite.magnets[key], str):
-                # print(f"msite/gmsh/{MSite.magnets[key]} (dict/str)")
-                with open(f"{MSite.magnets[key]}.yaml", "r") as f:
-                    boxes.append(magnet_box(f))
-
-            if isinstance(MSite.magnets[key], list):
-                for mname in MSite.magnets[key]:
-                    # print(f"msite/gmsh/{mname} (dict/list)")
-                    with open(f"{mname}.yaml", "r") as f:
-                        boxes.append(magnet_box(f))
-
-    else:
-        raise Exception(f"magnets: unsupported type {type(MSite.magnets)}")
+    
+    for magnet in MSite.magnets:
+        MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
+        box = MyMagnet.gmsh_box(magnet, (), debug)
+        boxes.append(box)
 
     return boxes
 
@@ -75,45 +51,18 @@ def gmsh_ids(
     """
     create gmsh geometry
     """
+    from importlib import import_module
     print(f"gmsh_ids: MSite={MSite.name}")
 
     gmsh_ids = []
 
-    def magnet_ids(f):
-        Magnet = yaml.load(f, Loader=yaml.FullLoader)
-        print(f"Magnet  {Magnet}")
-        from importlib import import_module
-
-        MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        ids = MyMagnet.gmsh_ids(Magnet, (), thickslit, debug)
-        return ids
-
-    if isinstance(MSite.magnets, str):
-        # print(f"msite/gmsh/{MSite.magnets} (str)")
-        with open(f"{MSite.magnets}.yaml", "r") as f:
-            ids = magnet_ids(f)
-            gmsh_ids.append(ids)
-
-    elif isinstance(MSite.magnets, dict):
-        for key in MSite.magnets:
-            # print(f"msite/gmsh/{key} (dict)")
-            if isinstance(MSite.magnets[key], str):
-                # print(f"msite/gmsh/{MSite.magnets[key]} (dict/str)")
-                with open(f"{MSite.magnets[key]}.yaml", "r") as f:
-                    ids = magnet_ids(f)
-                    gmsh_ids.append(ids)
-                    # print(f"ids[{key}]: {ids} (type={type(ids)})")
-
-            if isinstance(MSite.magnets[key], list):
-                for mname in MSite.magnets[key]:
-                    # print(f"msite/gmsh/{mname} (dict/list)")
-                    with open(f"{mname}.yaml", "r") as f:
-                        ids = magnet_ids(f)
-                        gmsh_ids.append(ids)
-                        # print(f"ids[{mname}]: {ids} (type={type(ids)})")
-
-    else:
-        raise Exception(f"magnets: unsupported type {type(MSite.magnets)}")
+    
+    for magnet in MSite.magnets:
+        # print(f"msite/gmsh/{mname} (dict/list)")
+        MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
+        ids = MyMagnet.gmsh_ids(magnet, (), thickslit, debug)
+        gmsh_ids.append(ids)
+        # print(f"ids[{mname}]: {ids} (type={type(ids)})")
 
     # Now create air
     Air_data = ()
@@ -176,6 +125,7 @@ def gmsh_bcs(
     """
     retreive ids for bcs in gmsh geometry
     """
+    from importlib import import_module
     print(f"gmsh_ids: MSite={MSite.name}")
 
     (gmsh_ids, Air_data) = ids
@@ -184,38 +134,14 @@ def gmsh_bcs(
     defs = {}
     bcs_defs = {}
 
-    def load_defs(Magnet, name, ids):
-        from importlib import import_module
-
-        MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, debug)
-        return tdefs
-
-    if isinstance(MSite.magnets, str):
-        # print(f"msite/gmsh/{MSite.magnets} (str)")
-        with open(f"{MSite.magnets}.yaml", "r") as f:
-            Object = yaml.load(f, Loader=yaml.FullLoader)
-        defs.update(load_defs(Object, "", gmsh_ids))
-
-    elif isinstance(MSite.magnets, dict):
-        num = 0
-        for i, key in enumerate(MSite.magnets):
-            # print(f"msite/gmsh/{key} (dict)")
-            if isinstance(MSite.magnets[key], str):
-                # print(f"msite/gmsh/{key} (dict/str)")
-                with open(f"{MSite.magnets[key]}.yaml", "r") as f:
-                    Object = yaml.load(f, Loader=yaml.FullLoader)
-                pname = f"{key}"
-                defs.update(load_defs(Object, pname, gmsh_ids[num]))
-                num += 1
-            if isinstance(MSite.magnets[key], list):
-                # print(f"msite/gmsh/{key} (dict/list)")
-                for j, mname in enumerate(MSite.magnets[key]):
-                    with open(f"{mname}.yaml", "r") as f:
-                        Object = yaml.load(f, Loader=yaml.FullLoader)
-                    pname = f"{key}_{Object.name}"
-                    defs.update(load_defs(Object, pname, gmsh_ids[num]))
-                    num += 1
+    
+    num = 0
+    
+    for j, magnet in enumerate(MSite.magnets):
+        MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
+        tdefs = MyMagnet.gmsh_bcs(magnet, f"{magnet.name}", gmsh_ids[num], thickslit, debug)
+        defs.update(tdefs)
+        num += 1
 
     # TODO: add screens
 

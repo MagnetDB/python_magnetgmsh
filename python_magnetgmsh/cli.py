@@ -71,10 +71,8 @@ def main():
         AirData = (infty_Rratio, infty_Zratio)
     print(f"AirData={AirData}, args.air={args.air}")
 
-    with open(args.filename, "r") as f:
-        Object = yaml.load(f, Loader=yaml.FullLoader)
-        Object.update()
-        print(f"Object={Object}, type={type(Object)}")
+    from python_magnetgeo.utils import getObject
+    Object = getObject(args.filename)
 
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)

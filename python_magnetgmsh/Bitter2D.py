@@ -353,9 +353,8 @@ def main():
     if args.wd:
         os.chdir(args.wd)
 
-    with open(args.filename, "r") as f:
-        Object = yaml.load(f, Loader=yaml.FullLoader)
-        print(f"Object={Object}, type={type(Object)}")
+    from python_magnetgeo.utils import getObject
+    Object = getObject(args.filename)
 
     ncoolingslits = 0
     if Object.coolingslits:

@@ -8,6 +8,7 @@ from python_magnetgeo.Bitter import Bitter
 from python_magnetgeo.Bitters import Bitters
 from .utils.lists import flatten
 from .mesh.bcs import create_bcs
+from importlib import import_module
 
 import_dict = {Bitter: ".Bitter"}
 
@@ -18,30 +19,9 @@ def gmsh_box(Bitters: Bitters, debug: bool = False) -> list:
     """
 
     boxes = []
-
-    def magnet_box(f):
-        Magnet = yaml.load(f, Loader=yaml.FullLoader)
-        print(f"Magnet  {Magnet}")
-        from importlib import import_module
-
-        MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        box = MyMagnet.gmsh_box(Magnet, debug)
-        return boxes
-
-    if isinstance(Bitters.magnets, str):
-        # print(f"Bitters/gmsh/{Bitters.magnets} (str)")
-        with open(f"{Bitters.magnets}.yaml", "r") as f:
-            boxes.append(magnet_box(f))
-
-    elif isinstance(Bitters.magnets, list):
-        for mname in Bitters.magnets:
-            # print(f"Bitters/gmsh/{mname} (dict/list)")
-            with open(f"{mname}.yaml", "r") as f:
-                boxes.append(magnet_box(f))
-
-    else:
-        raise Exception(f"magnets: unsupported type {type(Bitters.magnets)}")
-
+    for i, magnet in enumerate(Bitters.magnets):
+        box = magnet.gmsh_box(magnet, debug) 
+        boxes.append(box)
     return boxes
 
 
@@ -57,32 +37,14 @@ def gmsh_ids(
     gmsh_ids = []
     crack_ids = []
 
-    def magnet_ids(f):
-        Magnet = yaml.load(f, Loader=yaml.FullLoader)
-        from importlib import import_module
-
-        MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        ids = MyMagnet.gmsh_ids(Magnet, (), thickslit, debug)
-        return ids
-
-    if isinstance(Bitters.magnets, str):
-        # print(f"Bitters/gmsh/{Bitters.magnets} (str)")
-        with open(f"{Bitters.magnets}.yaml", "r") as f:
-            ids = magnet_ids(f)
-            gmsh_ids.append(ids[0])
-            crack_ids.append(ids[1])
-
-    elif isinstance(Bitters.magnets, list):
-        for mname in Bitters.magnets:
-            # print(f"Bitters/gmsh/{mname} (dict/list)")
-            with open(f"{mname}.yaml", "r") as f:
-                ids = magnet_ids(f)
-                gmsh_ids.append(ids[0])
-                crack_ids.append(ids[1])
-                # print(f"ids[{mname}]: {ids} (type={type(ids)})")
-
-    else:
-        raise Exception(f"magnets: unsupported type {type(Bitters.magnets)}")
+    for magnet in Bitters.magnets:
+        print(f"Bitters/gmsh_ids: magnet={magnet.name}")
+        MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
+        ids = MyMagnet.gmsh_ids(magnet, AirData, thickslit, debug)
+        gmsh_ids.append(ids[0])
+        crack_ids.append(ids[1])
+        if debug:
+            print(f"Bitters/gmsh_ids: magnet={magnet.name} ids={ids}")
 
     if debug:
         print(f"Bitters/gmsh_ids: gmsh_ids={gmsh_ids}")
@@ -142,30 +104,16 @@ def gmsh_bcs(
     defs = {}
     bcs_defs = {}
 
-    def load_defs(Magnet, name, ids):
-        from importlib import import_module
+    
+    num = 0
+    for i, magnet in enumerate(Bitters.magnets):
+        print(f"Bitters/gmsh/{magnet.name} Bitter[{i}]: {gmsh_ids[num]}")
+        _ids = (gmsh_ids[num], crack_ids[num], ())
+        MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
+        tdefs = MyMagnet.gmsh_bcs(magnet, f"{prefix}{magnet.name}", _ids, thickslit, debug)
+        defs.update(tdefs)
 
-        MyMagnet = import_module(import_dict[type(Magnet)], package="python_magnetgmsh")
-        tdefs = MyMagnet.gmsh_bcs(Magnet, name, ids, thickslit, debug)
-        return tdefs
-
-    if isinstance(Bitters.magnets, str):
-        print(f"Bitters/gmsh/{Bitters.magnets} (str)")
-        with open(f"{Bitters.magnets}.yaml", "r") as f:
-            Object = yaml.load(f, Loader=yaml.FullLoader)
-        defs.update(load_defs(Object, f"{prefix}{Object.name}", ids))
-
-    elif isinstance(Bitters.magnets, list):
-        print(f"Bitters/gmsh/{Bitters.magnets} (list)")
-        num = 0
-        for i, mname in enumerate(Bitters.magnets):
-            print(f"Bitters/gmsh/{mname} Bitter[{i}]: {gmsh_ids[num]}")
-            with open(f"{mname}.yaml", "r") as f:
-                Object = yaml.load(f, Loader=yaml.FullLoader)
-            _ids = (gmsh_ids[num], crack_ids[num], ())
-            defs.update(load_defs(Object, f"{prefix}{Object.name}", _ids))
-
-            num += 1
+        num += 1
 
     print(f"Bitters: defs={defs.keys()}")
 

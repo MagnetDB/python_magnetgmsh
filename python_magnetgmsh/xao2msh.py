@@ -231,8 +231,8 @@ def main():
         if "Air" in args.input_file:
             air = True
 
-        with open(cfgfile, "r") as f:
-            Object = yaml.load(f, Loader=yaml.FullLoader)
+        from python_magnetgeo.utils import getObject
+        Object = getObject(cfgfile)
         print(f"Object={Object}, type={type(Object)}")
 
         if is2D:
