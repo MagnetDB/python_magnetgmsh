@@ -9,9 +9,11 @@ authors = ["Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
 
 [tool.poetry.dependencies]
 python = "^3.8"
-PyYAML = "^5"
-lxml = "^4.9.2"
-gmsh = "^4.9.5"
+PyYAML = "^6"
+gmsh = "^4.13.1"
+python_magnetgeo = "^0.7.0"
+numpy = "^1.24.0"
+xmltodict = "^0.14.2"
 
 [tool.poetry.dev-dependencies]
 
