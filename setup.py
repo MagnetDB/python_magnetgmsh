@@ -32,7 +32,7 @@ setup(
     description="Python Magnet Geometry contains maget geometrical models",
     entry_points={
         "console_scripts": [
-            "python_magnetgeo=python_magnetgmsh.cli:main",
+            "python_magnetgmsh=python_magnetgmsh.cli:main",
             "python_xao2gmsh=python_magnetgmsh.xao2msh:main",
         ]
     },
