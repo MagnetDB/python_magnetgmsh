@@ -9,42 +9,66 @@ from python_magnetgeo.Supras import Supras
 from python_magnetgeo.MSite import MSite
 from python_magnetgeo.utils import getObject
 
+from typing import NamedTuple
+
+class GeometryLoadResult(NamedTuple):
+    """Result from loading geometry configuration."""
+    name: str| None = None
+    solid_names: list[str] = []
+    channels: dict | list | None = None
+    isolants: dict | None = None
+
 def Supra_Gmsh(
     mname: str, cad: Supra, gname: str, is2D: bool, verbose: bool = False
-) -> list[str]:
+) -> GeometryLoadResult:
     """Load Supra cad"""
     print(f"Supra_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
     prefix = ""
     if mname:
         prefix = mname
-    return cad.get_names(prefix, is2D, verbose)
+    return GeometryLoadResult(solid_names=cad.get_names(prefix, is2D, verbose))
 
 
 def Bitter_Gmsh(
     mname: str, cad: Bitter, gname: str, is2D: bool, verbose: bool = False
-) -> list[str]:
+) -> GeometryLoadResult:
     """Load Bitter cad"""
     print(f"Bitter_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
     prefix = ""
     if mname:
         prefix = mname
-    return cad.get_names(prefix, is2D, verbose)
+
+    solid_names=cad.get_names(prefix, is2D, verbose)
+    
+    
+    # why??
+    channels = []
+    if cad.has_tierod:
+        channels.append("Tierod")
+
+    return GeometryLoadResult(solid_names=solid_names, channels=channels)
 
 
 def Helix_Gmsh(
     mname: str, cad: Helix, gname: str, is2D: bool, verbose: bool = False
-) -> list[str]:
+) -> GeometryLoadResult:
     """Load Helix cad"""
     print(f"Helix_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
     prefix = ""
     if mname:
         prefix = mname
-    return cad.get_names(prefix, is2D, verbose)
+    return GeometryLoadResult(solid_names=cad.get_names(prefix, is2D, verbose))
 
+def Insert_Gmsh(
+    mname: str, cad: Insert, gname: str, is2D: bool, verbose: bool = False
+) -> GeometryLoadResult:
+    """Load Insert"""
+    print(f"Insert_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
+    return GeometryLoadResult(cad.get_names(mname, is2D, verbose))
 
 def Bitters_Gmsh(
     mname: str, cad: Bitters, gname: str, is2D: bool, verbose: bool = False
-) -> list[str]:
+) -> GeometryLoadResult:
     """Load Bitters"""
     print(f"Bitters_Gmsh: mname={mname}, gname={gname}")
     solid_names = []
@@ -53,15 +77,15 @@ def Bitters_Gmsh(
         prefix = f"{mname}"
 
     for magnet in cad.magnets:
-        _names = Bitter_Gmsh(f"{prefix}{magnet.name}", magnet, gname, is2D, verbose)
-        print(f"Bitter_Gmsh: _names={_names}")
-        solid_names += _names
-    return solid_names
+        _res = Bitter_Gmsh(f"{prefix}{magnet.name}", magnet, gname, is2D, verbose)
+        print(f"Bitter_Gmsh: _names={_res.solid_names}")
+        solid_names += _res.solid_names
+    return GeometryLoadResult(solid_names=solid_names)
 
 
 def Supras_Gmsh(
     mname: str, cad: Supras, gname: str, is2D: bool, verbose: bool = False
-) -> list[str]:
+) -> GeometryLoadResult:
     """Load Supras"""
     print(f"Supras_Gmsh: mname={mname}, gname={gname}")
     solid_names = []
@@ -70,18 +94,9 @@ def Supras_Gmsh(
         prefix = f"{mname}"
 
     for magnet in cad.magnets:
-        _names = Supra_Gmsh(f"{prefix}{magnet.name}", magnet, gname, is2D, verbose)
-        solid_names += _names
-    return solid_names
-
-
-def Insert_Gmsh(
-    mname: str, cad: Insert, gname: str, is2D: bool, verbose: bool = False
-) -> list[str]:
-    """Load Insert"""
-    print(f"Insert_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
-    return cad.get_names(mname, is2D, verbose)
-
+        _res = Supra_Gmsh(f"{prefix}{magnet.name}", magnet, gname, is2D, verbose)
+        solid_names += _res.solid_names
+    return GeometryLoadResult(solid_names)
 
 action_dict = {
     Bitter: {"run": Bitter_Gmsh, "msg": "Bitter"},
@@ -95,27 +110,27 @@ action_dict = {
 from python_magnetgeo.utils import getObject
 
 def Magnet_Gmsh(
-    mname: str, cad: str, gname: str, is2D: bool, verbose: bool = False
-) -> tuple[str, list[str]]:
+    mname: str, cad: str|Bitters|Supras|Insert, gname: str, is2D: bool, verbose: bool = False
+) -> GeometryLoadResult:
     """Load Magnet cad"""
-    print(f"Magnet_Gmsh: mname={mname}, cad={cad}, gname={gname}")
+    if isinstance(cad, str):
+        pcad = getObject(f"{cad}.yaml")
+        
+    pname = pcad.name
+    print(f"Magnet_Gmsh: mname={mname}, cad={pname}, gname={gname}")
     solid_names = []
 
-    cfgfile = f"{cad}.yaml"
-    pcad = getObject(cfgfile)
-    pname = pcad.name
-
     # print('pcad: {pcad} type={type(pcad)}')
-    _names = action_dict[type(pcad)]["run"](mname, pcad, pname, is2D, verbose)
-    solid_names += _names
+    _res = action_dict[type(pcad)]["run"](mname, pcad, pname, is2D, verbose)
+    solid_names += _res.solid_names
     if verbose:
         print(f"Magnet_Gmsh: {cad} Done [solids {len(solid_names)}]")
-    return (pname, solid_names)
+    return GeometryLoadResult(name=pname, solid_names=solid_names)
 
 
 def MSite_Gmsh(
     mname: str, cad: MSite, gname: str, is2D: bool, verbose: bool = False
-) -> tuple[list[str], dict, dict]:
+) -> GeometryLoadResult:
     """
     Load MSite cad
     """
@@ -124,18 +139,17 @@ def MSite_Gmsh(
     # print("MSite_Gmsh Channels:", cad.get_channels())
 
     solid_names = []
-    NHelices = []
     Channels = cad.get_channels("")
     Isolants = cad.get_isolants("")
 
     for magnet in cad.magnets:
-        (pname, _names) = Magnet_Gmsh("", magnet, solid_names, is2D, verbose)
-        solid_names += _names
+        _res = Magnet_Gmsh("", magnet, solid_names, is2D, verbose)
+        solid_names += _res.solid_names
 
     print(f"Channels: {Channels}")
     if verbose:
         print(f"MSite_Gmsh: {cad} Done [solids {len(solid_names)}]")
-    return (solid_names, Channels, Isolants)
+    return GeometryLoadResult(solid_names=solid_names, channels=Channels, isolants=Isolants)
 
 
 def loadcfg(
@@ -153,21 +167,14 @@ def loadcfg(
 
     mname = ""
     if type(cad) not in action_dict:
-        if not isinstance(cad, MSite):
-            raise Exception(f"unsupported type of cad {type(cad)}")
-        else:
-            (solid_names, Channels, Isolants) = MSite_Gmsh(
-                mname, cad, gname, is2D, verbose
-            )
-    else:
-        solid_names = action_dict[type(cad)]["run"](
-            mname, cad, gname, is2D, verbose
+        raise ValueError(
+            f"Unsupported geometry type: {type(cad).__name__}. "
+            f"Supported types: {', '.join(cls.__name__ for cls in action_dict.keys())}"
         )
-        Channels = cad.get_channels(mname)
-
-        # quick hack for Biiter
-        if isinstance(cad, Bitter):
-            Channels.append("Tierod")
-
-    print(f"cfg: solid_names={solid_names}, Channels={Channels}")
-    return (solid_names, Channels)
+    result = action_dict[type(cad)]["run"](mname, cad, gname, is2D, verbose)
+    
+    # Extract channels, handle None case
+    channels = result.channels if result.channels is not None else []
+    
+    print(f"cfg: solid_names={result.solid_names}, Channels={channels}")
+    return (result.solid_names, channels)
