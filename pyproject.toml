@@ -8,7 +8,7 @@ authors = ["Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
           ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 PyYAML = "^6"
 gmsh = "^4.13.1"
 python_magnetgeo = "^0.7.0"
