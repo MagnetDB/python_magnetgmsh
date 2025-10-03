@@ -98,14 +98,6 @@ def Supras_Gmsh(
         solid_names += _res.solid_names
     return GeometryLoadResult(solid_names)
 
-action_dict = {
-    Bitter: {"run": Bitter_Gmsh, "msg": "Bitter"},
-    Bitters: {"run": Bitters_Gmsh, "msg": "Bitters"},
-    Supra: {"run": Supra_Gmsh, "msg": "Supra"},
-    Supras: {"run": Supras_Gmsh, "msg": "Supras"},
-    Helix: {"run": Helix_Gmsh, "msg": "Helix"},
-    Insert: {"run": Insert_Gmsh, "msg": "Insert"},
-}
 
 from python_magnetgeo.utils import getObject
 
@@ -151,6 +143,15 @@ def MSite_Gmsh(
         print(f"MSite_Gmsh: {cad} Done [solids {len(solid_names)}]")
     return GeometryLoadResult(solid_names=solid_names, channels=Channels, isolants=Isolants)
 
+action_dict = {
+    Bitter: {"run": Bitter_Gmsh, "msg": "Bitter"},
+    Bitters: {"run": Bitters_Gmsh, "msg": "Bitters"},
+    Supra: {"run": Supra_Gmsh, "msg": "Supra"},
+    Supras: {"run": Supras_Gmsh, "msg": "Supras"},
+    Helix: {"run": Helix_Gmsh, "msg": "Helix"},
+    Insert: {"run": Insert_Gmsh, "msg": "Insert"},
+    MSite: {"run": MSite_Gmsh, "msg": "MSite"},
+}
 
 def loadcfg(
     cfgfile: str, gname: str, is2D: bool, verbose: bool = False
