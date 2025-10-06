@@ -31,7 +31,7 @@ dependencies = [
     "xmltodict>=0.14.2",
     "gmsh>=4.13.1",
     "pyyaml>=6.0",
-    "python-magnetgeo>=0.8.0,<2.0.0",
+    "python-magnetgeo>=1.0.0,<2.0.0",
     "numpy>=1.24.0",
 ]
 
