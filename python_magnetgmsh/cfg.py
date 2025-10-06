@@ -1,19 +1,44 @@
-from typing import Union
+from dataclasses import dataclass, field
+from typing import List, Dict, Union, Optional
+
 
 # Lazy loading import - automatically detects geometry type
 from python_magnetgeo.utils import getObject
 from python_magnetgeo.validation import ValidationError
 from python_magnetgeo import Insert, Helix, Bitter, Bitters, Supra, Supras, Screen, MSite  # For type checking only
 
-
-from typing import NamedTuple
-
-class GeometryLoadResult(NamedTuple):
-    """Result from loading geometry configuration."""
-    name: str| None = None
-    solid_names: list[str] = []
-    channels: dict | list | None = None
-    isolants: dict | None = None
+@dataclass
+class GeometryLoadResult:
+    """
+    Result from loading and processing geometry configuration.
+    
+    This standardized result structure is returned by all geometry loader
+    functions to provide consistent access to generated Gmsh objects and
+    associated metadata.
+    
+    Attributes:
+        name: Optional name identifier for the loaded geometry. Used primarily
+            for MSite and composite geometries. None for simple geometries.
+        solid_names: List of Gmsh solid object names created during loading.
+            These correspond to physical volumes in the Gmsh model.
+        channels: Cooling channel definitions. Can be:
+            - dict: For MSite geometries with complex channel mappings
+            - list: For simple geometries with named channels
+            - None: If geometry has no cooling channels
+        isolants: Electrical isolant region definitions. Typically a dict
+            mapping isolant names to their properties. None if no isolants.
+    
+    Example:
+        >>> result = Bitter_Gmsh("B1", bitter_geom, "model", is2D=True)
+        >>> print(result.solid_names)
+        ['B1_Conductor', 'B1_Insulation']
+        >>> print(result.channels)
+        ['B1_CoolingSlits', 'B1_Tierod']
+    """
+    name: Optional[str] = None
+    solid_names: List[str] = field(default_factory=list)
+    channels: Optional[Union[Dict, List]] = None
+    isolants: Optional[Union[Dict, List]] = None
 
 def Supra_Gmsh(
     mname: str, cad: Supra.Supra, gname: str, is2D: bool, verbose: bool = False
@@ -44,7 +69,7 @@ def Bitter_Gmsh(
     channels = cad.get_channels(mname)
     isolants = cad.get_isolants(mname)
     
-    # why??
+    # Add tierod as a channel if present for boundary condition definition
     if cad.tierod is not None:
         channels.append(f"{cad.name}_Tierod")
 

@@ -61,10 +61,10 @@ def gmsh_ids(
         return (_id, Air_data)
     else:
         # load struct
-        nougat = HTSInsert.fromcfg(Supra.struct)
+        hts = HTSInsert.fromcfg(Supra.struct)
 
         # call gmsh for struct
-        gmsh_ids = insert_ids(nougat, Supra.detail, AirData, debug)
+        gmsh_ids = insert_ids(hts, Supra.detail, AirData, debug)
         # need to account for changes
 
         return gmsh_ids

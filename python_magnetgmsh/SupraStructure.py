@@ -9,18 +9,8 @@ from python_magnetgeo.hts.pancake import pancake
 from python_magnetgeo.hts.isolation import isolation
 from python_magnetgeo.hts.dblpancake import dblpancake
 
-try:
-    from python_magnetgeo.Supra import DetailLevel
-except ImportError:
-    # Fallback if circular import - define locally
-    from enum import Enum
-    
-    class DetailLevel(str, Enum):
-        NONE = "NONE"
-        DBLPANCAKE = "DBLPANCAKE"
-        PANCAKE = "PANCAKE" 
-        TAPE = "TAPE"
 
+from python_magnetgeo.Supra import DetailLevel
 from .utils.lists import flatten
 
 

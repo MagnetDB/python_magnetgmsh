@@ -9,7 +9,7 @@ __version__ = "0.1.0"
 try:
     from importlib.metadata import version, PackageNotFoundError
 except ImportError:
-    # Fallback for Python < 3.8 (though we require 3.11+)
+    # Fallback for Python < 3.8 (though we require 3.9+)
     from importlib_metadata import version, PackageNotFoundError
 
 try:
