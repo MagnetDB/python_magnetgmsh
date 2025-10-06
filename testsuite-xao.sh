@@ -4,7 +4,8 @@
 # set -euo pipefail
 #TODO: make optionnal set -x
 
-TestWD="/data/geometries"
+TestYAML="/data/geometries"
+TestWD="/data/cad"
 TestsAxi="test M9_Be M9Bitters M9_HLtest Oxford1 Oxford HTS-dblpancake-test2 HTS-pancake-test2 HTS-tape-test2 Nougat MNougat"
 
 echo_success() {
@@ -29,7 +30,7 @@ echo "Axi Mesh generation with Gmsh"
 for test in ${TestsAxi}; do
     echo -en "${test} : "
     if [ -f ${TestWD}/${test}-Axi.xao ]; then  
-        python -m python_magnetgmsh.xao2msh ${test}-Axi.xao --geo ${test}.yaml --wd ${TestWD} mesh --group CoolingChannels > ${test}-xao_mesh.log 2>&1
+        python -m python_magnetgmsh.xao2msh ${test}-Axi.xao --geo ${TestYAML}/${test}.yaml --wd ${TestWD} mesh --group CoolingChannels > ${test}-xao_mesh.log 2>&1
         status=$?
         if [ "$status" != "0" ]; then
 	        echo_failure

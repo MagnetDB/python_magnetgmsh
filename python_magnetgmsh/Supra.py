@@ -12,7 +12,8 @@ Provides definition for Supra:
 import gmsh
 
 from python_magnetgeo.Supra import Supra
-from python_magnetgeo.SupraStructure import HTSinsert
+from python_magnetgeo.SupraStructure import HTSInsert
+from python_magnetgeo.Supra import DetailLevel
 
 from .mesh.bcs import create_bcs
 from .SupraStructure import insert_ids, insert_bcs
@@ -24,8 +25,9 @@ def gmsh_box(Supra: Supra, debug: bool = False) -> list:
     """
 
     boxes = []
+    if Supra.detail == DetailLevel.NONE:
+        boxes.append([Supra.r[0], Supra.z[0], Supra.r[1], Supra.z[1]])
     return boxes
-
 
 def gmsh_ids(
     Supra: Supra, AirData: tuple, Thickslit: bool = False, debug: bool = False
@@ -59,7 +61,7 @@ def gmsh_ids(
         return (_id, Air_data)
     else:
         # load struct
-        nougat = HTSinsert.fromcfg(Supra.struct)
+        nougat = HTSInsert.fromcfg(Supra.struct)
 
         # call gmsh for struct
         gmsh_ids = insert_ids(nougat, Supra.detail, AirData, debug)
@@ -126,7 +128,7 @@ def gmsh_bcs(
 
     else:
         # load struct
-        nougat = HTSinsert.fromcfg(Supra.struct)
+        nougat = HTSInsert.fromcfg(Supra.struct)
 
         # call gmsh for struct
         defs = insert_bcs(nougat, mname, Supra.detail, ids, debug)

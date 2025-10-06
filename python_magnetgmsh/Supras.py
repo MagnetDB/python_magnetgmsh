@@ -15,6 +15,7 @@ def gmsh_box(Supras: Supras, debug: bool = False) -> list:
     """
     get boundingbox for each slit
     """
+    print("Supras.gmsh_box")
     from importlib import import_module
 
     boxes = []
@@ -22,7 +23,7 @@ def gmsh_box(Supras: Supras, debug: bool = False) -> list:
     for magnet in Supras.magnets:
         MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
         box = MyMagnet.gmsh_box(magnet, debug)
-        # print(f"Bitters/gmsh/{mname} (dict/list)")
+        print(f"Supras/gmsh/{magnet.name} box={box}")
         boxes.append(box)
 
     return boxes

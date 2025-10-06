@@ -6,14 +6,10 @@ import os
 import yaml
 
 import gmsh
-from python_magnetgeo import Helix
-from python_magnetgeo import Insert
-from python_magnetgeo import Bitter
-from python_magnetgeo import Bitters
-from python_magnetgeo import Supra
-from python_magnetgeo import Supras
-from python_magnetgeo import Screen
-from python_magnetgeo import MSite
+# Lazy loading import - automatically detects geometry type
+from python_magnetgeo.utils import getObject
+from python_magnetgeo.validation import ValidationError
+from python_magnetgeo import Insert, Helix, Bitter, Bitters, Supra, Supras, Screen, MSite  # For type checking only
 
 from .mesh.axi import get_allowed_algo, gmsh_msh, gmsh_cracks
 
@@ -71,7 +67,6 @@ def main():
         AirData = (infty_Rratio, infty_Zratio)
     print(f"AirData={AirData}, args.air={args.air}")
 
-    from python_magnetgeo.utils import getObject
     Object = getObject(args.filename)
 
     gmsh.initialize()
@@ -100,6 +95,7 @@ def main():
     # get BoudingBox for slit/channel
     boxes = []
     if args.thickslit:
+        print("gmsh_box")
         boxes = MyObject.gmsh_box(Object, args.debug)
 
     # TODO: add args.thickness as optional param

@@ -3,18 +3,28 @@ Define HTS insert geometry
 """
 
 import gmsh
-from python_magnetgeo.SupraStructure import (
-    tape,
-    pancake,
-    isolation,
-    dblpancake,
-    HTSinsert,
-)
+from python_magnetgeo.SupraStructure import HTSInsert
+from python_magnetgeo.hts.tape import tape
+from python_magnetgeo.hts.pancake import pancake
+from python_magnetgeo.hts.isolation import isolation
+from python_magnetgeo.hts.dblpancake import dblpancake
+
+try:
+    from python_magnetgeo.Supra import DetailLevel
+except ImportError:
+    # Fallback if circular import - define locally
+    from enum import Enum
+    
+    class DetailLevel(str, Enum):
+        NONE = "NONE"
+        DBLPANCAKE = "DBLPANCAKE"
+        PANCAKE = "PANCAKE" 
+        TAPE = "TAPE"
 
 from .utils.lists import flatten
 
 
-def tape_ids(tape: tape, x0: float, y0: float, detail: str) -> list:
+def tape_ids(tape: tape, x0: float, y0: float, detail: DetailLevel) -> list:
     """
     create tape for gmsh
 
@@ -32,7 +42,7 @@ def tape_ids(tape: tape, x0: float, y0: float, detail: str) -> list:
 
 
 def pancake_ids(
-    pancake: pancake, x0: float, y0: float, detail: str
+    pancake: pancake, x0: float, y0: float, detail: DetailLevel
 ) -> int | list:
     """
     create pancake for gmsh
@@ -48,7 +58,7 @@ def pancake_ids(
     # print("gmsh/pancake")
 
     # TODO return either pancake as a whole or detailed
-    if detail == "pancake":
+    if detail == DetailLevel.PANCAKE:
         _id = gmsh.model.occ.addRectangle(
             pancake.getR0(), y0, 0, pancake.getW(), pancake.getH()
         )
@@ -85,7 +95,7 @@ def isolation_ids(isolation: isolation, x0: float, y0: float, detail: str):
     return _id
 
 
-def dblpancake_ids(dblpancake: dblpancake, x0: float, y0: float, detail: str):
+def dblpancake_ids(dblpancake: dblpancake, x0: float, y0: float, detail: DetailLevel):
     """
     create dbl pancake for gmsh
 
@@ -96,7 +106,7 @@ def dblpancake_ids(dblpancake: dblpancake, x0: float, y0: float, detail: str):
     ie. (m_id, t_id, e_id, i_id)
     """
 
-    if detail == "dblpancake":
+    if detail == DetailLevel.DBLPANCAKE:
         _id = gmsh.model.occ.addRectangle(
             dblpancake.getR0(), y0, 0, dblpancake.getW(), dblpancake.getH()
         )
@@ -119,7 +129,7 @@ def dblpancake_ids(dblpancake: dblpancake, x0: float, y0: float, detail: str):
 
 
 def insert_ids(
-    HTSInsert: HTSinsert, detail: str, AirData: tuple = (), debug: bool = False
+    HTSInsert: HTSInsert, detail: DetailLevel, AirData: tuple = (), debug: bool = False
 ):
     """
     create insert for gmsh
@@ -131,13 +141,13 @@ def insert_ids(
     returns gmsh ids depending on detail value
     ie. [dp_ids, isolation_ids]
     """
-    print(f"insert_ids: HTSInsert={HTSinsert}, detail={detail}")
+    print(f"insert_ids: HTSInsert={HTSInsert}, detail={detail}")
 
     x0 = HTSInsert.r0
     y0 = HTSInsert.z0 - HTSInsert.getH() / 2.0
     n_dp = len(HTSInsert.dblpancakes)
 
-    if detail == "None":
+    if detail == DetailLevel.NONE:
         #
         id = gmsh.model.occ.addRectangle(
             HTSInsert.r0, y0, 0, (HTSInsert.r1 - HTSInsert.r0), HTSInsert.getH()
@@ -319,7 +329,7 @@ def insert_ids(
 
 
 def insert_bcs(
-    HTSInsert: HTSinsert, name: str, detail: str, ids: tuple, debug: bool = False
+    HTSInsert: HTSInsert, name: str, detail: DetailLevel, ids: tuple, debug: bool = False
 ):
     """
     create bcs groups for gmsh
@@ -347,11 +357,11 @@ def insert_bcs(
             defs[f"{prefix}i_dp{i}"] = ps
         for i, dp in enumerate(dp_ids):
             # print(f"dp[{i}] = {dp}")
-            if detail == "dblpancake":
+            if detail == DetailLevel.DBLPANCAKE:
                 ps = gmsh.model.addPhysicalGroup(2, [dp])
                 gmsh.model.setPhysicalName(2, ps, f"{prefix}dp{i}")
                 defs[f"{prefix}dp{i}"] = ps
-            elif detail == "pancake":
+            elif detail == DetailLevel.PANCAKE:
                 # print("dp:", dp)
                 ps = gmsh.model.addPhysicalGroup(2, [dp[0][0]])
                 gmsh.model.setPhysicalName(2, ps, f"{prefix}p0_dp{i}")
@@ -362,7 +372,7 @@ def insert_bcs(
                 ps = gmsh.model.addPhysicalGroup(2, [dp[1]])
                 gmsh.model.setPhysicalName(2, ps, f"{prefix}i_dp{i}")
                 defs[f"{prefix}i_p{i}"] = ps
-            elif detail == "tape":
+            elif detail == DetailLevel.TAPE:
                 # print("HTSInsert/gsmh_bcs (tape):", dp)
                 ps = gmsh.model.addPhysicalGroup(2, [dp[1]])
                 gmsh.model.setPhysicalName(2, ps, f"{prefix}i_dp{i}")
@@ -415,13 +425,13 @@ def insert_bcs(
         for i, isol in enumerate(i_ids):
             z += HTSInsert.dblpancakes[i].getH()
 
-        n_dp = HTSInsert.getN()
+        n_dp = len(HTSInsert.dblpancakes)
         z = HTSInsert.z1
         for i, dp in enumerate(dp_ids):
             # print(f"dp[{i}] = {dp}")
             dp = HTSInsert.dblpancakes[i]
             isolant = HTSInsert.isolations[i]
-            if detail == "dblpancake":
+            if detail == DetailLevel.DBLPANCAKE:
                 bcs_defs[f"{prefix}dp{i}_rInt"] = [
                     dp.getR0(),
                     z,
@@ -436,7 +446,7 @@ def insert_bcs(
                     z + dp.getH(),
                 ]
                 # not yet z += dp.getH()
-            elif detail == "pancake":
+            elif detail ==DetailLevel.PANCAKE:
                 # print("dp:", dp)
                 p = dp.pancake
                 dp_i = dp.isolation
@@ -480,7 +490,7 @@ def insert_bcs(
                     (z + dp_i.getH()),
                 ]
 
-            elif detail == "tape":
+            elif detail == DetailLevel.TAPE:
                 # print("HTSInsert/gsmh_bcs (tape):", dp)
                 p = dp.pancake
                 dp_i = dp.isolation

@@ -17,6 +17,19 @@ from python_magnetgeo.Screen import Screen
 from python_magnetgeo.Ring import Ring
 from python_magnetgeo.Helix import Helix
 
+try:
+    from python_magnetgeo.Supra import DetailLevel
+except ImportError:
+    # Fallback if circular import - define locally
+    print("WARNING: fallback to locally defined DetailLevel enum")
+    from enum import Enum
+    
+    class DetailLevel(str, Enum):
+        NONE = "NONE"
+        DBLPANCAKE = "DBLPANCAKE"
+        PANCAKE = "PANCAKE" 
+        TAPE = "TAPE"
+
 ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix | Ring
 
 
@@ -172,18 +185,19 @@ class MeshAxiData(yaml.YAMLObject):
                 hypname = f"{mname}_"
             print(f"hypname/Object.name={hypname}{Object.name}")
 
-            if Object.detail == "None":
+            if Object.detail == DetailLevel.NONE:
                 self.surfhypoths.append(
                     self.part_default(Object, f"{hypname}{Object.name}")
                 )
                 mesh_dict[f"{hypname}{Object.name}"] = len(self.surfhypoths) - 1
 
             # (_i, _dp, _p, _i_dp, _Mandrin, _Sc, _Du)
-            elif Object.detail == "dblpancake":
+            elif Object.detail == DetailLevel.DBLPANCAKE:
                 self.surfhypoths.append(
                     self.part_default(Object, f"{hypname}{Object.name}_dp")
                 )
-                for i in range(Object.get_magnet_struct().getN()):
+                n_dp = len(Object.get_magnet_struct().dblpancakes)
+                for i in range(n_dp):
                     mesh_dict[f"{hypname}{Object.name}_dp{i}"] = (
                         len(self.surfhypoths) - 1,
                         1,
@@ -191,14 +205,14 @@ class MeshAxiData(yaml.YAMLObject):
                 self.surfhypoths.append(
                     self.part_default(Object, f"{hypname}{Object.name}_i")
                 )
-                for i in range(Object.get_magnet_struct().getN() - 1):
+                for i in range(n_dp - 1):
                     mesh_dict[f"{hypname}{Object.name}_i{i}"] = (
                         len(self.surfhypoths) - 1,
                         0,
                     )
 
-            elif Object.detail == "pancake":
-                n_dp = Object.get_magnet_struct().getN()
+            elif Object.detail == DetailLevel.PANCAKE:
+                n_dp = len(Object.get_magnet_struct().dblpancakes)
                 self.surfhypoths.append(
                     self.part_default(Object, f"{hypname}{Object.name}_dp_p")
                 )
@@ -228,8 +242,8 @@ class MeshAxiData(yaml.YAMLObject):
                         0,
                     )
 
-            elif Object.detail == "tape":
-                n_dp = Object.get_magnet_struct().getN()
+            elif Object.detail == DetailLevel.TAPE:
+                n_dp = len(Object.get_magnet_struct().dblpancakes)
                 self.surfhypoths.append(
                     self.part_default(Object, f"{hypname}{Object.name}_dp_p_Mandrin")
                 )

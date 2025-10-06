@@ -39,7 +39,7 @@ def gmsh_box(MSite, debug: bool = False) -> list:
     
     for magnet in MSite.magnets:
         MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
-        box = MyMagnet.gmsh_box(magnet, (), debug)
+        box = MyMagnet.gmsh_box(magnet, debug)
         boxes.append(box)
 
     return boxes

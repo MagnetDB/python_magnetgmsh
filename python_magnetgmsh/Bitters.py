@@ -2,7 +2,6 @@
 # encoding: UTF-8
 
 """defines Bitter Insert structure"""
-import yaml
 
 from python_magnetgeo.Bitter import Bitter
 from python_magnetgeo.Bitters import Bitters
@@ -17,10 +16,12 @@ def gmsh_box(Bitters: Bitters, debug: bool = False) -> list:
     """
     get boundingbox for each slit
     """
+    from importlib import import_module
 
     boxes = []
     for i, magnet in enumerate(Bitters.magnets):
-        box = magnet.gmsh_box(magnet, debug) 
+        MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
+        box = MyMagnet.gmsh_box(magnet, debug) 
         boxes.append(box)
     return boxes
 

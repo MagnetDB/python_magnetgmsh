@@ -5,8 +5,8 @@
 #TODO: make optionnal set -x
 
 TestWD="/data/geometries"
-#TestsAxi="test M9_Be M9Bitters M9_HLtest Oxford1 Oxford HTS-dblpancake-test2 HTS-pancake-test2 HTS-tape-test2 MNougat"
-TestsAxi="M9_Be M9Bitters M9_HLtest"
+TestsAxi="test M9_Be M9Bitters M9_HLtest Oxford1 Oxford HTS-dblpancake-test2 HTS-pancake-test2 HTS-tape-test2 MNougat"
+#TestsAxi="M9_Be M9Bitters M9_HLtest"
 
 echo_success() {
   echo -en "[\033[32m  OK  \033[39m]"
