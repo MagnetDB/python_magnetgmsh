@@ -1,22 +1,206 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python_magnetgmsh"
+version = "0.1.0"
+description = "Python helpers to create HiFiMagnet cads and meshes with Gmsh"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Christophe Trophime", email = "christophe.trophime@lncmi.cnrs.fr"},
+    {name = "Romain Vallet", email = "romain.vallet@lncmi.cnrs.fr"},
+    {name = "Jeremie Muzet", email = "jeremie.muzet@lncmi.cnrs.fr"},
+]
+keywords = ["magnetgmsh", "gmsh", "mesh", "CAD", "magnet", "geometry"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+
+dependencies = [
+    "xmltodict>=0.14.2",
+    "gmsh>=4.13.1",
+    "pyyaml>=6.0",
+    "python-magnetgeo>=0.8.0,<2.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "flake8>=6.0",
+    "mypy>=1.0",
+]
+docs = [
+    "sphinx>=5.0",
+    "sphinx-rtd-theme>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Trophime/python_magnetgmsh"
+Documentation = "https://python-magnetgmsh.readthedocs.io"
+Repository = "https://github.com/Trophime/python_magnetgmsh"
+"Bug Tracker" = "https://github.com/Trophime/python_magnetgmsh/issues"
+
+[project.scripts]
+python_magnetgmsh = "python_magnetgmsh.cli:main"
+python_xao2gmsh = "python_magnetgmsh.xao2msh:main"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["python_magnetgmsh*"]
+exclude = ["tests*", "docs*"]
+
+[tool.setuptools.package-data]
+python_magnetgmsh = ["*.yaml", "*.json"]
+
+# Black configuration
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=python_magnetgmsh",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["python_magnetgmsh"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+# Mypy configuration
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+follow_imports = "normal"
+ignore_missing_imports = true
+
+# UV-specific configuration
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "flake8>=6.0",
+    "mypy>=1.0",
+]
+
+[tool.uv.sources]
+python-magnetgeo = { git = "https://github.com/Trophime/python_magnetgeo.git" }
+
+# Poetry-specific configuration (alternative to setuptools)
 [tool.poetry]
 name = "python_magnetgmsh"
 version = "0.1.0"
 description = "Python helpers to create HiFiMagnet cads and meshes with Gmsh"
-authors = ["Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
-           "Romain Vallet <romain.vallet@lncmi.cnrs.fr>",
-           "Jeremie Muzet <jeremie.muzet@lncmi.cnrs.fr>"
-          ]
+authors = [
+    "Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
+    "Romain Vallet <romain.vallet@lncmi.cnrs.fr>",
+    "Jeremie Muzet <jeremie.muzet@lncmi.cnrs.fr>",
+]
+readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/Trophime/python_magnetgmsh"
+repository = "https://github.com/Trophime/python_magnetgmsh"
+documentation = "https://python-magnetgmsh.readthedocs.io"
+keywords = ["magnetgmsh", "gmsh", "mesh", "CAD"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-PyYAML = "^6"
-gmsh = "^4.13.1"
-python_magnetgeo = "^0.7.0"
-numpy = "^1.24.0"
 xmltodict = "^0.14.2"
+gmsh = "^4.13.1"
+PyYAML = "^6.0"
+python-magnetgeo = "^0.8.0"
+numpy = "^1.24.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0"
+pytest-cov = "^4.0"
+black = "^23.0"
+flake8 = "^6.0"
+mypy = "^1.0"
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.poetry.group.docs.dependencies]
+sphinx = "^5.0"
+sphinx-rtd-theme = "^1.0"
+
+[tool.poetry.scripts]
+python_magnetgmsh = "python_magnetgmsh.cli:main"
+python_xao2gmsh = "python_magnetgmsh.xao2msh:main"
