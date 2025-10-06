@@ -176,7 +176,12 @@ def loadcfg(
     solid_names = []
     Channels = None
 
-    cad = getObject(cfgfile)
+    try:
+        cad = getObject(cfgfile)
+    except ValidationError as e:
+        # Handle validation errors from python_magnetgeo
+        print(f"Validation error: {e}")
+    
     print(f"cfgfile: {cad.name} type={type(cad)}", flush=True)
     if verbose:
         print("load cfg {type(cad)}")

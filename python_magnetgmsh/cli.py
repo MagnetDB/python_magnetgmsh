@@ -67,7 +67,11 @@ def main():
         AirData = (infty_Rratio, infty_Zratio)
     print(f"AirData={AirData}, args.air={args.air}")
 
-    Object = getObject(args.filename)
+    try:
+        Object = getObject(args.filename)
+    except ValidationError as e:
+        # Handle validation errors from python_magnetgeo
+        print(f"Validation error: {e}")
 
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
