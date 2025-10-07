@@ -1,17 +1,16 @@
 import os
 import sys
 
-import yaml
 import gmsh
 from python_magnetgeo.Bitter import Bitter
-from python_magnetgeo.Shape2D import Shape2D
+from python_magnetgeo.Contour2D import Contour2D
 
 from .utils.lists import flatten
 from .mesh.axi import get_allowed_algo, MeshAlgo2D
 
 
 # TieRod
-def create_shape(x: float, y: float, shape: Shape2D):
+def create_shape(x: float, y: float, shape: Contour2D):
     """
     create Shape
     """
@@ -25,18 +24,18 @@ def create_shape(x: float, y: float, shape: Shape2D):
         print(f"create a circle: C({x},{y}), r={r}, _cl={_cl}, curv={curv}")
     else:
         curv = []
-        pts = []
-        for i, pt in enumerate(shape.pts):
+        points = []
+        for i, pt in enumerate(shape.points):
             print(f"pt[{i}]: {pt}")
-            pts.append(gmsh.model.occ.addPoint(x + pt[0], y + pt[1], 0))
+            points.append(gmsh.model.occ.addPoint(x + pt[0], y + pt[1], 0))
             print(f"addPoint({x + pt[0]}, {y+pt[1]})", flush=True)
             if i >= 1:
-                curv.append(gmsh.model.occ.addLine(pts[i - 1], pts[i]))
-        curv.append(gmsh.model.occ.addLine(pts[-1], pts[0]))
+                curv.append(gmsh.model.occ.addLine(points[i - 1], points[i]))
+        curv.append(gmsh.model.occ.addLine(points[-1], points[0]))
         _cl = gmsh.model.occ.addCurveLoop(curv)
         print(f"create_shape: _cl={_cl}, {curv}")
         curv.clear()
-        pts.clear()
+        points.clear()
     return _cl
 
 
