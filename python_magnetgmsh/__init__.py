@@ -9,11 +9,11 @@ __version__ = "0.1.0"
 try:
     from importlib.metadata import version, PackageNotFoundError
 except ImportError:
-    # Fallback for Python < 3.8 (though we require 3.11+)
+    # Fallback for Python < 3.8 (though we require 3.9+)
     from importlib_metadata import version, PackageNotFoundError
 
 try:
-    __version__ = version("python-magnetgeo")
+    __version__ = version("python-magnetgmsh")
 except PackageNotFoundError:
     # Package not installed (e.g., running from source without install)
     # This is expected during development before running `pip install -e .`
