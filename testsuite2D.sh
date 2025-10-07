@@ -5,8 +5,8 @@
 #TODO: make optionnal set -x
 
 TestWD="/data/geometries"
-TestsAxi="M9_Be"
-#TestsAxi="M9_Be M9Bitters M9_HLtest"
+Tests2D="M9_Be"
+#Tests2D="M9_Be M9Bitters M9_HLtest"
 
 echo_success() {
   echo -en "[\033[32m  OK  \033[39m]"
@@ -21,7 +21,7 @@ echo_failure() {
 }
 
 echo "2D CAD generation"
-for test in ${TestsAxi}; do
+for test in ${Tests2D}; do
     echo -en "${test} : " 
     python -m python_magnetgmsh.Bitter2D ${test}.yaml --wd ${TestWD} --thickslit > ${test}_gmsh.log 2>&1
     status=$?
@@ -34,7 +34,7 @@ for test in ${TestsAxi}; do
 done
 
 echo "2D Mesh generation with Gmsh"
-for test in ${TestsAxi}; do
+for test in ${Tests2D}; do
     echo -en "${test} : " 
     python -m python_magnetgmsh.Bitter2D ${test}.yaml --wd ${TestWD} --thickslit --mesh > ${test}_mesh_gmsh.log 2>&1
     status=$?
@@ -47,7 +47,7 @@ for test in ${TestsAxi}; do
 done
 
 echo "2D CAD generation"
-for test in ${TestsAxi}; do
+for test in ${Tests2D}; do
     echo -en "${test} : " 
     python -m python_magnetgmsh.Bitter2Dquarter ${test}.yaml --wd ${TestWD} --thickslit > ${test}_gmsh.log 2>&1
     status=$?
@@ -60,7 +60,7 @@ for test in ${TestsAxi}; do
 done
 
 echo "2D Mesh generation with Gmsh"
-for test in ${TestsAxi}; do
+for test in ${Tests2D}; do
     echo -en "${test} : " 
     python -m python_magnetgmsh.Bitter2Dquarter ${test}.yaml --wd ${TestWD} --thickslit --mesh > ${test}_mesh_gmsh.log 2>&1
     status=$?
