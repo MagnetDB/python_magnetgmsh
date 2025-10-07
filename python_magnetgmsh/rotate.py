@@ -1,8 +1,54 @@
+"""
+Mesh Rotation Utility for Gmsh Files.
+
+This module provides functionality to rotate existing Gmsh mesh files around
+the X-axis (Ox). Useful for creating rotated mesh configurations for
+electromagnetic analysis, structural simulations, or assembly positioning.
+
+The rotation uses affine transformations to rotate all nodes in the mesh
+while preserving element connectivity and physical groups. The original
+mesh file is not modified; output is saved to a new file.
+
+Typical Usage:
+    # Rotate mesh 45 degrees around X-axis
+    python -m python_magnetgmsh.rotate mesh.msh --rotate 45 --show
+    
+    # With working directory
+    python -m python_magnetgmsh.rotate HL-31_H1.msh --wd /data/meshes --rotate 90
+    
+    # Output: HL-31_H1-rotate-90.0deg.msh
+
+Mathematical Details:
+    Rotation around X-axis (Ox) by angle θ:
+    ┌   ┐   ┌ 1    0       0    0 ┐ ┌ x ┐
+    │ x'│   │ 0  cos(θ) -sin(θ) 0 │ │ y │
+    │ y'│ = │ 0  sin(θ)  cos(θ) 0 │ │ z │
+    │ z'│   │ 0    0       0    1 │ │ 1 │
+    └   ┘   └                    ┘ └   ┘
+    
+    This preserves distances and angles, making it suitable for mesh reuse
+    in different orientations.
+
+Command-Line Arguments:
+    input_meshfile: Gmsh mesh file to rotate (.msh format)
+    --wd: Working directory for input/output
+    --rotate: Rotation angle in degrees (default: 10°)
+    --show: Display result in Gmsh GUI
+
+Dependencies:
+    - gmsh >= 4.13.1: Mesh processing and transformation
+    - Python >= 3.9: Math functions (pi, cos, sin)
+
+See Also:
+    - gmsh.model.mesh.affineTransform: Underlying transformation function
+    - Gmsh flatten.py example: Similar mesh transformation operations
+
+Author: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
+"""
+
 import gmsh
 import os
 from math import pi, cos, sin
-
-# see `flatten.py' gmsh example
 
 
 import argparse

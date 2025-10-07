@@ -1,4 +1,59 @@
-"""Console script for python_magnetgmsh."""
+"""
+Command-Line Interface for Gmsh Mesh Generation from Magnet Geometries.
+
+This module provides the main command-line interface for python_magnetgmsh,
+allowing users to generate CAD models and meshes from magnetgeo YAML
+configuration files using the Gmsh API.
+
+The CLI supports:
+    - Loading geometry configurations from YAML files
+    - Generating 2D axisymmetric or 3D CAD representations
+    - Creating surrounding air domains for field calculations
+    - Mesh generation with customizable algorithms
+    - Thick cooling slit modeling for detailed thermal analysis
+    - Unit scaling and mesh size control
+    - Interactive visualization with Gmsh GUI
+
+Typical Usage:
+    # Generate mesh from YAML configuration
+    python -m python_magnetgmsh.cli test.yaml --wd /data/geometries --mesh --show
+    
+    # With air domain and thick slits
+    python -m python_magnetgmsh.cli M9_Bitters.yaml --thickslit --air 10 6 --mesh
+    
+    # As installed command
+    python_magnetgmsh test.yaml --mesh --lc --verbose
+
+Command-Line Arguments:
+    filename: YAML geometry configuration file (required)
+    --wd: Working directory for input/output files
+    --air: Add surrounding air domain (ratios for R and Z)
+    --thickslit: Model cooling slits with thickness (not just cuts)
+    --mesh: Generate mesh after CAD creation
+    --algo2d: 2D meshing algorithm (Delaunay, MeshAdapt, etc.)
+    --scaling: Scale geometry to meters (default: millimeters)
+    --lc: Load mesh size specifications from file
+    --show: Display Gmsh GUI for interactive viewing
+    --verbose: Enable detailed output
+    --debug: Enable maximum verbosity for debugging
+
+Dependencies:
+    - gmsh >= 4.13.1: Mesh generation engine
+    - python_magnetgeo >= 1.0.0: Geometry definitions
+    - pyyaml >= 6.0: YAML configuration parsing
+
+Exit Codes:
+    0: Success
+    1: Geometry loading error
+    2: Mesh generation error
+    
+See Also:
+    - python_magnetgmsh.cfg: Geometry loading functions
+    - python_magnetgmsh.mesh.axi: Axisymmetric meshing utilities
+    - python_magnetgeo: Geometry configuration format
+
+Author: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
+"""
 
 import argparse
 import sys
@@ -15,7 +70,120 @@ from .mesh.axi import get_allowed_algo, gmsh_msh, gmsh_cracks
 
 
 def main():
-    """Console script for python_magnetgmsh."""
+    """
+    Main entry point for python_magnetgmsh command-line interface.
+    
+    Parses command-line arguments, loads geometry configuration, generates
+    CAD model in Gmsh, and optionally creates mesh. Provides comprehensive
+    error handling and user feedback.
+    
+    The function performs the following steps:
+        1. Parse command-line arguments
+        2. Change to working directory if specified
+        3. Load geometry from YAML configuration file
+        4. Process air domain parameters if requested
+        5. Generate CAD model using Gmsh API
+        6. Optionally generate mesh with specified algorithm
+        7. Save output files and display GUI if requested
+    
+    Returns:
+        int: Exit code (0 for success, 1 for error)
+    
+    Raises:
+        SystemExit: With exit code 1 on geometry loading or mesh generation errors
+    
+    Example Usage:
+        >>> # As a module
+        >>> import sys
+        >>> sys.argv = ['cli.py', 'test.yaml', '--mesh', '--show']
+        >>> from python_magnetgmsh.cli import main
+        >>> main()
+        0
+        
+        >>> # From command line
+        >>> python -m python_magnetgmsh.cli test.yaml --wd /data --mesh
+        
+        >>> # As installed command
+        >>> python_magnetgmsh M9_Bitters.yaml --thickslit --air 10 6 --mesh --verbose
+    
+    Command-Line Arguments:
+        filename (str):
+            Path to YAML geometry configuration file. Must be valid
+            python_magnetgeo format with type annotation.
+            
+        --wd (str):
+            Working directory for input/output files. If specified, changes
+            to this directory before processing. Default: current directory.
+            
+        --air (float float):
+            Generate surrounding air domain for field calculations. Takes two
+            arguments: infty_Rratio and infty_Zratio.
+            - infty_Rratio: Radial extent as ratio of geometry max radius
+            - infty_Zratio: Axial extent as ratio of geometry height
+            Example: --air 1.5 2.0 creates air domain 1.5× wider, 2× taller
+            
+        --thickslit:
+            Model cooling slits with actual thickness rather than zero-width
+            cuts. Provides more accurate thermal and flow simulations but
+            increases mesh complexity.
+            
+        --mesh:
+            Generate mesh after creating CAD model. Without this flag, only
+            CAD geometry is created and saved.
+            
+        --algo2d (str):
+            Select 2D meshing algorithm. Choices: Delaunay, MeshAdapt,
+            Automatic, Initial2D, Packing, Frontal, DelQuad, PackParallelograms.
+            Default: Delaunay. See gmsh documentation for algorithm details.
+            
+        --scaling:
+            Scale geometry from millimeters to meters. Default unit is mm
+            as used in magnet engineering. Use this flag for SI unit output.
+            
+        --lc:
+            Load mesh size (characteristic length) from external file. File
+            should contain mesh size specifications for different regions.
+            If not set, default mesh sizes are used.
+            
+        --show:
+            Display Gmsh GUI after processing. Requires X11/display server.
+            Useful for interactive inspection and manual mesh refinement.
+            
+        --verbose:
+            Enable detailed output showing geometry processing steps, mesh
+            statistics, and timing information.
+            
+        --debug:
+            Enable maximum Gmsh verbosity (level 5) for debugging. Shows
+            all internal Gmsh operations, useful for troubleshooting errors.
+    
+    Output Files:
+        - {filename}.geo_unrolled: Gmsh geometry script (if saved)
+        - {filename}.msh: Gmsh mesh file (if --mesh specified)
+        - Additional mesh statistics in console output
+    
+    Error Handling:
+        - ValidationError: Caught and reported with file context
+        - FileNotFoundError: Reported if YAML file not found
+        - Gmsh errors: Logged via Gmsh logger, reported in console
+        - Other exceptions: Caught, logged, and converted to exit code 1
+    
+    Notes:
+        - Geometry type automatically detected from YAML
+        - Supports all types in action_dict (Bitter, Supra, Insert, etc.)
+        - Air domain generation modifies geometry in-place
+        - Mesh quality depends on geometry complexity and algorithm choice
+        - GUI requires graphical environment (use --no-show for batch processing)
+    
+    See Also:
+        gmsh_msh: Main meshing function
+        loadcfg: Geometry loading from YAML
+        get_allowed_algo: Available meshing algorithms
+    
+    Version History:
+        0.1.0: Added ValidationError handling, improved error messages
+        0.0.x: Initial implementation with basic functionality
+    """
     parser = argparse.ArgumentParser()
 
     parser.add_argument(

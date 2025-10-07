@@ -1,15 +1,73 @@
 """
-Retreive Physical Group from xao
-Mesh using gmsh
+XAO to Gmsh Mesh Converter.
 
-TODO:
-test with an xao file with embedded cad data (use stringio to cad)
-retreive volume names from yaml file
-link with MeshData
-remove unneeded class like NumModel, freesteam, pint and SimMaterial
+This module converts Salome XAO (eXtended Application Object) format files
+to Gmsh mesh format. XAO files contain CAD geometry and groups exported from
+Salome Platform, which is widely used for complex geometry modeling in
+scientific computing.
 
-see gmsh/api/python examples for that
-ex also in https://www.pygimli.org/_examples_auto/1_meshing/plot_cad_tutorial.html
+The converter:
+    - Loads CAD geometry from XAO file
+    - Imports physical groups (volumes, surfaces, curves)
+    - Applies mesh generation using Gmsh algorithms
+    - Preserves group names and hierarchy from Salome
+    - Optionally filters groups (e.g., cooling channels only)
+
+Typical Usage:
+    # Convert XAO to mesh with physical groups
+    python -m python_magnetgmsh.xao2msh test-Axi.xao --geo test.yaml \\
+        --wd /data mesh --group CoolingChannels
+    
+    # Multiple processing
+    python -m python_magnetgmsh.xao2msh M9_HLtest-Axi.xao \\
+        --geo M9_HLtest.yaml mesh --group CoolingChannels
+    
+    # As installed command
+    python_xao2gmsh test.xao --geo config.yaml mesh
+
+Workflow:
+    1. XAO file created in Salome with geometry and groups
+    2. Export from Salome to XAO format
+    3. Use this tool to generate Gmsh mesh
+    4. Mesh file (.msh) ready for FEM solvers (FeelPP, etc.)
+
+XAO Format:
+    XAO (eXtended Application Object) is an XML-based format developed by
+    EDF for CAD data exchange. It contains:
+        - Geometric shapes (BREP format)
+        - Physical groups (volumes, faces, edges, vertices)
+        - Assembly structure and metadata
+    
+    See: https://docs.salome-platform.org/
+
+Command-Line Interface:
+    Subcommands:
+        mesh: Generate mesh from XAO geometry
+        adapt: Adapt existing mesh (TODO)
+    
+    Arguments:
+        input_file: XAO file path
+        --geo: YAML geometry configuration (for metadata)
+        --wd: Working directory
+        --group: Filter specific physical group
+        --algo2d/--algo3d: Meshing algorithms
+        --show: Display Gmsh GUI
+
+Dependencies:
+    - gmsh >= 4.13.1: Mesh generation and XAO import
+    - python_magnetgeo >= 1.0.0: Geometry metadata
+    - xmltodict: XAO file parsing
+    - pyyaml >= 6.0: Configuration parsing
+
+Limitations:
+    - XAO must contain valid BREP geometry
+    - Physical groups must be properly defined in Salome
+    - Mesh quality depends on geometry complexity
+    - Large assemblies may require significant memory
+
+See Also:
+    - Salome Platform: https://www.salome-platform.org/
+    - python_magnetgmsh.cli: Direct
 """
 
 import os
