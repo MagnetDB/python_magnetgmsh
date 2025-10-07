@@ -2,7 +2,13 @@ import os
 import sys
 
 import gmsh
-from python_magnetgeo.Bitter import Bitter
+
+# Lazy loading import - automatically detects geometry type
+from python_magnetgeo.utils import getObject
+from python_magnetgeo.validation import ValidationError
+from python_magnetgeo import (
+    Bitter,
+)  # For type checking only
 from python_magnetgeo.Contour2D import Contour2D
 
 from .utils.lists import flatten
@@ -39,7 +45,7 @@ def create_shape(x: float, y: float, shape: Contour2D):
     return _cl
 
 
-def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
+def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tuple:
     """
     create gmsh 2D geometry
     """
@@ -142,9 +148,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
     print(f"names={names}")
 
     if holes:
-        cad = gmsh.model.occ.cut(
-            [(2, sector)], [(2, _id) for _id in holes], removeTool=False
-        )
+        cad = gmsh.model.occ.cut([(2, sector)], [(2, _id) for _id in holes], removeTool=False)
         gmsh.model.occ.synchronize()
 
         print(f"cad: {cad}")
@@ -215,9 +219,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         1,
     )
     candidate_rint_ids = [tag[1] for tag in candidate_rint]
-    print(
-        f"candidate_rint={candidate_rint} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}"
-    )
+    print(f"candidate_rint={candidate_rint} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}")
     xmin = Bitter.r[1] * cos(-theta / 2.0) - eps
     ymin = Bitter.r[1] * sin(-theta / 2.0) - eps
     xmax = Bitter.r[1] + eps
@@ -232,9 +234,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         1,
     )
     candidate_rext_ids = [tag[1] for tag in candidate_rext]
-    print(
-        f"candidate_rext={candidate_rext} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}"
-    )
+    print(f"candidate_rext={candidate_rext} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}")
     xmin = Bitter.r[0] * cos(-theta / 2.0) - eps
     ymin = Bitter.r[1] * sin(-theta / 2.0) - eps
     xmax = Bitter.r[1] * cos(-theta / 2.0) + eps
@@ -249,9 +249,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         1,
     )
     candidate_V0_ids = [tag[1] for tag in candidate_V0]
-    print(
-        f"candidate_V0={candidate_V0} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}"
-    )
+    print(f"candidate_V0={candidate_V0} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}")
     xmin = Bitter.r[0] * cos(theta / 2.0) - eps
     ymin = Bitter.r[0] * sin(theta / 2.0) - eps
     xmax = Bitter.r[1] * cos(theta / 2.0) + eps
@@ -266,9 +264,7 @@ def gmsh2D_ids(Bitter: Bitter, AirData: tuple, debug: bool = False) -> tuple:
         1,
     )
     candidate_V1_ids = [tag[1] for tag in candidate_V1]
-    print(
-        f"candidate_V1={candidate_V1} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}"
-    )
+    print(f"candidate_V1={candidate_V1} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}")
 
     _ids = flatten(hole_ids) + tierod_ids
     vEntities = gmsh.model.getEntities(1)
@@ -326,9 +322,7 @@ def main():
     """Console script for python_magnetgeo."""
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "filename", help="name of the model to be loaded (yaml file)", type=str
-    )
+    parser.add_argument("filename", help="name of the model to be loaded (yaml file)", type=str)
     parser.add_argument("--wd", help="set a working directory", type=str, default="")
     parser.add_argument("--mesh", help="activate mesh", action="store_true")
     parser.add_argument(
@@ -338,9 +332,7 @@ def main():
         choices=get_allowed_algo(),
         default="Delaunay",
     )
-    parser.add_argument(
-        "--scaling", help="scale to m (default unit is mm)", action="store_true"
-    )
+    parser.add_argument("--scaling", help="scale to m (default unit is mm)", action="store_true")
     parser.add_argument("--lc", help="specify mesh size", type=float, default="10")
     parser.add_argument("--show", help="display gmsh windows", action="store_true")
     parser.add_argument("--verbose", help="activate debug mode", action="store_true")
@@ -352,8 +344,11 @@ def main():
     if args.wd:
         os.chdir(args.wd)
 
-    from python_magnetgeo.utils import getObject
-    Object = getObject(args.filename)
+    try:
+        Object = getObject(args.filename)
+    except ValidationError as e:
+        # Handle validation errors from python_magnetgeo
+        print(f"Validation error: {e}")
 
     ncoolingslits = 0
     if Object.coolingslits:
@@ -424,9 +419,7 @@ def main():
                 gmsh.model.mesh.field.setNumber(nfield, "LcMin", args.lc / 20.0 * unit)
                 gmsh.model.mesh.field.setNumber(nfield, "LcMax", args.lc * unit)
                 gmsh.model.mesh.field.setNumber(nfield, "DistMin", r_tierod * unit)
-                gmsh.model.mesh.field.setNumber(
-                    nfield, "DistMax", 1.1 * r_tierod * unit
-                )
+                gmsh.model.mesh.field.setNumber(nfield, "DistMax", 1.1 * r_tierod * unit)
                 gmsh.model.mesh.field.setNumber(nfield, "StopAtDistMax", True)
                 dfields.append(nfield)
                 nfield += 1
