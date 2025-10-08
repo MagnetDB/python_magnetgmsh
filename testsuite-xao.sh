@@ -47,7 +47,7 @@ echo "Axi Mesh generation with Gmsh (with Air)"
 for test in ${TestsAxi}; do
     echo -en "${test} : " 
     if [ -f ${TestWD}/${test}-Axi_withAir.xao ]; then  
-        python -m python_magnetgmsh.xao2msh ${test}-Axi_withAir.xao --geo ${test}.yaml --wd ${TestWD} mesh --group CoolingChannels > ${test}-xao_withAir_mesh.log 2>&1
+        python -m python_magnetgmsh.xao2msh ${test}-Axi_withAir.xao --geo${TestYAML}/${test}.yaml --wd ${TestWD} mesh --group CoolingChannels > ${test}-xao_withAir_mesh.log 2>&1
         status=$?
         if [ "$status" != "0" ]; then
 	        echo_failure
