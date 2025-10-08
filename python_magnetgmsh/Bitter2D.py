@@ -16,22 +16,22 @@ from .mesh.axi import get_allowed_algo, MeshAlgo2D
 
 
 # TieRod
-def create_shape(x: float, y: float, shape: Contour2D):
+def create_contour2d(x: float, y: float, contour2d: Contour2D):
     """
-    create Shape
+    create contour2d
     """
 
     _cl = None
-    print(f"shape: {shape}, name={shape.name}, x={x}, y={y}", flush=True)
-    if shape.name.startswith("circle"):
-        r = float(shape.name.split("-")[-1].replace("mm", "")) / 2.0
+    print(f"contour2d: {contour2d}, name={contour2d.name}, x={x}, y={y}", flush=True)
+    if contour2d.name.startswith("circle"):
+        r = float(contour2d.name.split("-")[-1].replace("mm", "")) / 2.0
         curv = gmsh.model.occ.addCircle(x, y, 0, r)  # , angle1=, angle2 = )
         _cl = gmsh.model.occ.addCurveLoop([curv])
         print(f"create a circle: C({x},{y}), r={r}, _cl={_cl}, curv={curv}")
     else:
         curv = []
         points = []
-        for i, pt in enumerate(shape.points):
+        for i, pt in enumerate(contour2d.points):
             print(f"pt[{i}]: {pt}")
             points.append(gmsh.model.occ.addPoint(x + pt[0], pt[1], 0))
             print(f"addPoint({x + pt[0]}, {pt[1]})", flush=True)
@@ -39,7 +39,7 @@ def create_shape(x: float, y: float, shape: Contour2D):
                 curv.append(gmsh.model.occ.addLine(points[i - 1], points[i]))
         curv.append(gmsh.model.occ.addLine(points[-1], points[0]))
         _cl = gmsh.model.occ.addCurveLoop(curv)
-        print(f"create_shape: _cl={_cl}, {curv}")
+        print(f"create_contour2d: _cl={_cl}, {curv}")
         curv.clear()
         points.clear()
     return _cl
@@ -91,7 +91,7 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
     holes = []
     names = []
     if Bitter.tierod:
-        _ltierod = create_shape(tierod.r, 0, tierod.shape)
+        _ltierod = create_contour2d(tierod.r, 0, tierod.contour2d)
         print(f"_ltierod: {_ltierod}", flush=True)
         tierod_id = gmsh.model.occ.addPlaneSurface([_ltierod])
         print(f"tierod_id: {tierod_id}", flush=True)
@@ -112,8 +112,8 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
             theta_s = 2 * pi / float(nslits)
             angle = slit.angle * pi / 180.0
 
-            # create Shape for slit
-            _lc = create_shape(x=slit.r, y=0, shape=slit.shape)
+            # create contour2d for slit
+            _lc = create_contour2d(x=slit.r, y=0, contour2d=slit.contour2d)
             slit_id = gmsh.model.occ.addPlaneSurface([_lc])
             if angle != 0:
                 gmsh.model.occ.rotate([(2, slit_id)], 0, 0, 0, 0, 0, 1, angle)
@@ -168,12 +168,12 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
     # use
     # gmsh/model/occ/getBoundingBox
     # gmsh/model/occ/getEntitiesInBoundingBox
-    def create_bcgroup(shape: int, subshape: int, name: str):
-        xmin, ymin, zmin, xmax, ymax, zmax = gmsh.model.occ.getBoundingBox(2, subshape)
+    def create_bcgroup(contour2d: int, subcontour2d: int, name: str):
+        xmin, ymin, zmin, xmax, ymax, zmax = gmsh.model.occ.getBoundingBox(2, subcontour2d)
         # print(f"boundingbox[{name}]: {[xmin, ymin, zmin, xmax, ymax, zmax]}")
         if abs(zmin - zmax) >= 1.0e-6:
             raise RuntimeError(
-                f"create_bcgroup({name}): subshape is expected to be in OxOy plane (zmin={zmin}, Zmax={zmax})"
+                f"create_bcgroup({name}): subcontour2d is expected to be in OxOy plane (zmin={zmin}, Zmax={zmax})"
             )
 
         interface = gmsh.model.occ.getEntitiesInBoundingBox(
