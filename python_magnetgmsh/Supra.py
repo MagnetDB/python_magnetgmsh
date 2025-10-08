@@ -13,7 +13,7 @@ import gmsh
 
 from python_magnetgeo.Supra import Supra
 from python_magnetgeo.SupraStructure import HTSInsert
-from python_magnetgeo.Supra import DetailLevel
+from python_magnetgeo.enums import DetailLevel
 
 from .mesh.bcs import create_bcs
 from .SupraStructure import insert_ids, insert_bcs
@@ -29,9 +29,8 @@ def gmsh_box(Supra: Supra, debug: bool = False) -> list:
         boxes.append([Supra.r[0], Supra.z[0], Supra.r[1], Supra.z[1]])
     return boxes
 
-def gmsh_ids(
-    Supra: Supra, AirData: tuple, Thickslit: bool = False, debug: bool = False
-):
+
+def gmsh_ids(Supra: Supra, AirData: tuple, Thickslit: bool = False, debug: bool = False):
     """
     create gmsh geometry
     """

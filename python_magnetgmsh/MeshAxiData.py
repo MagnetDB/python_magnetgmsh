@@ -17,18 +17,7 @@ from python_magnetgeo.Screen import Screen
 from python_magnetgeo.Ring import Ring
 from python_magnetgeo.Helix import Helix
 
-try:
-    from python_magnetgeo.Supra import DetailLevel
-except ImportError:
-    # Fallback if circular import - define locally
-    print("WARNING: fallback to locally defined DetailLevel enum")
-    from enum import Enum
-    
-    class DetailLevel(str, Enum):
-        NONE = "NONE"
-        DBLPANCAKE = "DBLPANCAKE"
-        PANCAKE = "PANCAKE" 
-        TAPE = "TAPE"
+from python_magnetgeo.enums import DetailLevel
 
 ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix | Ring
 
@@ -92,9 +81,7 @@ class MeshAxiData(yaml.YAMLObject):
     def algo2d(self, algosurf):
         print("set surfacic mesh algo - not implemented yet")
 
-    def part_default(
-        self, H: Helix | Bitter | Supra | Screen | Ring, addname: str = ""
-    ):
+    def part_default(self, H: Helix | Bitter | Supra | Screen | Ring, addname: str = ""):
         """
         Define default mesh params for Helix
         """
@@ -157,9 +144,7 @@ class MeshAxiData(yaml.YAMLObject):
             print(
                 f"Creating MeshAxiData for Screen {Object.name}, mname={mname}, hypname={hypname}"
             )
-            self.surfhypoths.append(
-                self.part_default(Object, f"{hypname}{Object.name}_Screen")
-            )
+            self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_Screen"))
             mesh_dict[f"{hypname}{Object.name}_Screen"] = len(self.surfhypoths) - 1
 
         elif isinstance(Object, Bitter):
@@ -186,25 +171,19 @@ class MeshAxiData(yaml.YAMLObject):
             print(f"hypname/Object.name={hypname}{Object.name}")
 
             if Object.detail == DetailLevel.NONE:
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}")
-                )
+                self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}"))
                 mesh_dict[f"{hypname}{Object.name}"] = len(self.surfhypoths) - 1
 
             # (_i, _dp, _p, _i_dp, _Mandrin, _Sc, _Du)
             elif Object.detail == DetailLevel.DBLPANCAKE:
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp")
-                )
+                self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_dp"))
                 n_dp = len(Object.get_magnet_struct().dblpancakes)
                 for i in range(n_dp):
                     mesh_dict[f"{hypname}{Object.name}_dp{i}"] = (
                         len(self.surfhypoths) - 1,
                         1,
                     )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_i")
-                )
+                self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_i"))
                 for i in range(n_dp - 1):
                     mesh_dict[f"{hypname}{Object.name}_i{i}"] = (
                         len(self.surfhypoths) - 1,
@@ -213,9 +192,7 @@ class MeshAxiData(yaml.YAMLObject):
 
             elif Object.detail == DetailLevel.PANCAKE:
                 n_dp = len(Object.get_magnet_struct().dblpancakes)
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp_p")
-                )
+                self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_dp_p"))
                 for i in range(n_dp):
                     mesh_dict[f"{hypname}{Object.name}_dp{i}_p0"] = (
                         len(self.surfhypoths) - 1,
@@ -225,17 +202,13 @@ class MeshAxiData(yaml.YAMLObject):
                         len(self.surfhypoths) - 1,
                         2,
                     )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp_i")
-                )
+                self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_dp_i"))
                 for i in range(n_dp):
                     mesh_dict[f"{hypname}{Object.name}_dp{i}_i"] = (
                         len(self.surfhypoths) - 1,
                         3,
                     )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_i")
-                )
+                self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_i"))
                 for i in range(n_dp - 1):
                     mesh_dict[f"{hypname}{Object.name}_i{i}"] = (
                         len(self.surfhypoths) - 1,
@@ -284,17 +257,13 @@ class MeshAxiData(yaml.YAMLObject):
                             len(self.surfhypoths) - 1,
                             6,
                         )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp_i")
-                )
+                self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_dp_i"))
                 for i in range(n_dp):
                     mesh_dict[f"{hypname}{Object.name}_dp{i}_i"] = (
                         len(self.surfhypoths) - 1,
                         3,
                     )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_i")
-                )
+                self.surfhypoths.append(self.part_default(Object, f"{hypname}{Object.name}_i"))
                 for i in range(n_dp - 1):
                     mesh_dict[f"{hypname}{Object.name}_i{i}"] = (
                         len(self.surfhypoths) - 1,
@@ -304,7 +273,7 @@ class MeshAxiData(yaml.YAMLObject):
                 raise RuntimeError(
                     f"MeshAxiData: Unknow detail level ({Object.detail}) for Supra {Object.name}"
                 )
-            
+
         elif isinstance(Object, Insert):
             print(f"Creating MeshAxiData for Insert {Object.name}, mname={mname}")
             psnames = Object.get_names(mname, is2D=True, verbose=debug)
@@ -324,9 +293,8 @@ class MeshAxiData(yaml.YAMLObject):
             for i, R in enumerate(Object.rings):
                 print(f"MeshAxiData for R: {R.name}")
                 self.surfhypoths.append(self.part_default(R, psnames[i + num]))
-                mesh_dict[psnames[i + num]] = len(self.surfhypoths) - 1    
+                mesh_dict[psnames[i + num]] = len(self.surfhypoths) - 1
 
-        
         if Air:
             print("MeshAxiData for Air")
             [Air_, Biot_] = self.air_default(Air)

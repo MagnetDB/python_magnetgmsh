@@ -10,7 +10,7 @@ from python_magnetgeo.hts.isolation import isolation
 from python_magnetgeo.hts.dblpancake import dblpancake
 
 
-from python_magnetgeo.Supra import DetailLevel
+from python_magnetgeo.enums import DetailLevel
 from .utils.lists import flatten
 
 
@@ -31,9 +31,7 @@ def tape_ids(tape: tape, x0: float, y0: float, detail: DetailLevel) -> list:
     return [_tape, _e]
 
 
-def pancake_ids(
-    pancake: pancake, x0: float, y0: float, detail: DetailLevel
-) -> int | list:
+def pancake_ids(pancake: pancake, x0: float, y0: float, detail: DetailLevel) -> int | list:
     """
     create pancake for gmsh
 
@@ -49,9 +47,7 @@ def pancake_ids(
 
     # TODO return either pancake as a whole or detailed
     if detail == DetailLevel.PANCAKE:
-        _id = gmsh.model.occ.addRectangle(
-            pancake.getR0(), y0, 0, pancake.getW(), pancake.getH()
-        )
+        _id = gmsh.model.occ.addRectangle(pancake.getR0(), y0, 0, pancake.getW(), pancake.getH())
         return _id
     else:
         _mandrin = gmsh.model.occ.addRectangle(
@@ -79,9 +75,7 @@ def isolation_ids(isolation: isolation, x0: float, y0: float, detail: str):
     returns gmsh id
     """
 
-    _id = gmsh.model.occ.addRectangle(
-        isolation.r0, y0, 0, isolation.getW(), isolation.getH()
-    )
+    _id = gmsh.model.occ.addRectangle(isolation.r0, y0, 0, isolation.getW(), isolation.getH())
     return _id
 
 
@@ -118,9 +112,7 @@ def dblpancake_ids(dblpancake: dblpancake, x0: float, y0: float, detail: DetailL
         return [p_ids, _isolation_id]
 
 
-def insert_ids(
-    HTSInsert: HTSInsert, detail: DetailLevel, AirData: tuple = (), debug: bool = False
-):
+def insert_ids(HTSInsert: HTSInsert, detail: DetailLevel, AirData: tuple = (), debug: bool = False):
     """
     create insert for gmsh
 
@@ -150,11 +142,11 @@ def insert_ids(
             dr_air = (HTSInsert.r1 - HTSInsert.r0) * AirData[0]
             z0_air = y0 * AirData[1]
             dz_air = (2 * abs(y0)) * AirData[1]
-            
+
             A_id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
             ov, ovv = gmsh.model.occ.fragment([(2, A_id)], [(2, id)])
             gmsh.model.occ.synchronize()
-            
+
             Air_data = (A_id, dr_air, z0_air, dz_air)
 
         return (id, Air_data)
@@ -195,18 +187,12 @@ def insert_ids(
                             # )
 
                             if j >= 1:
-                                ov, ovv = gmsh.model.occ.fragment(
-                                    [(2, p[0])], [(2, i_ids[j - 1])]
-                                )
+                                ov, ovv = gmsh.model.occ.fragment([(2, p[0])], [(2, i_ids[j - 1])])
                                 gmsh.model.occ.synchronize()
                             if j < n_dp - 1:
-                                ov, ovv = gmsh.model.occ.fragment(
-                                    [(2, p[1])], [(2, i_ids[j])]
-                                )
+                                ov, ovv = gmsh.model.occ.fragment([(2, p[1])], [(2, i_ids[j])])
                                 gmsh.model.occ.synchronize()
-                            ov, ovv = gmsh.model.occ.fragment(
-                                [(2, dp[-1])], [(2, p[0]), (2, p[1])]
-                            )
+                            ov, ovv = gmsh.model.occ.fragment([(2, dp[-1])], [(2, p[0]), (2, p[1])])
                             gmsh.model.occ.synchronize()
 
                         else:
@@ -436,7 +422,7 @@ def insert_bcs(
                     z + dp.getH(),
                 ]
                 # not yet z += dp.getH()
-            elif detail ==DetailLevel.PANCAKE:
+            elif detail == DetailLevel.PANCAKE:
                 # print("dp:", dp)
                 p = dp.pancake
                 dp_i = dp.isolation
