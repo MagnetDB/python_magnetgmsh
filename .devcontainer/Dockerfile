@@ -95,7 +95,6 @@ RUN echo '[ ! -z "$TERM" -a -r /etc/motd ] && cat /etc/issue && cat /etc/motd' \
     \n\
     * To quit the virtual env:\n\
     deactivate\n"\
-
     > /etc/motd
 
 # Switch to USERNAME
