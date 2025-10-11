@@ -16,11 +16,12 @@ from python_magnetgeo.Supras import Supras
 from python_magnetgeo.Screen import Screen
 from python_magnetgeo.Ring import Ring
 from python_magnetgeo.Helix import Helix
+from python_magnetgeo.base import YAMLObjectBase
 
 ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix | Ring
 
 
-class MeshData(yaml.YAMLObject):
+class MeshData(YAMLObjectBase):
     """
     Name:
     Object: geometry (either Insert, Helix, Ring, Lead)
@@ -56,7 +57,6 @@ class MeshData(yaml.YAMLObject):
         name: str,
         algosurf: str = "BLSURF",
         algo3D: str = "BLSURF",
-        hypoths: list = [],
         mesh_dict: dict = {},
     ):
         """constructor"""
@@ -65,7 +65,6 @@ class MeshData(yaml.YAMLObject):
         self.algo3D = algo3D
 
         # depending of geometry type
-        self.surfhypoths = hypoths
         self.mesh_dict = mesh_dict
 
     def __repr__(self):
@@ -361,60 +360,34 @@ class MeshData(yaml.YAMLObject):
         self.mesh_dict = mesh_dict
         return mesh_dict
 
-    def load(self, Air: bool = False, debug: bool = False):
-        """
-        Load Mesh params from yaml file
-        """
-
-        data = None
-        filename = self.name
-        if Air:
-            filename += "_withAir"
-        filename += "_gmshaxidata.yaml"
-
-        with open(filename, "r") as f:
-            data = yaml.load(f, Loader=yaml.FullLoader)
-            # print(f"data={data}")
-
-        self.name = data.name
-        self.algosurf = data.algosurf
-        self.algo3D = data.algo3D
-        self.mesh_dict = data.mesh_dict
-        self.surfhypoths = data.surfhypoths
-        print(f"MeshData/Load: {filename} (pwd={os.getcwd()})")
-        print(f"MeshData/Load: hypoths={self.surfhypoths})")
-        if debug:
-            print("---------------------------------------------------------")
-            print("surfhypoths: ", len(self.surfhypoths), self.surfhypoths)
-            for i, hypoth in enumerate(self.surfhypoths):
-                print(f"hypoth[{i}]: {hypoth}")
-            print("---------------------------------------------------------")
-
-    def dump(self, Air: bool = False):
-        """
-        Dump Mesh params to yaml file
-        """
-
-        filename = self.name
-        if Air:
-            filename += "_withAir"
-        filename += "_gmsh3ddata.yaml"
-        print(f"dump mesh hypothesys to {filename}")
-        try:
-            with open(filename, "w") as ostream:
-                yaml.dump(self, stream=ostream)
-        except:
-            print("Failed to dump MeshData")
+    @classmethod
+    def from_dict(cls, values):
+        name = values["name"]
+        mesh_dict = values["mesh_dict"]
+        algosurf = values["algosurf"]
+        algo3D = values["algo3D"]
+        return cls(
+            name,
+            algosurf,
+            algo3D,
+            mesh_dict,
+        )
 
 
-def MeshData_constructor(loader, node):
-    values = loader.construct_mapping(node)
-    name = values["name"]
-    algosurf = values["algosurf"]
-    algo3D = values["algo3D"]
-    surfhypoths = values["surfhypoths"]
-    mesh_dict = values["mesh_dict"]
-    return MeshData(name, algosurf, algo3D, surfhypoths, mesh_dict)
+def createMeshData(prefix: str, Object, filename: str, AirData: tuple, algo2d: str, algo3d: str):
+    from yaml import YAMLError
 
+    try:
+        _MeshData = MeshData.from_yaml(f"{filename}.yaml", algo2d, algo3d)
+    except FileNotFoundError:
+        print("*** failed to load meshdata")
+        print("*** trying to generate default gmshdata")
+        _MeshData = MeshData(filename)
+        _MeshData.default(prefix, Object, AirData)
+        _MeshData.dump()
+    except YAMLError as e:
+        raise RuntimeError(f"Failed to parse YAML in {filename}: {e}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load MeshData from {filename}: {e}")
 
-yaml.add_constructor("!MeshData", MeshData_constructor)
+    return _MeshData

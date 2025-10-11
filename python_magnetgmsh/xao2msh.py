@@ -72,10 +72,7 @@ See Also:
 
 import os
 
-import re
 import argparse
-
-import yaml
 
 import gmsh
 
@@ -87,7 +84,6 @@ from .mesh.axi import get_allowed_algo as get_allowed_algo2D
 from .mesh.m3d import get_allowed_algo as get_allowed_algo3D
 from .utils.lists import flatten
 from .cfg import loadcfg
-
 
 def main():
     tags = {}
@@ -294,7 +290,7 @@ def main():
         print(f"Object={Object}, type={type(Object)}")
 
         if is2D:
-            from .MeshAxiData import MeshAxiData
+            from .MeshAxiData import MeshAxiData, createMeshAxiData
             from .mesh.axi import gmsh_msh
 
             if air:
@@ -303,25 +299,40 @@ def main():
                 box = gmsh_boundingbox("Air")
                 AirData = (box[1], box[4], box[3], 10)
 
+            yamlfile = cfgfile.replace(".yaml", "")
+            if air:
+                yamlfile += "_Air"
+            yamlfile += "_gmshaxidata"
+            meshAxiData = createMeshAxiData("", Object, AirData, yamlfile, args.algo2d)
+            """
             meshAxiData = MeshAxiData(cfgfile.replace(".yaml", ""), args.algo2d)
             if args.lc:
                 meshAxiData.load(air)
             else:
                 meshAxiData.default("", Object, AirData)
                 meshAxiData.dump(air)
+            """
 
             cracks = {}
             gmsh_msh(args.algo2d, meshAxiData, refinedboxes, air, args.scaling)
         else:
-            from .MeshData import MeshData
+            from .MeshData import MeshData, createMeshData
             from .mesh.m3d import gmsh_msh
 
-            meshData = MeshData(cfgfile.replace(".yaml", ""), args.algo2d, args.algo3d)
+            yamlfile = cfgfile.replace(".yaml", "")
+            if air:
+                yamlfile += "_Air"
+            yamlfile += "_gmshdata"
+            meshData = createMeshData("", Object, yamlfile: str, AirData: tuple, args.algo2d, args.algo3d)
+
+            """
+            MeshData(cfgfile.replace(".yaml", ""), args.algo2d, args.algo3d)
             if args.lc:
                 meshData.load(air)
             else:
                 meshData.default("", Object, AirData)
                 meshData.dump(air)
+            """
 
             gmsh_msh(args.algo3d, meshData, refinedboxes, air, args.scaling)
             print("xao2msh: gmsh_msh for 3D not implemented")

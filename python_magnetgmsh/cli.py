@@ -285,7 +285,7 @@ def main():
             air = True
             # lcs["Air"] = 30
 
-        from .MeshAxiData import MeshAxiData
+        from .MeshAxiData import MeshAxiData, createMeshAxiData
 
         if air:
             from .Air import gmsh_air
@@ -293,6 +293,12 @@ def main():
             (r0_air, z0_air, dr_air, dz_air) = gmsh_air(Object, AirData)
             AirData = (z0_air, z0_air + dz_air, r0_air + dr_air, 10)
 
+        yamlfile = args.filename.replace(".yaml", "")
+        if air:
+            yamlfile += "_Air"
+        yamlfile += "_gmshaxidata"
+        meshAxiData = createMeshAxiData(prefix, Object, AirData, yamlfile, args.algo2d)
+        """
         meshAxiData = MeshAxiData(args.filename.replace(".yaml", ""), args.algo2d)
         print(f"meshAxiData={meshAxiData}, args.lc={args.lc}")
         if args.lc:
@@ -300,6 +306,7 @@ def main():
         else:
             meshAxiData.default(prefix, Object, AirData, "", args.debug)
             meshAxiData.dump(air)
+        """
 
         gmsh_msh(args.algo2d, meshAxiData, boxes, air, args.scaling)
         if not args.thickslit:

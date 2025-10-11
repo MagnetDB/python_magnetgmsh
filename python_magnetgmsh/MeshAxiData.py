@@ -18,11 +18,12 @@ from python_magnetgeo.Ring import Ring
 from python_magnetgeo.Helix import Helix
 
 from python_magnetgeo.enums import DetailLevel
+from python_magnetgeo.base import YAMLObjectBase
 
 ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix | Ring
 
 
-class MeshAxiData(yaml.YAMLObject):
+class MeshAxiData(YAMLObjectBase):
     """
     Name:
     Object: geometry (either Insert, Helix, Ring, Lead)
@@ -57,7 +58,6 @@ class MeshAxiData(yaml.YAMLObject):
         self,
         name: str,
         algosurf: str = "BLSURF",
-        hypoths: list = [],
         mesh_dict: dict = {},
     ):
         """constructor"""
@@ -65,16 +65,14 @@ class MeshAxiData(yaml.YAMLObject):
         self.algosurf = algosurf
 
         # depending of geometry type
-        self.surfhypoths = hypoths
         self.mesh_dict = mesh_dict
 
     def __repr__(self):
         """representation"""
-        return "%s(name=%r, algosurf=%r, surfhypoths=%r, mesh_dict=%r)" % (
+        return "%s(name=%r, algosurf=%r, mesh_dict=%r)" % (
             self.__class__.__name__,
             self.name,
             self.algosurf,
-            self.surfhypoths,
             self.mesh_dict,
         )
 
@@ -315,58 +313,34 @@ class MeshAxiData(yaml.YAMLObject):
         self.mesh_dict = mesh_dict
         return mesh_dict
 
-    def load(self, Air: bool = False, debug: bool = False):
-        """
-        Load Mesh params from yaml file
-        """
 
-        data = None
-        filename = self.name
-        if Air:
-            filename += "_withAir"
-        filename += "_gmshaxidata.yaml"
-
-        with open(filename, "r") as f:
-            data = yaml.load(f, Loader=yaml.FullLoader)
-            # print(f"data={data}")
-
-        self.name = data.name
-        self.algosurf = data.algosurf
-        self.mesh_dict = data.mesh_dict
-        self.surfhypoths = data.surfhypoths
-        print(f"MeshAxiData/Load: {filename} (pwd={os.getcwd()})")
-        print(f"MeshAxiData/Load: hypoths={self.surfhypoths})")
-        if debug:
-            print("---------------------------------------------------------")
-            print("surfhypoths: ", len(self.surfhypoths), self.surfhypoths)
-            for i, hypoth in enumerate(self.surfhypoths):
-                print(f"hypoth[{i}]: {hypoth}")
-            print("---------------------------------------------------------")
-
-    def dump(self, Air: bool = False):
-        """
-        Dump Mesh params to yaml file
-        """
-
-        filename = self.name
-        if Air:
-            filename += "_withAir"
-        filename += "_gmshaxidata.yaml"
-        print(f"dump mesh hypothesys to {filename}")
-        try:
-            with open(filename, "w") as ostream:
-                yaml.dump(self, stream=ostream)
-        except:
-            print("Failed to dump MeshAxiData")
+    @classmethod
+    def from_dict(cls, values: dict, debug: bool = False):
+        name = values["name"]
+        algosurf = values["algosurf"]
+        mesh_dict = values["mesh_dict"]
+        return cls(
+            name,
+            algosurf,
+            mesh_dict,
+        )
 
 
-def MeshAxiData_constructor(loader, node):
-    values = loader.construct_mapping(node)
-    name = values["name"]
-    algosurf = values["algosurf"]
-    surfhypoths = values["surfhypoths"]
-    mesh_dict = values["mesh_dict"]
-    return MeshAxiData(name, algosurf, surfhypoths, mesh_dict)
+def createMeshAxiData(prefix: str, Object, AirData: tuple, filename: str, algo2d: str):
+    from yaml import YAMLError
 
+    try:
+        _MeshData = MeshAxiData.from_yaml(f"{filename}.yaml")
+    except FileNotFoundError:
+        print("*** failed to load meshdata")
+        print("*** trying to generate default gmshaxidata")
+        _MeshData = MeshAxiData(filename, algo2d)
 
-yaml.add_constructor("!MeshAxiData", MeshAxiData_constructor)
+        _MeshData.default(prefix, Object, AirData)
+        _MeshData.dump()
+    except YAMLError as e:
+        raise RuntimeError(f"Failed to parse YAML in {filename}: {e}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load MeshAxiData from {filename}: {e}")
+
+    return _MeshData
