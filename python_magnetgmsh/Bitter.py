@@ -101,49 +101,6 @@ def gmsh_ids(
             gmsh_slits = []
             gmsh_tierod = []
 
-            """
-            # if angle == 0
-            if not Bitter.tierod is None:
-                eps = Bitter.tierod.dh / 2.0
-                _id = gmsh.model.occ.addRectangle(
-                    x - eps / 2.0, Bitter.z[0], 0, eps, abs(Bitter.z[1] - Bitter.z[0])
-                )
-                gmsh_tierod.append(_id)
-
-            for i, slit in enumerate(Bitter.coolingslits):
-                if slit.angle == 0:
-                    x = slit.r
-                    eps = slit.dh / 2.0
-                    print(f"slit[{i}]: eps={eps}")
-
-                    _id = gmsh.model.occ.addRectangle(
-                        x - eps / 2.0,
-                        Bitter.z[0],
-                        0,
-                        eps,
-                        abs(Bitter.z[1] - Bitter.z[0]),
-                    )
-                    gmsh_slits.append(_id)
-            """
-
-            """
-            # if angle != 0
-            for i, slit in enumerate(Bitter.coolingslits):
-                if slit.angle != 0:
-                    x = slit.r
-                    eps = slit.dh / 2.0
-                    print(f"slit[{i}]: eps={eps}")
-
-                    _id = gmsh.model.occ.addRectangle(
-                        x - eps / 2.0,
-                        Bitter.z[0],
-                        0,
-                        eps,
-                        abs(Bitter.z[1] - Bitter.z[0]),
-                    )
-                    gmsh_slits.append(_id)
-            """
-
             for i, slit in enumerate(Bitter.coolingslits):
                 # eps: thickness of annular ring equivalent to n * coolingslit surface
                 x = slit.r
@@ -218,8 +175,7 @@ def gmsh_bcs(
     )
 
     psnames = Bitter.get_names(mname, is2D=True, verbose=debug)
-    # print(psnames)
-    # print(flatten(B_ids))
+    print(f"Bitter: psnames={psnames} ({len(psnames)}), B_ids={len(flatten(B_ids))}")
     assert len(flatten(B_ids)) == len(
         psnames
     ), f"Bitter/gmsh_bcs {Bitter.name}: trouble with psnames (expected {len(psnames)} got {len(flatten(B_ids))})"
@@ -230,13 +186,8 @@ def gmsh_bcs(
 
     # set physical name
     if not psnames:
-        psnames.append(f"{mname}_B1_Slit0")
+        psnames.append(f"{mname}_B0_S0")
 
-    # if alpha == 0
-    #  1st tierod
-    #  slits if slit.angle ==0
-    # else
-    #  slits if slit.angle != 0
     num = 0
     for i, id in enumerate(B_ids):
         if isinstance(id, int):
@@ -244,7 +195,7 @@ def gmsh_bcs(
         else:
             ps = gmsh.model.addPhysicalGroup(2, id)
 
-        psname = re.sub(r"_Slit\d+", "", psnames[num])
+        psname = re.sub(r"_S\d+", "", psnames[num])
         print(
             f"Bitter[{i}]: id={id}, mname={mname}, psnames[{num}]={psnames[num]}, psname={psname} / {len(B_ids)}"
         )
@@ -296,12 +247,13 @@ def gmsh_bcs(
                 #    ]
                 #    print(f"add {sname} to bcs_defs", flush=True)
                 # else:
-                sname = f"{prefix}Slit{i+1}_l"
-                bcs_defs[sname] = [[x - eps / 2.0, Bitter.z[0], x, Bitter.z[1]]]
+                sname = f"{prefix}Slit{i+1}"
+                bcs_defs[sname] = [
+                    [x - eps / 2.0, Bitter.z[0], x, Bitter.z[1]],
+                    [x, Bitter.z[0], x + eps / 2.0, Bitter.z[1]]
+                ]
                 print(f"add {sname} to bcs_defs", flush=True)
-                sname = f"{prefix}Slit{i+1}_r"
-                bcs_defs[sname] = [[x, Bitter.z[0], x + eps / 2.0, Bitter.z[1]]]
-                print(f"add {sname} to bcs_defs", flush=True)
+                
 
     bcs_defs[f"{prefix}Slit{n_slits+1}"] = [
         Bitter.r[1],
