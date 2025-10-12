@@ -404,6 +404,11 @@ This package was created with [Cookiecutter](https://github.com/audreyr/cookiecu
 
 ## Support
 
+## TODOs
+
+- [ ] finish 3D mesh implementation
+- [ ] use mesh_dict to improve 3D mesh
+
 ### Getting Help
 
 - **Documentation**: https://python-magnetgmsh.readthedocs.io
