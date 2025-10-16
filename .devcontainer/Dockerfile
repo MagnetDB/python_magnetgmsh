@@ -95,10 +95,20 @@ RUN echo '[ ! -z "$TERM" -a -r /etc/motd ] && cat /etc/issue && cat /etc/motd' \
     \n\
     * To quit the virtual env:\n\
     deactivate\n"\
-
     > /etc/motd
 
 # Switch to USERNAME
 USER ${USERNAME}
+ENV HOME=/home/feelpp
+
+# set alias, OpenMP Threads and OpenBLAS (threads should be 1 to ensure performance)
+RUN echo "alias cp='cp -i'" > $HOME/.bash_aliases && \
+    echo "alias egrep='egrep --color=auto'" >> $HOME/.bash_aliases && \
+    echo "alias fgrep='fgrep --color=auto'" >> $HOME/.bash_aliases && \
+    echo "alias grep='grep --color=auto'" >> $HOME/.bash_aliases && \
+    echo "alias ls='ls --color=auto'" >> $HOME/.bash_aliases && \
+    echo "alias mv='mv -i'" >> $HOME/.bash_aliases && \
+    echo "alias rm='rm -i'" >> $HOME/.bash_aliases
+
 WORKDIR /home/${USERNAME}
 CMD ["bash"]

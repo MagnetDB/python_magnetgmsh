@@ -75,9 +75,7 @@ def gmsh_msh(
     gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lcar1)
 
     mesh_dict = meshdata.mesh_dict
-    # print(f"mesh_dict: {mesh_dict}")
-    lcs = meshdata.surfhypoths
-    # print(f"lcs: {lcs}")
+    
 
     eps = {}
     min_eps = 0.5 * unit
@@ -103,12 +101,7 @@ def gmsh_msh(
         # print(f"namGroup={namGroup} dimgroup={dimGroup}")
         if namGroup in mesh_dict:
             _namGroup = re.sub(r"_Slit\d+[_[lr]]", "", namGroup)
-            def_lcs = mesh_dict[_namGroup]
-            # print(f"mesh_dict[{_namGroup}]={def_lcs}")
-            if isinstance(def_lcs, int):
-                lc = lcs[def_lcs]
-            else:
-                lc = lcs[def_lcs[0]][def_lcs[1]]
+            lc = mesh_dict[_namGroup]["lc"]
             print(f"{namGroup}: lc={lc}")
 
             vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
@@ -133,21 +126,12 @@ def gmsh_msh(
                 lc_data[namGroup]["box"].append((xmin, ymin, zmin, xmax, ymax, zmax))
                 lc_data[namGroup]["pts"] += [tag for (dimtag, tag) in ov]
                 lc_data[namGroup]["lc"] = lc
-            # else:
-            #     raise RuntimeError(
-            #         f"vEntities: {type(vEntities)} unsupported return type"
-            #     )
-
-            # print(f"lc[{namGroup}]: {lc_data[namGroup]}")
-        # else:
-        #    print(f"{namGroup} is not in mesh_dict")
 
         if dimGroup == 1:
             vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
             ov = []
             lv = []
             size = []
-            # if isinstance(vEntities, list):
             for i, entity in enumerate(vEntities):
                 (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(
                     1, entity
@@ -164,10 +148,7 @@ def gmsh_msh(
                 # )
                 lv += _lv
                 size.append(max(abs(xmax - xmin), abs(ymax - ymin)))
-            # else:
-            #     raise RuntimeError(
-            #         f"vEntities: {type(vEntities)} unsupported return type"
-            #     )
+            
             lc = lcar1
 
             if eps is not None:

@@ -16,11 +16,12 @@ from python_magnetgeo.Supras import Supras
 from python_magnetgeo.Screen import Screen
 from python_magnetgeo.Ring import Ring
 from python_magnetgeo.Helix import Helix
+from python_magnetgeo.base import YAMLObjectBase
 
 ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix | Ring
 
 
-class MeshData(yaml.YAMLObject):
+class MeshData(YAMLObjectBase):
     """
     Name:
     Object: geometry (either Insert, Helix, Ring, Lead)
@@ -56,7 +57,6 @@ class MeshData(yaml.YAMLObject):
         name: str,
         algosurf: str = "BLSURF",
         algo3D: str = "BLSURF",
-        hypoths: list = [],
         mesh_dict: dict = {},
     ):
         """constructor"""
@@ -65,16 +65,15 @@ class MeshData(yaml.YAMLObject):
         self.algo3D = algo3D
 
         # depending of geometry type
-        self.surfhypoths = hypoths
         self.mesh_dict = mesh_dict
 
     def __repr__(self):
         """representation"""
-        return "%s(name=%r, algosurf=%r, algo3D=%r, surfhypoths=%r, mesh_dict=%r)" % (
+        return "%s(name=%r, algosurf=%r, algo3D=%r, hypoths=%r, mesh_dict=%r)" % (
             self.__class__.__name__,
             self.name,
             self.algosurf,
-            self.surfhypoths,
+            self.hypoths,
             self.mesh_dict,
         )
 
@@ -126,6 +125,7 @@ class MeshData(yaml.YAMLObject):
             f"{__name__}: creating default MeshData,  mname={mname}, Object.name={Object.name}, Air={Air}, wd={workingDir}"
         )
         mesh_dict = {}
+        hypoths = []
 
         if isinstance(Object, MSite):
             print(f"Creating MeshData for MSite {Object.name}, mname={mname}")
@@ -167,10 +167,8 @@ class MeshData(yaml.YAMLObject):
             print(
                 f"Creating MeshData for Screen {Object.name}, mname={mname}, hypname={hypname}"
             )
-            self.surfhypoths.append(
-                self.part_default(Object, f"{hypname}{Object.name}_Screen")
-            )
-            mesh_dict[f"{hypname}{Object.name}_Screen"] = len(self.surfhypoths) - 1
+            surfhypoth =self.part_default(Object, f"{hypname}{Object.name}_Screen")
+            mesh_dict[f"{hypname}{Object.name}_Screen"] = {"lc": hypoths}
 
         elif isinstance(Object, Bitter):
             hypname = ""
@@ -181,12 +179,12 @@ class MeshData(yaml.YAMLObject):
             )
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
             print(f"psnames={psnames}")
-            surfhypoths_names = [re.sub(r"_Slit\d+", "", psname) for psname in psnames]
-            surfhypoths_names = list(set(surfhypoths_names))
-            self.surfhypoths.append(self.part_default(Object, surfhypoths_names[0]))
-            for psname in surfhypoths_names:
+            hypoths_names = [re.sub(r"_Slit\d+", "", psname) for psname in psnames]
+            hypoths_names = list(set(hypoths_names))
+            surfhypoth = self.part_default(Object, hypoths_names[0])
+            for psname in hypoths_names:
                 print(f"\tpsname={psname}")
-                mesh_dict[psname] = len(self.surfhypoths) - 1
+                mesh_dict[psname] = {"lc": surfhypoth}
 
         elif isinstance(Object, Supra):
             print(f"Creating MeshData for Supra {Object.name}, mname={mname}")
@@ -196,119 +194,57 @@ class MeshData(yaml.YAMLObject):
             print(f"hypname/Object.name={hypname}{Object.name}")
 
             if Object.detail == "None":
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}")
-                )
-                mesh_dict[f"{hypname}{Object.name}"] = len(self.surfhypoths) - 1
+                surfhypoth = self.part_default(Object, f"{hypname}{Object.name}")
+                mesh_dict[f"{hypname}{Object.name}"] = {"lc": surfhypoth}
 
             # (_i, _dp, _p, _i_dp, _Mandrin, _Sc, _Du)
             elif Object.detail == "dblpancake":
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp")
-                )
+                hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp")
                 for i in range(Object.get_magnet_struct().getN()):
-                    mesh_dict[f"{hypname}{Object.name}_dp{i}"] = (
-                        len(self.surfhypoths) - 1,
-                        1,
-                    )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_i")
-                )
+                    mesh_dict[f"{hypname}{Object.name}_dp{i}"] = {"lc": hypoths}
+                hypoths = self.part_default(Object, f"{hypname}{Object.name}_i")
                 for i in range(Object.get_magnet_struct().getN() - 1):
-                    mesh_dict[f"{hypname}{Object.name}_i{i}"] = (
-                        len(self.surfhypoths) - 1,
-                        0,
-                    )
+                    mesh_dict[f"{hypname}{Object.name}_i{i}"] = {"lc": hypoths}
 
             elif Object.detail == "pancake":
                 n_dp = Object.get_magnet_struct().getN()
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp_p")
-                )
+                hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp_p")
                 for i in range(n_dp):
-                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p0"] = (
-                        len(self.surfhypoths) - 1,
-                        2,
-                    )
-                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p1"] = (
-                        len(self.surfhypoths) - 1,
-                        2,
-                    )
-                self.surfhypoths.append(
+                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p0"] = {"lc": hypoths}
+                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p1"] = {"lc": hypoths}
+                hypoths.append(
                     self.part_default(Object, f"{hypname}{Object.name}_dp_i")
                 )
                 for i in range(n_dp):
-                    mesh_dict[f"{hypname}{Object.name}_dp{i}_i"] = (
-                        len(self.surfhypoths) - 1,
-                        3,
-                    )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_i")
-                )
+                    mesh_dict[f"{hypname}{Object.name}_dp{i}_i"] = {"lc": hypoths}
+                hypoths =self.part_default(Object, f"{hypname}{Object.name}_i")
                 for i in range(n_dp - 1):
-                    mesh_dict[f"{hypname}{Object.name}_i{i}"] = (
-                        len(self.surfhypoths) - 1,
-                        0,
-                    )
+                    mesh_dict[f"{hypname}{Object.name}_i{i}"] = {"lc": hypoths}
 
             elif Object.detail == "tape":
                 n_dp = Object.get_magnet_struct().getN()
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp_p_Mandrin")
-                )
+                hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp_p_Mandrin")
                 for i in range(n_dp):
-                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_Mandrin"] = (
-                        len(self.surfhypoths) - 1,
-                        4,
-                    )
-                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_Mandrin"] = (
-                        len(self.surfhypoths) - 1,
-                        4,
-                    )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp_p_t_SC")
-                )
+                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_Mandrin"] =  {"lc": hypoths}
+                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_Mandrin"] =  {"lc": hypoths}
+                hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp_p_t_SC")
                 for i in range(n_dp):
                     n_dp_tape = Object.get_magnet_struct().dblpancakes[i].pancake.getN()
                     for j in range(n_dp_tape):
-                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_t{j}_SC"] = (
-                            len(self.surfhypoths) - 1,
-                            5,
-                        )
-                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_t{j}_SC"] = (
-                            len(self.surfhypoths) - 1,
-                            5,
-                        )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp_p_t_Duromag")
-                )
+                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_t{j}_SC"] =  {"lc": hypoths}
+                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_t{j}_SC"] =  {"lc": hypoths}
+                hypoths =self.part_default(Object, f"{hypname}{Object.name}_dp_p_t_Duromag")
                 for i in range(n_dp):
                     n_dp_tape = Object.get_magnet_struct().dblpancakes[i].pancake.getN()
                     for j in range(n_dp_tape):
-                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_t{j}_Duromag"] = (
-                            len(self.surfhypoths) - 1,
-                            6,
-                        )
-                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_t{j}_Duromag"] = (
-                            len(self.surfhypoths) - 1,
-                            6,
-                        )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp_i")
-                )
+                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_t{j}_Duromag"] =  {"lc": hypoths}
+                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_t{j}_Duromag"] =  {"lc": hypoths}
+                hypoths= self.part_default(Object, f"{hypname}{Object.name}_dp_i")
                 for i in range(n_dp):
-                    mesh_dict[f"{hypname}{Object.name}_dp{i}_i"] = (
-                        len(self.surfhypoths) - 1,
-                        3,
-                    )
-                self.surfhypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_i")
-                )
+                    mesh_dict[f"{hypname}{Object.name}_dp{i}_i"] =  {"lc": hypoths}
+                hypoths = self.part_default(Object, f"{hypname}{Object.name}_i")
                 for i in range(n_dp - 1):
-                    mesh_dict[f"{hypname}{Object.name}_i{i}"] = (
-                        len(self.surfhypoths) - 1,
-                        0,
-                    )
+                    mesh_dict[f"{hypname}{Object.name}_i{i}"] =  {"lc": hypoths}
             else:
                 raise RuntimeError(
                     f"MeshData: Unknow detail level ({Object.detail}) for Supra {Object.name}"
@@ -326,95 +262,71 @@ class MeshData(yaml.YAMLObject):
                 f"Creating MeshData for Insert {Object.name}, mname={mname}, psnames={psnames}"
             )
             num = 0
-            for i, H in enumerate(Object.Helices):
+            for i, H in enumerate(Object.helices):
                 print(
                     f"MeshData for H: {H.name}, nturns={len(H.modelaxi.turns)}, psname[{num}]={psnames[num]}"
                 )
 
                 psname = re.sub(r"_Cu\d+", "", psnames[num])
-                self.surfhypoths.append(self.part_default(H, psname))
                 for n in range(len(H.modelaxi.turns) + 2):
-                    mesh_dict[psnames[num]] = len(self.surfhypoths) - 1
+                    mesh_dict[psnames[num]] = {"lc": self.part_default(H, psname)}
                     num += 1
 
-            for i, R in enumerate(Object.Rings):
-                self.surfhypoths.append(self.part_default(R, psnames[i + num]))
-                mesh_dict[psnames[i + num]] = len(self.surfhypoths) - 1
+            for i, R in enumerate(Object.rings):
+                mesh_dict[psnames[i + num]] = {"lc": self.part_default(R, psnames[i + num])}
+                num += 1
 
         if Air:
             print("MeshData for Air")
             [Air_, Biot_] = self.air_default(Air)
-            self.surfhypoths.append(Air_)
-            mesh_dict["Air"] = len(self.surfhypoths) - 1
-            self.surfhypoths.append(Biot_)
-            mesh_dict["Biot"] = len(self.surfhypoths) - 1
+            mesh_dict["Air"] = {"lc": Air_}
+            mesh_dict["Biot"] = {"lc": Biot_}
             # print "Creating MeshData for Air... done"
         else:
             print("No Air defined")
-        if debug:
-            print("---------------------------------------------------------")
-            print("surfhypoths: ", len(self.surfhypoths), self.surfhypoths)
-            for i, hypoth in enumerate(self.surfhypoths):
-                print(f"hypoth[{i}]: {hypoth}")
-            print("---------------------------------------------------------")
 
         self.mesh_dict = mesh_dict
         return mesh_dict
 
-    def load(self, Air: bool = False, debug: bool = False):
-        """
-        Load Mesh params from yaml file
-        """
-
-        data = None
-        filename = self.name
-        if Air:
-            filename += "_withAir"
-        filename += "_gmshaxidata.yaml"
-
-        with open(filename, "r") as f:
-            data = yaml.load(f, Loader=yaml.FullLoader)
-            # print(f"data={data}")
-
-        self.name = data.name
-        self.algosurf = data.algosurf
-        self.algo3D = data.algo3D
-        self.mesh_dict = data.mesh_dict
-        self.surfhypoths = data.surfhypoths
-        print(f"MeshData/Load: {filename} (pwd={os.getcwd()})")
-        print(f"MeshData/Load: hypoths={self.surfhypoths})")
-        if debug:
-            print("---------------------------------------------------------")
-            print("surfhypoths: ", len(self.surfhypoths), self.surfhypoths)
-            for i, hypoth in enumerate(self.surfhypoths):
-                print(f"hypoth[{i}]: {hypoth}")
-            print("---------------------------------------------------------")
-
-    def dump(self, Air: bool = False):
-        """
-        Dump Mesh params to yaml file
-        """
-
-        filename = self.name
-        if Air:
-            filename += "_withAir"
-        filename += "_gmsh3ddata.yaml"
-        print(f"dump mesh hypothesys to {filename}")
-        try:
-            with open(filename, "w") as ostream:
-                yaml.dump(self, stream=ostream)
-        except:
-            print("Failed to dump MeshData")
+    @classmethod
+    def from_dict(cls, values):
+        name = values["name"]
+        mesh_dict = values["mesh_dict"]
+        algosurf = values["algosurf"]
+        algo3D = values["algo3D"]
+        return cls(
+            name,
+            algosurf,
+            algo3D,
+            mesh_dict,
+        )
 
 
-def MeshData_constructor(loader, node):
-    values = loader.construct_mapping(node)
-    name = values["name"]
-    algosurf = values["algosurf"]
-    algo3D = values["algo3D"]
-    surfhypoths = values["surfhypoths"]
-    mesh_dict = values["mesh_dict"]
-    return MeshData(name, algosurf, algo3D, surfhypoths, mesh_dict)
+def createMeshData(prefix: str, Object, filename: str, AirData: tuple, algo2d: str, algo3d: str):
+    import os
+    from python_magnetgeo.utils import ObjectLoadError 
 
+    print(f"createMeshData: cwd: {os.getcwd()}, filename={filename}", flush=True)
 
-yaml.add_constructor("!MeshData", MeshData_constructor)
+    try:
+        _MeshData = MeshData.from_yaml(f"{filename}.yaml")
+    # Catch all I/O and parsing errors raised by the library
+    except ObjectLoadError as e:
+        # Determine the specific cause based on the error message
+        is_file_missing = "YAML file not found" in str(e)
+        
+        if is_file_missing:
+            print(f"*** File missing: {filename}.yaml", flush=True)
+        else:
+            # Catches the converted YAMLError (Failed to parse YAML)
+            raise RuntimeError(f"*** Failed to parse YAML in {filename}: {e}")
+            
+        print("*** failed to load meshdata")
+        print("*** trying to generate default gmshdata")
+        _MeshData = MeshData(filename)
+        _MeshData.default(prefix, Object, AirData)
+        _MeshData.dump()
+    except Exception as e:
+        raise RuntimeError(f"Failed to load MeshData from {filename}: {e}")
+
+    return _MeshData

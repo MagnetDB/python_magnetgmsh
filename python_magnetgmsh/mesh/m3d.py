@@ -54,6 +54,7 @@ def gmsh_msh(
         unit = 0.001
         gmsh.option.setNumber("Geometry.OCCScaling", unit)
 
+    # TODO use mesh_dict to assign better lc to surfaces
     # Assign a mesh size to all the points:
     lcar1 = 80 * unit
 
