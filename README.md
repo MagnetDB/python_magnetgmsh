@@ -282,13 +282,17 @@ except ValueError as e:
 
 The following features are planned for future releases:
 
+- [ ] yaml file for MeshData to be derived from magnetgeo
+- [ ] MeshData store a dict of surface with associated lc
+- [ ] Add an order for Meshing, Use lc from dict to set mesh carac on box not using surface id (in case lc different from surface)
+- [ ] Add option to load mesh carac from yaml file
+- [ ] Make algo2d, algo3d choices enum
 - [ ] Add Screens support to MSite
 - [ ] Fix mesh generation in CLI (Axi only)
 - [ ] Fix 3D mesh in XAO format
-- [ ] Unify mesh interface between XAO and CLI
 - [ ] Create proper boundary conditions for Supra structures
-- [ ] Add Cracks plugin for Bitter cooling slits
 - [ ] Create Docker/Singularity image
+- [ ] Use Gmsh loading XAO feature starting from gmsh 4.14
 
 ## Development
 
