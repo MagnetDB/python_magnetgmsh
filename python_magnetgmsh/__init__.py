@@ -2,7 +2,6 @@
 
 __author__ = """Christophe Trophime"""
 __email__ = "christophe.trophime@lncmi.cnrs.fr"
-__version__ = "0.1.0"
 
 # Version is read from package metadata (defined in pyproject.toml)
 # This ensures a single source of truth for the version number
