@@ -11,7 +11,7 @@ from python_magnetgeo.hts.dblpancake import dblpancake
 
 
 from python_magnetgeo.enums import DetailLevel
-from .utils.lists import flatten
+from ..utils.lists import flatten
 
 
 def tape_ids(tape: tape, x0: float, y0: float, detail: DetailLevel) -> list:

@@ -82,8 +82,8 @@ from .mesh.groups import create_physicalbcs, create_physicalgroups
 from .mesh.axi import get_allowed_algo as get_allowed_algo2D
 
 from .mesh.m3d import get_allowed_algo as get_allowed_algo3D
-from .utils.lists import flatten
 from .cfg import loadcfg
+
 
 def main():
     tags = {}
@@ -101,9 +101,7 @@ def main():
         default="None",
     )
 
-    subparsers = parser.add_subparsers(
-        title="commands", dest="command", help="sub-command help"
-    )
+    subparsers = parser.add_subparsers(title="commands", dest="command", help="sub-command help")
 
     # parser_cfg = subparsers.add_parser('cfg', help='cfg help')
     parser_mesh = subparsers.add_parser("mesh", help="mesh help")
@@ -123,9 +121,7 @@ def main():
         choices=get_allowed_algo3D(),
         default="HXT",
     )
-    parser_mesh.add_argument(
-        "--lc", help="load mesh size from file", action="store_true"
-    )
+    parser_mesh.add_argument("--lc", help="load mesh size from file", action="store_true")
     parser_mesh.add_argument(
         "--scaling", help="scale to m (default unit is mm)", action="store_true"
     )
@@ -151,9 +147,7 @@ def main():
         type=str,
     )
 
-    parser_adapt.add_argument(
-        "--bgm", help="specify a background mesh", type=str, default=None
-    )
+    parser_adapt.add_argument("--bgm", help="specify a background mesh", type=str, default=None)
     parser_adapt.add_argument(
         "--estimator", help="specify an estimator (pos file)", type=str, default=None
     )
@@ -236,18 +230,14 @@ def main():
 
     excluded_tags = []
     if is2D:
-        excluded_tags = [
-            name for name in stags if not name in mdict and not name == "Air"
-        ]
+        excluded_tags = [name for name in stags if name not in mdict and not name == "Air"]
     print(f"excluded_tags: {excluded_tags}")
     # remove exclude_tags from stags
 
     if "Air" in args.input_file:
         solid_names.append("Air")
         if hideIsolant:
-            raise Exception(
-                "--hide Isolants cannot be used since cad contains Air region"
-            )
+            raise Exception("--hide Isolants cannot be used since cad contains Air region")
 
     nsolids = len(gmsh.model.getEntities(GeomParams["Solid"][0]))
     assert (
@@ -286,15 +276,16 @@ def main():
             air = True
 
         from python_magnetgeo.utils import getObject
+
         Object = getObject(cfgfile)
         print(f"Object={Object}, type={type(Object)}")
 
         if is2D:
-            from .MeshAxiData import MeshAxiData, createMeshAxiData
-            from .mesh.axi import gmsh_msh
+            from .axi.MeshAxiData import createMeshAxiData
+            from .mesh.axi import gmsh_msh as msh2D
 
             if air:
-                from .Air import gmsh_boundingbox
+                from .axi.Air import gmsh_boundingbox
 
                 box = gmsh_boundingbox("Air")
                 AirData = (box[1], box[4], box[3], 10)
@@ -304,37 +295,20 @@ def main():
                 yamlfile += "_Air"
             yamlfile += "_gmshaxidata"
             meshAxiData = createMeshAxiData("", Object, AirData, yamlfile, args.algo2d)
-            """
-            meshAxiData = MeshAxiData(cfgfile.replace(".yaml", ""), args.algo2d)
-            if args.lc:
-                meshAxiData.load(air)
-            else:
-                meshAxiData.default("", Object, AirData)
-                meshAxiData.dump(air)
-            """
 
-            cracks = {}
-            gmsh_msh(args.algo2d, meshAxiData, refinedboxes, air, args.scaling)
+            # cracks = {}
+            msh2D(args.algo2d, meshAxiData, refinedboxes, air, args.scaling)
         else:
-            from .MeshData import MeshData, createMeshData
-            from .mesh.m3d import gmsh_msh
+            from .m3d.MeshData import createMeshData
+            from .mesh.m3d import gmsh_msh as msh3D
 
             yamlfile = cfgfile.replace(".yaml", "")
             if air:
                 yamlfile += "_Air"
             yamlfile += "_gmshdata"
-            meshData = createMeshData("", Object, yamlfile: str, AirData: tuple, args.algo2d, args.algo3d)
+            meshData = createMeshData("", Object, yamlfile, AirData, args.algo2d, args.algo3d)
 
-            """
-            MeshData(cfgfile.replace(".yaml", ""), args.algo2d, args.algo3d)
-            if args.lc:
-                meshData.load(air)
-            else:
-                meshData.default("", Object, AirData)
-                meshData.dump(air)
-            """
-
-            gmsh_msh(args.algo3d, meshData, refinedboxes, air, args.scaling)
+            msh3D(args.algo2d, args.algo3d, meshData, refinedboxes, air, args.scaling)
             print("xao2msh: gmsh_msh for 3D not implemented")
 
         meshname = file.replace(".xao", ".msh")

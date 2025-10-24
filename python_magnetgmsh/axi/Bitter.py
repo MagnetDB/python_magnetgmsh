@@ -4,10 +4,10 @@
 import re
 import gmsh
 from python_magnetgeo.Bitter import Bitter
-from .mesh.bcs import create_bcs
+from ..mesh.bcs import create_bcs
 
 
-from .utils.lists import flatten
+from ..utils.lists import flatten
 
 
 def gmsh_box(Bitter: Bitter, debug: bool = False) -> list:
@@ -34,9 +34,7 @@ def gmsh_box(Bitter: Bitter, debug: bool = False) -> list:
     return boxes
 
 
-def gmsh_ids(
-    Bitter: Bitter, AirData: tuple, thickslit: bool = False, debug: bool = False
-) -> tuple:
+def gmsh_ids(Bitter: Bitter, AirData: tuple, thickslit: bool = False, debug: bool = False) -> tuple:
     """
     create gmsh geometry
 
@@ -57,7 +55,7 @@ def gmsh_ids(
     y = -Bitter.modelaxi.h
     # print("y=", y)
     tol = 1e-10
-    
+
     if abs(y - Bitter.z[0]) >= tol:
         _id = gmsh.model.occ.addRectangle(x, Bitter.z[0], 0, dr, abs(y - Bitter.z[0]))
         gmsh_ids.append(_id)
@@ -148,9 +146,7 @@ def gmsh_ids(
         (r0_air, z0_air, dr_air, dz_air) = gmsh_air(Bitter, AirData)
         _id = gmsh.model.occ.addRectangle(r0_air, z0_air, 0, dr_air, dz_air)
 
-        ov, ovv = gmsh.model.occ.fragment(
-            [(2, _id)], [(2, i) for i in flatten(gmsh_ids)]
-        )
+        ov, ovv = gmsh.model.occ.fragment([(2, _id)], [(2, i) for i in flatten(gmsh_ids)])
         gmsh.model.occ.synchronize()
         Air_data = (_id, dr_air, z0_air, dz_air)
 
@@ -250,10 +246,9 @@ def gmsh_bcs(
                 sname = f"{prefix}Slit{i+1}"
                 bcs_defs[sname] = [
                     [x - eps / 2.0, Bitter.z[0], x, Bitter.z[1]],
-                    [x, Bitter.z[0], x + eps / 2.0, Bitter.z[1]]
+                    [x, Bitter.z[0], x + eps / 2.0, Bitter.z[1]],
                 ]
                 print(f"add {sname} to bcs_defs", flush=True)
-                
 
     bcs_defs[f"{prefix}Slit{n_slits+1}"] = [
         Bitter.r[1],

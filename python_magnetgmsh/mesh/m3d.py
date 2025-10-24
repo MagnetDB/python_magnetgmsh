@@ -1,8 +1,6 @@
-import re
-
-from math import copysign
 import gmsh
-from ..MeshData import MeshData
+from ..m3d.MeshData import MeshData
+from ..mesh.axi import MeshAlgo2D
 
 MeshAlgo3D = {
     "Delaunay": 1,
@@ -13,7 +11,6 @@ MeshAlgo3D = {
     "R-tree": 9,
     "HXT": 10,
 }
-
 
 def get_allowed_algo() -> list:
     """
@@ -27,7 +24,8 @@ def get_algo(name: str):
 
 
 def gmsh_msh(
-    algo: str,
+    algo2d: str,
+    algo3d: str,
     meshdata: MeshData,
     refinedboxes: list,
     air: bool = False,
@@ -43,10 +41,9 @@ def gmsh_msh(
     """
 
     meshdim = 3
-    HXT_support = True
-    print(f"create 3D Gmsh mesh ({algo})", flush=True)
-    gmsh.option.setNumber("Mesh.Algorithm", 2)  # select Automatic 2D algo
-    gmsh.option.setNumber("Mesh.Algorithm3D", MeshAlgo3D[algo])
+    print(f"create 3D Gmsh mesh ({algo3d})", flush=True)
+    gmsh.option.setNumber("Mesh.Algorithm", MeshAlgo2D[algo2d])  # select Automatic 2D algo
+    gmsh.option.setNumber("Mesh.Algorithm3D", MeshAlgo3D[algo3d])  # select HXT 3D algo
 
     # scaling
     unit = 1

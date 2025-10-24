@@ -84,7 +84,7 @@ python_xao2gmsh test-Axi.xao --geo test.yaml --wd /data/geometries mesh --group 
 python -m python_magnetgmsh.cli --wd /data/geometries test.yaml --thickslit --mesh --lc --show
 
 # Create 2D mesh for Bitter sector
-python -m python_magnetgmsh.Bitter2D --wd /data/geometries M9_Bi.yaml --mesh --lc 20 --show
+python -m python_magnetgmsh.m2d.Bitter2D --wd /data/geometries M9_Bi.yaml --mesh --lc 20 --show
 
 # Convert Salome XAO to Gmsh mesh
 python -m python_magnetgmsh.xao2msh --wd /data/geometries test-Axi.xao --geo test.yaml mesh --group CoolingChannels

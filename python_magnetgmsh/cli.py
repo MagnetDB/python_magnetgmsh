@@ -17,10 +17,10 @@ The CLI supports:
 Typical Usage:
     # Generate mesh from YAML configuration
     python -m python_magnetgmsh.cli test.yaml --wd /data/geometries --mesh --show
-    
+
     # With air domain and thick slits
     python -m python_magnetgmsh.cli M9_Bitters.yaml --thickslit --air 10 6 --mesh
-    
+
     # As installed command
     python_magnetgmsh test.yaml --mesh --lc --verbose
 
@@ -46,7 +46,7 @@ Exit Codes:
     0: Success
     1: Geometry loading error
     2: Mesh generation error
-    
+
 See Also:
     - python_magnetgmsh.cfg: Geometry loading functions
     - python_magnetgmsh.mesh.axi: Axisymmetric meshing utilities
@@ -58,13 +58,22 @@ Author: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
 import argparse
 import sys
 import os
-import yaml
 
 import gmsh
+
 # Lazy loading import - automatically detects geometry type
 from python_magnetgeo.utils import getObject
 from python_magnetgeo.validation import ValidationError
-from python_magnetgeo import Insert, Helix, Bitter, Bitters, Supra, Supras, Screen, MSite  # For type checking only
+from python_magnetgeo import (
+    Insert,
+    Helix,
+    Bitter,
+    Bitters,
+    Supra,
+    Supras,
+    Screen,
+    MSite,
+)  # For type checking only
 
 from .mesh.axi import get_allowed_algo, gmsh_msh, gmsh_cracks
 
@@ -72,11 +81,11 @@ from .mesh.axi import get_allowed_algo, gmsh_msh, gmsh_cracks
 def main():
     """
     Main entry point for python_magnetgmsh command-line interface.
-    
+
     Parses command-line arguments, loads geometry configuration, generates
     CAD model in Gmsh, and optionally creates mesh. Provides comprehensive
     error handling and user feedback.
-    
+
     The function performs the following steps:
         1. Parse command-line arguments
         2. Change to working directory if specified
@@ -85,13 +94,13 @@ def main():
         5. Generate CAD model using Gmsh API
         6. Optionally generate mesh with specified algorithm
         7. Save output files and display GUI if requested
-    
+
     Returns:
         int: Exit code (0 for success, 1 for error)
-    
+
     Raises:
         SystemExit: With exit code 1 on geometry loading or mesh generation errors
-    
+
     Example Usage:
         >>> # As a module
         >>> import sys
@@ -99,96 +108,94 @@ def main():
         >>> from python_magnetgmsh.cli import main
         >>> main()
         0
-        
+
         >>> # From command line
         >>> python -m python_magnetgmsh.cli test.yaml --wd /data --mesh
-        
+
         >>> # As installed command
         >>> python_magnetgmsh M9_Bitters.yaml --thickslit --air 10 6 --mesh --verbose
-    
+
     Command-Line Arguments:
         filename (str):
             Path to YAML geometry configuration file. Must be valid
             python_magnetgeo format with type annotation.
-            
+
         --wd (str):
             Working directory for input/output files. If specified, changes
             to this directory before processing. Default: current directory.
-            
+
         --air (float float):
             Generate surrounding air domain for field calculations. Takes two
             arguments: infty_Rratio and infty_Zratio.
             - infty_Rratio: Radial extent as ratio of geometry max radius
             - infty_Zratio: Axial extent as ratio of geometry height
             Example: --air 1.5 2.0 creates air domain 1.5× wider, 2× taller
-            
+
         --thickslit:
             Model cooling slits with actual thickness rather than zero-width
             cuts. Provides more accurate thermal and flow simulations but
             increases mesh complexity.
-            
+
         --mesh:
             Generate mesh after creating CAD model. Without this flag, only
             CAD geometry is created and saved.
-            
+
         --algo2d (str):
             Select 2D meshing algorithm. Choices: Delaunay, MeshAdapt,
             Automatic, Initial2D, Packing, Frontal, DelQuad, PackParallelograms.
             Default: Delaunay. See gmsh documentation for algorithm details.
-            
+
         --scaling:
             Scale geometry from millimeters to meters. Default unit is mm
             as used in magnet engineering. Use this flag for SI unit output.
-            
+
         --lc:
             Load mesh size (characteristic length) from external file. File
             should contain mesh size specifications for different regions.
             If not set, default mesh sizes are used.
-            
+
         --show:
             Display Gmsh GUI after processing. Requires X11/display server.
             Useful for interactive inspection and manual mesh refinement.
-            
+
         --verbose:
             Enable detailed output showing geometry processing steps, mesh
             statistics, and timing information.
-            
+
         --debug:
             Enable maximum Gmsh verbosity (level 5) for debugging. Shows
             all internal Gmsh operations, useful for troubleshooting errors.
-    
+
     Output Files:
         - {filename}.geo_unrolled: Gmsh geometry script (if saved)
         - {filename}.msh: Gmsh mesh file (if --mesh specified)
         - Additional mesh statistics in console output
-    
+
     Error Handling:
         - ValidationError: Caught and reported with file context
         - FileNotFoundError: Reported if YAML file not found
         - Gmsh errors: Logged via Gmsh logger, reported in console
         - Other exceptions: Caught, logged, and converted to exit code 1
-    
+
     Notes:
         - Geometry type automatically detected from YAML
         - Supports all types in action_dict (Bitter, Supra, Insert, etc.)
         - Air domain generation modifies geometry in-place
         - Mesh quality depends on geometry complexity and algorithm choice
         - GUI requires graphical environment (use --no-show for batch processing)
-    
+
     See Also:
         gmsh_msh: Main meshing function
         loadcfg: Geometry loading from YAML
         get_allowed_algo: Available meshing algorithms
-    
+
     Version History:
         0.1.0: Added ValidationError handling, improved error messages
         0.0.x: Initial implementation with basic functionality
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "filename", help="name of the model to be loaded (yaml file)", type=str
-    )
+    parser.add_argument("filename", help="name of the model to be loaded (yaml file)", type=str)
     parser.add_argument("--wd", help="set a working directory", type=str, default="")
     parser.add_argument(
         "--air",
@@ -197,9 +204,7 @@ def main():
         type=float,
         metavar=("infty_Rratio", "infty_Zratio"),
     )
-    parser.add_argument(
-        "--thickslit", help="model thick cooling slits", action="store_true"
-    )
+    parser.add_argument("--thickslit", help="model thick cooling slits", action="store_true")
     parser.add_argument("--mesh", help="activate mesh", action="store_true")
     parser.add_argument(
         "--algo2d",
@@ -208,9 +213,7 @@ def main():
         choices=get_allowed_algo(),
         default="Delaunay",
     )
-    parser.add_argument(
-        "--scaling", help="scale to m (default unit is mm)", action="store_true"
-    )
+    parser.add_argument("--scaling", help="scale to m (default unit is mm)", action="store_true")
     parser.add_argument("--lc", help="load mesh size from file", action="store_true")
 
     parser.add_argument("--show", help="display gmsh windows", action="store_true")
@@ -285,10 +288,10 @@ def main():
             air = True
             # lcs["Air"] = 30
 
-        from .MeshAxiData import MeshAxiData, createMeshAxiData
+        from .axi.MeshAxiData import createMeshAxiData
 
         if air:
-            from .Air import gmsh_air
+            from .axi.Air import gmsh_air
 
             (r0_air, z0_air, dr_air, dz_air) = gmsh_air(Object, AirData)
             AirData = (z0_air, z0_air + dz_air, r0_air + dr_air, 10)
@@ -298,15 +301,6 @@ def main():
             yamlfile += "_Air"
         yamlfile += "_gmshaxidata"
         meshAxiData = createMeshAxiData(prefix, Object, AirData, yamlfile, args.algo2d)
-        """
-        meshAxiData = MeshAxiData(args.filename.replace(".yaml", ""), args.algo2d)
-        print(f"meshAxiData={meshAxiData}, args.lc={args.lc}")
-        if args.lc:
-            meshAxiData.load(air)
-        else:
-            meshAxiData.default(prefix, Object, AirData, "", args.debug)
-            meshAxiData.dump(air)
-        """
 
         gmsh_msh(args.algo2d, meshAxiData, boxes, air, args.scaling)
         if not args.thickslit:

@@ -5,8 +5,8 @@
 
 from python_magnetgeo.Bitter import Bitter
 from python_magnetgeo.Bitters import Bitters
-from .utils.lists import flatten
-from .mesh.bcs import create_bcs
+from ..utils.lists import flatten
+from ..mesh.bcs import create_bcs
 from importlib import import_module
 
 import_dict = {Bitter: ".Bitter"}
@@ -21,7 +21,7 @@ def gmsh_box(Bitters: Bitters, debug: bool = False) -> list:
     boxes = []
     for i, magnet in enumerate(Bitters.magnets):
         MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
-        box = MyMagnet.gmsh_box(magnet, debug) 
+        box = MyMagnet.gmsh_box(magnet, debug)
         boxes.append(box)
     return boxes
 
@@ -105,7 +105,6 @@ def gmsh_bcs(
     defs = {}
     bcs_defs = {}
 
-    
     num = 0
     for i, magnet in enumerate(Bitters.magnets):
         print(f"Bitters/gmsh/{magnet.name} Bitter[{i}]: {gmsh_ids[num]}")

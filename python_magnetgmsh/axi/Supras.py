@@ -6,7 +6,7 @@ import yaml
 
 from python_magnetgeo.Supra import Supra
 from python_magnetgeo.Supras import Supras
-from .utils.lists import flatten
+from ..utils.lists import flatten
 
 import_dict = {Supra: ".Supra"}
 
@@ -29,9 +29,7 @@ def gmsh_box(Supras: Supras, debug: bool = False) -> list:
     return boxes
 
 
-def gmsh_ids(
-    Supras: Supras, AirData: tuple, thickslit: bool = False, debug: bool = False
-) -> tuple:
+def gmsh_ids(Supras: Supras, AirData: tuple, thickslit: bool = False, debug: bool = False) -> tuple:
     """
     create gmsh geometry
     """
@@ -87,9 +85,7 @@ def gmsh_ids(
     return (gmsh_ids, (), Air_data)
 
 
-def gmsh_bcs(
-    Supras, mname: str, ids: tuple, thickslit: bool = False, debug: bool = False
-) -> dict:
+def gmsh_bcs(Supras, mname: str, ids: tuple, thickslit: bool = False, debug: bool = False) -> dict:
     """
     retreive ids for bcs in gmsh geometry
     """
@@ -108,7 +104,9 @@ def gmsh_bcs(
         # print(f"Supras/gmsh/{mname} (dict/list)")
         # print(f"gmsh_ids[{key}]: {gmsh_ids[num]}")
         MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
-        tdefs = MyMagnet.gmsh_bcs(magnet, f"{Supras.name}_{magnet.name}", gmsh_ids[num], thickslit, debug)
+        tdefs = MyMagnet.gmsh_bcs(
+            magnet, f"{Supras.name}_{magnet.name}", gmsh_ids[num], thickslit, debug
+        )
         defs.update(tdefs)
         num += 1
 

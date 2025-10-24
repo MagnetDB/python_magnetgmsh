@@ -13,7 +13,8 @@ from python_magnetgeo.Chamfer import Chamfer
 from python_magnetgeo.Helix import Helix
 
 import gmsh
-from .mesh.bcs import create_bcs
+from ..mesh.bcs import create_bcs
+
 
 def gmsh_chamfer(r: float, z: float, chamfer: Chamfer, debug: bool = False) -> int:
     """
@@ -27,18 +28,18 @@ def gmsh_chamfer(r: float, z: float, chamfer: Chamfer, debug: bool = False) -> i
     *             *
     """
 
-    side = chamfer.side # HP/BP
-    rside = chamfer.rside # rint/rext
+    side = chamfer.side  # HP/BP
+    rside = chamfer.rside  # rint/rext
     alpha = chamfer.alpha
     L = float(chamfer.l)
     cradius = chamfer.getDr()
     print(side, rside, alpha, L, cradius, r, z)
-    
+
     contour = None
-    if side == "BP": 
+    if side == "BP":
         P0 = gmsh.model.occ.addPoint(r, z, 0)
-        P1 = gmsh.model.occ.addPoint(r, z -L, 0)
-        if rside =="rext":
+        P1 = gmsh.model.occ.addPoint(r, z - L, 0)
+        if rside == "rext":
             P2 = gmsh.model.occ.addPoint(r - cradius, z, 0)
             P0P2 = gmsh.model.occ.addLine(P0, P2)
             P2P1 = gmsh.model.occ.addLine(P2, P1)
@@ -49,9 +50,9 @@ def gmsh_chamfer(r: float, z: float, chamfer: Chamfer, debug: bool = False) -> i
             P0P1 = gmsh.model.occ.addLine(P0, P1)
             P1P2 = gmsh.model.occ.addLine(P1, P2)
             P2P0 = gmsh.model.occ.addLine(P2, P0)
-            contour = gmsh.model.occ.addCurveLoop([P0P1, P1P2, P2P0])    
-    
-    if side == "HP": 
+            contour = gmsh.model.occ.addCurveLoop([P0P1, P1P2, P2P0])
+
+    if side == "HP":
         P0 = gmsh.model.occ.addPoint(r, z, 0)
         P1 = gmsh.model.occ.addPoint(r, z + L, 0)
         if rside == "rint":
@@ -61,12 +62,12 @@ def gmsh_chamfer(r: float, z: float, chamfer: Chamfer, debug: bool = False) -> i
             P2P0 = gmsh.model.occ.addLine(P2, P0)
             contour = gmsh.model.occ.addCurveLoop([P0P1, P1P2, P2P0])
         else:
-            P2 = gmsh.model.occ.addPoint(r - cradius, z, 0)    
+            P2 = gmsh.model.occ.addPoint(r - cradius, z, 0)
             P0P2 = gmsh.model.occ.addLine(P0, P2)
             P2P1 = gmsh.model.occ.addLine(P2, P1)
             P1P0 = gmsh.model.occ.addLine(P1, P0)
             contour = gmsh.model.occ.addCurveLoop([P0P2, P2P1, P1P0])
-   
+
     gmsh.model.occ.synchronize()
     surf = gmsh.model.occ.addPlaneSurface([contour])
     print(f"gmsh_chamfer surf: {surf}", flush=True)
@@ -97,7 +98,9 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
                 chamfer_id = gmsh_chamfer(Helix.r[0], Helix.z[0], chamfer, debug)
             else:
                 chamfer_id = gmsh_chamfer(Helix.r[1], Helix.z[0], chamfer, debug)
-            gmsh.model.occ.cut([(2, _id)], [(2, chamfer_id)], tag=-1, removeObject=True, removeTool=True)
+            gmsh.model.occ.cut(
+                [(2, _id)], [(2, chamfer_id)], tag=-1, removeObject=True, removeTool=True
+            )
             gmsh.model.occ.synchronize()
         gmsh_ids.append(_id)
 
@@ -115,8 +118,10 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
             if chamfer.rside == "rext":
                 chamfer_id = gmsh_chamfer(Helix.r[1], Helix.z[1], chamfer, debug)
             else:
-                chamfer_id = gmsh_chamfer(Helix.r[0], Helix.z[1], chamfer, debug)    
-            gmsh.model.occ.cut([(2, _id)], [(2, chamfer_id)], tag=-1, removeObject=True, removeTool=True)
+                chamfer_id = gmsh_chamfer(Helix.r[0], Helix.z[1], chamfer, debug)
+            gmsh.model.occ.cut(
+                [(2, _id)], [(2, chamfer_id)], tag=-1, removeObject=True, removeTool=True
+            )
             gmsh.model.occ.synchronize()
         gmsh_ids.append(_id)
     if debug:
@@ -170,16 +175,24 @@ def gmsh_bcs(Helix: Helix, mname: str, ids: tuple, debug: bool = False) -> dict:
     rint_range = [Helix.r[0], Helix.r[0]]
     rext_range = [Helix.r[1], Helix.r[1]]
     if Helix.chamfers:
-        chamfer_rint = [Helix.r[0] + chamfer.getRadius() for chamfer in Helix.chamfers if chamfer.rside == "rint"]
-        chamfer_rext = [Helix.r[1] - chamfer.getRadius() for chamfer in Helix.chamfers if chamfer.rside == "rext"]
+        chamfer_rint = [
+            Helix.r[0] + chamfer.getRadius()
+            for chamfer in Helix.chamfers
+            if chamfer.rside == "rint"
+        ]
+        chamfer_rext = [
+            Helix.r[1] - chamfer.getRadius()
+            for chamfer in Helix.chamfers
+            if chamfer.rside == "rext"
+        ]
         print(f"{Helix.name}: chamfer_rint: {chamfer_rint}")
         print(f"{Helix.name}: chamfer_rext: {chamfer_rext}")
-    
+
         if chamfer_rint:
             rint_range = [Helix.r[0], max(chamfer_rint)]
         if chamfer_rext:
             rext_range = [min(chamfer_rext), Helix.r[1]]
-    
+
     # if HPChamfer: r[0], r[0] + Chamfer.getRadius()
     # if BPChamfer: r[1] + Chamfer.getRadius(), r[1]
     bcs_defs = {

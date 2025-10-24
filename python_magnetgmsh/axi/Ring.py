@@ -5,10 +5,9 @@
 Provides definition for Ring:
 
 """
-from typing import List
 from python_magnetgeo.Ring import Ring
 import gmsh
-from .mesh.bcs import create_bcs
+from ..mesh.bcs import create_bcs
 
 
 def gmsh_ids(Ring: Ring, y: float, debug: bool = False) -> int:
@@ -26,9 +25,7 @@ def gmsh_ids(Ring: Ring, y: float, debug: bool = False) -> int:
     return _id
 
 
-def gmsh_bcs(
-    Ring: Ring, mname: str, hp: bool, y: float, id: int, debug: bool = False
-) -> dict:
+def gmsh_bcs(Ring: Ring, mname: str, hp: bool, y: float, id: int, debug: bool = False) -> dict:
     """
     create gmsh geometry
     """

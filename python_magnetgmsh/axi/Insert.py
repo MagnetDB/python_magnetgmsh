@@ -3,7 +3,6 @@
 
 """defines Insert structure"""
 
-import yaml
 from python_magnetgeo.Insert import Insert
 
 import gmsh
@@ -12,8 +11,8 @@ from .Helix import gmsh_bcs as helix_bcs
 from .Ring import gmsh_ids as ring_ids
 from .Ring import gmsh_bcs as ring_bcs
 
-from .mesh.bcs import create_bcs
-from .utils.lists import flatten
+from ..mesh.bcs import create_bcs
+from ..utils.lists import flatten
 
 from numpy import ndarray
 
@@ -106,9 +105,7 @@ def gmsh_box(Insert: Insert, debug: bool = False) -> list:
     return boxes
 
 
-def gmsh_ids(
-    Insert: Insert, AirData: tuple, Thickslit: bool = False, debug: bool = False
-) -> tuple:
+def gmsh_ids(Insert: Insert, AirData: tuple, Thickslit: bool = False, debug: bool = False) -> tuple:
     """
     create gmsh geometry
     """

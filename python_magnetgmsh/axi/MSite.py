@@ -15,8 +15,8 @@ from python_magnetgeo import Bitters
 from python_magnetgeo import Supra
 from python_magnetgeo import Supras
 from python_magnetgeo import Screen
-from .mesh.bcs import create_bcs
-from .utils.lists import flatten
+from ..mesh.bcs import create_bcs
+from ..utils.lists import flatten
 
 import_dict = {
     Insert.Insert: ".Insert",
@@ -36,7 +36,6 @@ def gmsh_box(MSite, debug: bool = False) -> list:
 
     boxes = []
 
-    
     for magnet in MSite.magnets:
         MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
         box = MyMagnet.gmsh_box(magnet, debug)
@@ -45,18 +44,16 @@ def gmsh_box(MSite, debug: bool = False) -> list:
     return boxes
 
 
-def gmsh_ids(
-    MSite, AirData: tuple, thickslit: bool = False, debug: bool = False
-) -> tuple:
+def gmsh_ids(MSite, AirData: tuple, thickslit: bool = False, debug: bool = False) -> tuple:
     """
     create gmsh geometry
     """
     from importlib import import_module
+
     print(f"gmsh_ids: MSite={MSite.name}")
 
     gmsh_ids = []
 
-    
     for magnet in MSite.magnets:
         # print(f"msite/gmsh/{mname} (dict/list)")
         MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
@@ -126,6 +123,7 @@ def gmsh_bcs(
     retreive ids for bcs in gmsh geometry
     """
     from importlib import import_module
+
     print(f"gmsh_ids: MSite={MSite.name}")
 
     (gmsh_ids, Air_data) = ids
@@ -134,9 +132,8 @@ def gmsh_bcs(
     defs = {}
     bcs_defs = {}
 
-    
     num = 0
-    
+
     for j, magnet in enumerate(MSite.magnets):
         MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
         tdefs = MyMagnet.gmsh_bcs(magnet, f"{magnet.name}", gmsh_ids[num], thickslit, debug)

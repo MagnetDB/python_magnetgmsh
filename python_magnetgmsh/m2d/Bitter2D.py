@@ -11,8 +11,8 @@ from python_magnetgeo import (
 )  # For type checking only
 from python_magnetgeo.Contour2D import Contour2D
 
-from .utils.lists import flatten
-from .mesh.axi import get_allowed_algo, MeshAlgo2D
+from ..utils.lists import flatten
+from ..mesh.axi import get_allowed_algo, MeshAlgo2D
 
 
 # TieRod

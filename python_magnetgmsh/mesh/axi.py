@@ -2,8 +2,7 @@ import re
 
 from math import copysign
 import gmsh
-from ..MeshAxiData import MeshAxiData
-from ..MeshData import MeshData
+from ..axi.MeshAxiData import MeshAxiData
 
 MeshAlgo2D = {
     "MeshAdapt": 1,
@@ -12,16 +11,6 @@ MeshAlgo2D = {
     "Delaunay": 5,
     "Frontal-Delaunay": 6,
     "BAMG": 7,
-}
-
-MeshAlgo3D = {
-    "Delaunay": 1,
-    "Automatic": 2,
-    "Initial": 3,
-    "Frontal": 4,
-    "MMG3D": 7,
-    "R-tree": 9,
-    "HXT": 10,
 }
 
 
@@ -75,7 +64,6 @@ def gmsh_msh(
     gmsh.model.mesh.setSize(gmsh.model.getEntities(0), lcar1)
 
     mesh_dict = meshdata.mesh_dict
-    
 
     eps = {}
     min_eps = 0.5 * unit
@@ -115,12 +103,8 @@ def gmsh_msh(
             lc_data[namGroup] = {"box": [], "pts": [], "lc": lcar1}
             # if isinstance(vEntities, list):
             for i, entity in enumerate(vEntities):
-                (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(
-                    2, entity
-                )
-                _ov = gmsh.model.getEntitiesInBoundingBox(
-                    xmin, ymin, zmin, xmax, ymax, zmax, 0
-                )
+                (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(2, entity)
+                _ov = gmsh.model.getEntitiesInBoundingBox(xmin, ymin, zmin, xmax, ymax, zmax, 0)
                 ov += _ov
 
                 lc_data[namGroup]["box"].append((xmin, ymin, zmin, xmax, ymax, zmax))
@@ -133,22 +117,16 @@ def gmsh_msh(
             lv = []
             size = []
             for i, entity in enumerate(vEntities):
-                (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(
-                    1, entity
-                )
-                _ov = gmsh.model.getEntitiesInBoundingBox(
-                    xmin, ymin, zmin, xmax, ymax, zmax, 0
-                )
+                (xmin, ymin, zmin, xmax, ymax, zmax) = gmsh.model.getBoundingBox(1, entity)
+                _ov = gmsh.model.getEntitiesInBoundingBox(xmin, ymin, zmin, xmax, ymax, zmax, 0)
                 ov += _ov
-                _lv = gmsh.model.getEntitiesInBoundingBox(
-                    xmin, ymin, zmin, xmax, ymax, zmax, 1
-                )
+                _lv = gmsh.model.getEntitiesInBoundingBox(xmin, ymin, zmin, xmax, ymax, zmax, 1)
                 # print(
                 #     f"{namGroup}: entity={entity}, _lv={_lv}, xmin={xmin}, ymin={ymin}, zmin={zmin}, xmax={xmax}, ymax={ymax}, zmax={zmax}"
                 # )
                 lv += _lv
                 size.append(max(abs(xmax - xmin), abs(ymax - ymin)))
-            
+
             lc = lcar1
 
             if eps is not None:
@@ -243,20 +221,14 @@ def gmsh_msh(
             gmsh.model.mesh.field.setNumber(nfield, "VOut", lcar1 * unit)
             gmsh.model.mesh.field.setNumber(nfield, "XMin", 0 * unit)
             gmsh.model.mesh.field.setNumber(nfield, "XMax", 0.8 * max_xmin)
-            gmsh.model.mesh.field.setNumber(
-                nfield, "YMin", copysign(1.2 * min_zmin, min_zmin)
-            )
-            gmsh.model.mesh.field.setNumber(
-                nfield, "YMax", copysign(1.2 * max_zmax, max_zmax)
-            )
+            gmsh.model.mesh.field.setNumber(nfield, "YMin", copysign(1.2 * min_zmin, min_zmin))
+            gmsh.model.mesh.field.setNumber(nfield, "YMax", copysign(1.2 * max_zmax, max_zmax))
             gmsh.model.mesh.field.setNumber(nfield, "Thickness", 0.3 * unit)
             dfields.append(nfield)
             nfield += 1
 
         for key, values in reversed(lc_data.items()):
-            print(
-                f'Field[Box] for {key}: from {nfield} to {nfield+len(values["box"])-1}'
-            )
+            print(f'Field[Box] for {key}: from {nfield} to {nfield+len(values["box"])-1}')
             for box in values["box"]:
                 print(f"\t{box}")
             print(f"\tlc={values['lc']}")

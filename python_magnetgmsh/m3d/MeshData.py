@@ -2,9 +2,7 @@
 # encoding: UTF-8
 
 """Enable to define mesh hypothesis (aka params) for Gmsh surfacic and volumic meshes"""
-import os
 import re
-import yaml
 
 # Load Modules for geometrical Objects
 from python_magnetgeo.Insert import Insert

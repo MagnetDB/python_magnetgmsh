@@ -58,8 +58,8 @@ Repository = "https://github.com/Trophime/python_magnetgmsh"
 python_magnetgmsh = "python_magnetgmsh.cli:main"
 python_rotate = "python_magnetgmsh.rotate:main"
 python_xao2gmsh = "python_magnetgmsh.xao2msh:main"
-Bitter2D = "python_magnetgmsh.Bitter2D:main"
-Bitter2Dquarter = "python_magnetgmsh.Bitter2Dquarter:main"
+Bitter2D = "python_magnetgmsh.m2d.Bitter2D:main"
+Bitter2Dquarter = "python_magnetgmsh.m2d.Bitter2Dquarter:main"
 
 [tool.setuptools]
 zip-safe = false
