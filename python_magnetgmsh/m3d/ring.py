@@ -164,7 +164,7 @@ class Ring:
 
         ## TODO: need to rotate ring to match zero orientation ##
         angle = (2 * math.pi - theta * self.config.n) / self.config.n
-        gmsh.model.occ.rotate(ring, 0, 0, 0, 0, 0, 1, (theta + angle)/2.)
+        gmsh.model.occ.rotate(ring, 0, 0, 0, 0, 0, 1, (theta + angle) / 2.0)
 
         volume_ids = [ring[0][1]]
         print(f"  Created volumes: {volume_ids}")
@@ -281,25 +281,9 @@ class Ring:
         )
         print(f"Found {len(rext)} surfaces for Rext (rint={rext})")
 
-    def generate_mesh(self, mesh_size: Optional[float] = None):
-        """Generate mesh for the entire insert.
-
-        Args:
-            mesh_size: Global mesh size (if None, auto-calculated)
-        """
+    def generate_mesh(self):
+        """Generate mesh for the entire insert."""
         print("\n=== Generating Mesh ===")
-
-        r1 = self.config.r[0]
-        r2 = self.config.r[-1]
-
-        if mesh_size is None:
-            # Auto-calculate mesh size based on first component
-            mesh_size = abs(r2 - r1) / 3.0
-
-        print(f"Mesh size: {mesh_size:.4f}")
-
-        # Set mesh size for all points
-        gmsh.model.mesh.setSize(gmsh.model.getEntities(0), mesh_size)
 
         # Generate 3D mesh
         print("Generating 3D mesh...")
@@ -347,7 +331,18 @@ def main():
 
         # Generate mesh if requested
         if args.mesh:
-            ring.generate_mesh(args.mesh_size)
+            from ..mesh.axi import MeshAlgo2D
+            from ..mesh.m3d import MeshAlgo3D
+
+            gmsh.option.setNumber("Mesh.Algorithm", MeshAlgo2D[args.algo2d])
+            gmsh.option.setNumber("Mesh.Algorithm3D", MeshAlgo3D[args.algo3d])
+
+            gmsh.option.setNumber("Mesh.MeshSizeFactor", args.clscale)
+            gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", args.clcurv)
+            gmsh.option.setNumber("Mesh.MeshSizeMin", args.clmin)
+            gmsh.option.setNumber("Mesh.MeshSizeMax", args.clmax)
+            gmsh.option.setNumber("Mesh.RandomFactor", args.rand)
+            ring.generate_mesh()
 
         print("\n" + "=" * 60)
         print("Ring generation completed successfully")
@@ -364,7 +359,7 @@ def main():
         gmsh.finalize()  # Uncomment if you want to finalize Gmsh
 
     if args.wd:
-            os.chdir(cwd)
+        os.chdir(cwd)
 
 
 if __name__ == "__main__":

@@ -41,9 +41,9 @@ class Helix:
         self.config = config
         self.add_start_hole = add_start_hole
         self.start_hole_diameter: float = 1.6
-        
-        if hasattr(self.config, "start_hole_diameter"):
-            self.start_hole_diameter = self.config.start_hole_diameter
+
+        if hasattr(config, "start_hole_diameter"):
+            self.start_hole_diameter = config.start_hole_diameter
 
         self.volume_ids = []
         self.physical_groups = {}
@@ -84,7 +84,10 @@ class Helix:
         for turn, pitch in zip(new_turns, new_pitchs):
             npts_turn = max(3, int(self.npts * turn))
             dtheta = 2 * math.pi * turn / npts_turn
-            print(f"  Creating helix turn [{self.config.get_Nturns()}]: turn={turn}, pitch={pitch} mm, npts_turn={npts_turn}, dtheta={dtheta*180/math.pi} deg, theta={theta*180/math.pi} deg, z={z} mm", flush=True)
+            print(
+                f"  Creating helix turn [{self.config.get_Nturns()}]: turn={turn}, pitch={pitch} mm, npts_turn={npts_turn}, dtheta={dtheta*180/math.pi} deg, theta={theta*180/math.pi} deg, z={z} mm",
+                flush=True,
+            )
             for i in range(npts_turn):
                 # Copy, rotate and translate section
                 ov = gmsh.model.occ.copy([(2, s)])
@@ -96,13 +99,13 @@ class Helix:
                 curvelooptags, curvetags = gmsh.model.occ.getCurveLoops(ov[0][1])
                 # print('curvetags:', curvetags, len(curvetags), end=" --> ", flush=True)
                 wire = gmsh.model.occ.addCurveLoop(curvetags[0])
-                print(f'\twire: {wire}, theta={theta*180/math.pi} deg, z={z} mm', flush=True)
+                print(f"\twire: {wire}, theta={theta*180/math.pi} deg, z={z} mm", flush=True)
 
                 sections.append(wire)
                 gmsh.model.occ.remove(ov, False)
 
                 theta += dtheta
-                z += pitch * dtheta / (2* math.pi)
+                z += pitch * dtheta / (2 * math.pi)
             print(f"theta={(theta)*180/math.pi} deg, z={z} mm, wire={wire}", flush=True)
 
         # last section
@@ -149,14 +152,12 @@ class Helix:
         _r0 = r1 - self.eps
         _r1 = r2 - r1 + 2 * self.eps
         start = gmsh.model.occ.addCylinder(_r0, 0, _z, _r1, 0, 0, d / 2.0)
-        
+
         ## need to rotate if sens == -1 and nturns in not integer ##
         ## BPside or HPside depending of Helix sens
         if not self.config.odd:
             angle = 2 * math.pi * self.config.get_Nturns()
-            gmsh.model.occ.rotate(
-                [(3, start)], 0, 0, 0, 0, 0, 1, angle
-            )
+            gmsh.model.occ.rotate([(3, start)], 0, 0, 0, 0, 0, 1, angle)
             gmsh.model.occ.synchronize()
 
         # Fragment and fuse with helix
@@ -199,14 +200,12 @@ class Helix:
         _r0 = r1 - self.eps
         _r1 = r2 - r1 + 2 * self.eps
         start = gmsh.model.occ.addCylinder(_r0, 0, _z, _r1, 0, 0, cut / 2.0)
-        
+
         ## need to rotate if sens == -1 and nturns in not integer ##
         ## BPside or HPside depending of Helix sens
         if not self.config.odd:
             angle = 2 * math.pi * self.config.get_Nturns()
-            gmsh.model.occ.rotate(
-                [(3, start)], 0, 0, 0, 0, 0, 1, angle
-            )
+            gmsh.model.occ.rotate([(3, start)], 0, 0, 0, 0, 0, 1, angle)
             gmsh.model.occ.synchronize()
 
         # Fragment and fuse with helix
@@ -263,6 +262,11 @@ class Helix:
         )
         cyl = outDimTags[0]
         gmsh.model.occ.synchronize()
+
+        # TODO #######################
+        # Add support for chamfer
+        # Add support for groove
+        ############################
 
         # Add EDM wire start hole if requested
         if self.add_start_hole:
@@ -343,7 +347,7 @@ class Helix:
         # WATCHOUT assume only two volumes - 1srt one is Cu WATCHOUT
         interface = list(set(bcs[volume_ids[0]]) & set(bcs[volume_ids[1]]))
         if self.config.dble:
-            interface.extend( list(set(bcs[volume_ids[0]]) & set(bcs[volume_ids[2]])) )
+            interface.extend(list(set(bcs[volume_ids[0]]) & set(bcs[volume_ids[2]])))
         print(f"Interface boundaries: {len(interface)}")
 
         # Classify boundary types
@@ -468,25 +472,13 @@ class Helix:
 
         return bc_names
 
-    def generate_mesh(self, mesh_size: Optional[float] = None):
+    def generate_mesh(self):
         """Generate mesh for the entire insert.
 
         Args:
             mesh_size: Global mesh size (if None, auto-calculated)
         """
         print("\n=== Generating Mesh ===")
-
-        r1 = self.config.r[0]
-        r2 = self.config.r[-1]
-
-        if mesh_size is None:
-            # Auto-calculate mesh size based on first component
-            mesh_size = abs(r2 - r1) / 3.0
-
-        print(f"Mesh size: {mesh_size:.4f}")
-
-        # Set mesh size for all points
-        gmsh.model.mesh.setSize(gmsh.model.getEntities(0), mesh_size)
 
         # Generate 3D mesh
         print("Generating 3D mesh...")
@@ -499,7 +491,7 @@ class Helix:
 def main():
     """Main function to orchestrate the helix generation process."""
     import os
-    
+
     print("=" * 60)
     print("Helix Gmsh Geometry Generator")
     print("=" * 60)
@@ -534,7 +526,18 @@ def main():
 
         # Generate mesh if requested
         if args.mesh:
-            helix.generate_mesh(args.mesh_size)
+            from ..mesh.axi import MeshAlgo2D
+            from ..mesh.m3d import MeshAlgo3D
+
+            gmsh.option.setNumber("Mesh.Algorithm", MeshAlgo2D[args.algo2d])
+            gmsh.option.setNumber("Mesh.Algorithm3D", MeshAlgo3D[args.algo3d])
+
+            gmsh.option.setNumber("Mesh.MeshSizeFactor", args.clscale)
+            gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", args.clcurv)
+            gmsh.option.setNumber("Mesh.MeshSizeMin", args.clmin)
+            gmsh.option.setNumber("Mesh.MeshSizeMax", args.clmax)
+            gmsh.option.setNumber("Mesh.RandomFactor", args.rand)
+            helix.generate_mesh()
 
         print("\n" + "=" * 60)
         print("Helix generation completed successfully")
@@ -551,7 +554,7 @@ def main():
         gmsh.finalize()  # Uncomment if you want to finalize Gmsh
 
     if args.wd:
-            os.chdir(cwd)
+        os.chdir(cwd)
 
 
 if __name__ == "__main__":

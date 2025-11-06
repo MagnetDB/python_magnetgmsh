@@ -36,15 +36,15 @@ class Insert:
         """
         self.config = config
         self.helices = []
-        for helixconfig in self.config.helices:
+        for helixconfig in config.helices:
             self.helices.append(Helix(helixconfig, add_start_hole=add_start_hole))
 
         self.rings = []
-        for ringconfig in self.config.rings:
+        for ringconfig in config.rings:
             self.rings.append(Ring(ringconfig))
 
-        self.hangles = self.config.hangles
-        self.rangles = self.config.rangles
+        self.hangles = config.hangles
+        self.rangles = config.rangles
 
         print(f"\nTotal components: {len(self.helices)} helices, {len(self.rings)} rings")
 
@@ -185,7 +185,6 @@ class Insert:
         self,
         helices_ids: List[List[int]],
         rings_ids: List[List[int]],
-        mesh_size: Optional[float] = None,
     ):
         """Generate mesh for the entire insert.
 
@@ -194,32 +193,13 @@ class Insert:
         """
         print("\n=== Generating Mesh ===")
 
+        """
         # Set mesh options
         gmsh.option.setNumber("Geometry.NumSubEdges", 1000)
         gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", 40)
         gmsh.option.setNumber("Mesh.MeshSizeMin", 0.1)
         gmsh.option.setNumber("Mesh.MeshSizeMax", 1)
         gmsh.option.setNumber("Mesh.AngleToleranceFacetOverlap", 0.1)
-
-        """
-        if mesh_size is None:
-            # Auto-calculate mesh size based on first component
-            if self.helices:
-                for i, helix in enumerate(self.helices):
-                    mesh_size = abs(helix.config.r2 - helix.config.r1) / 3.
-                
-            elif self.rings:
-                for i, ring in enumerate(self.rings):
-                    mesh_size = abs(ring.config.r2 - ring.config.r1) / 3.
-            else:
-                mesh_size = 1.0
-                
-        # else:
-        # Set mesh size for all points
-        print(f"Mesh size: {mesh_size:.4f}")
-        gmsh.model.mesh.setSize(gmsh.model.getEntities(0), mesh_size)
-        
-        print(f"Mesh size: {mesh_size:.4f}")
         """
 
         # Generate 3D mesh
@@ -259,10 +239,24 @@ def parse_arguments() -> argparse.Namespace:
         help="select an algorithm for 3d mesh",
         type=str,
         choices=get_allowed_algo3D(),
-        default="Delaunay",
+        default="Hxt",
     )
     parser.add_argument("-nopopup", action="store_true", help="Do not show Gmsh GUI")
-    parser.add_argument("-mesh-size", type=float, default=None, help="Global mesh size (optional)")
+    parser.add_argument(
+        "-clscale", type=float, default=1.0, help="Mesh characteristic length scale factor"
+    )
+    parser.add_argument(
+        "-clcurv", type=float, default=20, help="Mesh characteristic length curvature factor"
+    )
+    parser.add_argument(
+        "-clmin", type=float, default=1.0e-2, help="Minimum mesh characteristic length"
+    )
+    parser.add_argument(
+        "-clmax", type=float, default=1.0, help="Maximum mesh characteristic length"
+    )
+    parser.add_argument(
+        "-rand", type=float, default=1.0e-12, help="Random seed for mesh generation"
+    )
     args = parser.parse_args()
     print(f"Arguments: {args}")
     return args
@@ -270,8 +264,8 @@ def parse_arguments() -> argparse.Namespace:
 
 def main():
     """Main function to orchestrate the insert generation process."""
-    import os 
-    
+    import os
+
     print("=" * 60)
     print("Insert Gmsh Geometry Generator")
     print("=" * 60)
@@ -288,7 +282,7 @@ def main():
     cwd = os.getcwd()
     if args.wd:
         os.chdir(args.wd)
-        
+
     # Create insert and load configuration
     try:
         insertconfig = getObject(args.config)
@@ -296,7 +290,7 @@ def main():
         # Handle validation errors from python_magnetgeo
         print(f"Validation error: {e}")
 
-    insert = Insert(insertconfig, start_hole=args.start_hole)
+    insert = Insert(insertconfig, add_start_hole=args.start_hole)
 
     # Generate geometry
     # helices_ids, rings_ids, children_dict = insert.generate_geometry()
@@ -313,7 +307,14 @@ def main():
 
         gmsh.option.setNumber("Mesh.Algorithm", MeshAlgo2D[args.algo2d])
         gmsh.option.setNumber("Mesh.Algorithm3D", MeshAlgo3D[args.algo3d])
-        insert.generate_mesh(helices_ids, rings_ids, args.mesh_size)
+
+        gmsh.option.setNumber("Mesh.MeshSizeFactor", args.clscale)
+        gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", args.clcurv)
+        gmsh.option.setNumber("Mesh.MeshSizeMin", args.clmin)
+        gmsh.option.setNumber("Mesh.MeshSizeMax", args.clmax)
+        gmsh.option.setNumber("Mesh.RandomFactor", args.rand)
+
+        insert.generate_mesh(helices_ids, rings_ids)
 
     print("\n" + "=" * 60)
     print("Insert generation completed successfully")
@@ -332,9 +333,10 @@ def main():
     finally:
     """
     if args.wd:
-            os.chdir(cwd)
+        os.chdir(cwd)
 
     gmsh.finalize()  # Uncomment if you want to finalize Gmsh
+
 
 if __name__ == "__main__":
     main()
