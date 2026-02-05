@@ -19,11 +19,11 @@ from ..mesh.bcs import create_bcs
 from ..utils.lists import flatten
 
 import_dict = {
-    Insert.Insert: ".Insert",
-    Bitter.Bitter: ".Bitter",
-    Bitters.Bitters: ".Bitters",
-    Supra.Supra: ".Supra",
-    Supras.Supras: ".Supras",
+    Insert.Insert: ".axi.Insert",
+    Bitter.Bitter: ".axi.Bitter",
+    Bitters.Bitters: ".axi.Bitters",
+    Supra.Supra: ".axi.Supra",
+    Supras.Supras: ".axi.Supras",
 }
 
 

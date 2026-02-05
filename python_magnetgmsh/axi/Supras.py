@@ -8,7 +8,7 @@ from python_magnetgeo.Supra import Supra
 from python_magnetgeo.Supras import Supras
 from ..utils.lists import flatten
 
-import_dict = {Supra: ".Supra"}
+import_dict = {Supra: ".axi.Supra"}
 
 
 def gmsh_box(Supras: Supras, debug: bool = False) -> list:

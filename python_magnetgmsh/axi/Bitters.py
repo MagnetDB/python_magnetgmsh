@@ -9,7 +9,7 @@ from ..utils.lists import flatten
 from ..mesh.bcs import create_bcs
 from importlib import import_module
 
-import_dict = {Bitter: ".Bitter"}
+import_dict = {Bitter: ".axi.Bitter"}
 
 
 def gmsh_box(Bitters: Bitters, debug: bool = False) -> list:

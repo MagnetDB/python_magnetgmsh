@@ -86,11 +86,9 @@ def gmsh_msh(
         dimGroup = iGroup[0]  # 1D, 2D or 3D
         tagGroup = iGroup[1]
         namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
-        # print(f"namGroup={namGroup} dimgroup={dimGroup}")
         if namGroup in mesh_dict:
             _namGroup = re.sub(r"_Slit\d+[_[lr]]", "", namGroup)
             lc = mesh_dict[_namGroup]["lc"]
-            print(f"{namGroup}: lc={lc}")
 
             vEntities = gmsh.model.getEntitiesForPhysicalGroup(dimGroup, tagGroup)
             ov = []

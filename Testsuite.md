@@ -1,6 +1,10 @@
 # Axi  tessuite
 
-see `testsuite.sh`
+run:
+
+```shell
+./testsuite.sh [/path/to/working/directory]
+```
 
 # 2D testsuite
 
@@ -10,9 +14,9 @@ feature not implemented yet
 
 # Xao testsuite
 
-see `testsuite-xao.sh`
+```shell
+./testsuite-xao.sh [/path/to/working/directory]
+```
 
-[NOTE]
-====
-You may have to run hifimagnet Salome plugin testsuite Axi before running xao2msh tessuite
-====
+> NOTE
+> You may have to run hifimagnet Salome plugin testsuite Axi before running xao2msh tessuite

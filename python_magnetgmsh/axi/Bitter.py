@@ -56,12 +56,12 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, thickslit: bool = False, debug: boo
     # print("y=", y)
     tol = 1e-10
 
+    # HP
     if abs(y - Bitter.z[0]) >= tol:
         _id = gmsh.model.occ.addRectangle(x, Bitter.z[0], 0, dr, abs(y - Bitter.z[0]))
         gmsh_ids.append(_id)
 
-    # print("gmsh_ids=", gmsh_ids)
-
+    # Sections
     for i, (n, pitch) in enumerate(zip(Bitter.modelaxi.turns, Bitter.modelaxi.pitch)):
         dz = n * pitch
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, dz)
@@ -69,7 +69,7 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, thickslit: bool = False, debug: boo
         y += dz
         # print("(n=", n, " pitch=", pitch, ")dz=", dz, " gmsh_ids=", gmsh_ids, " y=", y)
 
-    # Add chamfer on BP here
+    # BP
     if abs(y - Bitter.z[1]) >= tol:
         # print("abs(y - Bitter.z[1])=", abs(y - Bitter.z[1]))
         _id = gmsh.model.occ.addRectangle(x, y, 0, dr, abs(y - Bitter.z[1]))
@@ -109,10 +109,12 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, thickslit: bool = False, debug: boo
                     x - eps / 2.0, Bitter.z[0], 0, eps, abs(Bitter.z[1] - Bitter.z[0])
                 )
                 gmsh_slits.append(_id)
+            print(f"gmsh_slits {len(gmsh_slits)}=", gmsh_slits)
 
             o, m = gmsh.model.occ.cut(
                 [(2, _id) for _id in gmsh_ids],
                 [(2, _id) for _id in gmsh_slits + gmsh_tierod],
+                removeObject=True,
                 removeTool=True,
             )
             gmsh.model.occ.synchronize()
@@ -125,7 +127,7 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, thickslit: bool = False, debug: boo
                     _ids.append(tag)
                 if dim == 1:
                     _cracks.append(tag)
-            if _ids:
+            if _ids and _ids not in [[_id] for _id in gmsh_slits]:
                 ngmsh_ids.append(_ids)
             if _cracks:
                 ngmsh_cracks.append(_cracks)
@@ -150,6 +152,7 @@ def gmsh_ids(Bitter: Bitter, AirData: tuple, thickslit: bool = False, debug: boo
         gmsh.model.occ.synchronize()
         Air_data = (_id, dr_air, z0_air, dz_air)
 
+    print("total gmsh_ids=", gmsh_ids, len(gmsh_ids))
     return (gmsh_ids, gmsh_cracks, Air_data)
 
 
@@ -172,6 +175,7 @@ def gmsh_bcs(
 
     psnames = Bitter.get_names(mname, is2D=True, verbose=debug)
     print(f"Bitter: psnames={psnames} ({len(psnames)}), B_ids={len(flatten(B_ids))}")
+    print(f"Bitter: B_ids={B_ids}))")
     assert len(flatten(B_ids)) == len(
         psnames
     ), f"Bitter/gmsh_bcs {Bitter.name}: trouble with psnames (expected {len(psnames)} got {len(flatten(B_ids))})"
@@ -191,9 +195,11 @@ def gmsh_bcs(
         else:
             ps = gmsh.model.addPhysicalGroup(2, id)
 
+        print(f"i={i}, id={id}, num={num}, {psnames[num]}", flush=True)
         psname = re.sub(r"_S\d+", "", psnames[num])
         print(
-            f"Bitter[{i}]: id={id}, mname={mname}, psnames[{num}]={psnames[num]}, psname={psname} / {len(B_ids)}"
+            f"Bitter[{i}]: id={id}, mname={mname}, psnames[{num}]={psnames[num]}, psname={psname} / {len(B_ids)}",
+            flush=True,
         )
         gmsh.model.setPhysicalName(2, ps, psname)
         defs[psname] = ps

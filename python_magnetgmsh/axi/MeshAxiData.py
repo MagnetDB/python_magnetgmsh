@@ -218,7 +218,7 @@ class MeshAxiData(YAMLObjectBase):
                     mesh_dict[f"{hypname}{Object.name}_dp{i}_i"] = {"lc": hypoths}
                 hypoths = self.part_default(Object, f"{hypname}{Object.name}_i")
                 for i in range(n_dp - 1):
-                    mesh_dict[f"{hypname}{Object.name}_i{i}"] =  {"lc": hypoths}
+                    mesh_dict[f"{hypname}{Object.name}_i{i}"] = {"lc": hypoths}
 
             else:
                 raise RuntimeError(
@@ -258,7 +258,6 @@ class MeshAxiData(YAMLObjectBase):
         self.mesh_dict = mesh_dict
         return mesh_dict
 
-
     @classmethod
     def from_dict(cls, values: dict, debug: bool = False):
         name = values["name"]
@@ -270,27 +269,46 @@ class MeshAxiData(YAMLObjectBase):
             mesh_dict,
         )
 
+    def dump(self, filename: str = None):
+        """
+        Save mesh_dict to YAML file
+        """
+        if filename is None:
+            filename = f"{self.name}_gmshaxidata.yaml"
+
+        data = {
+            "name": self.name,
+            "algosurf": self.algosurf,
+            "mesh_dict": self.mesh_dict,
+        }
+
+        with open(filename, "w") as f:
+            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+
+        print(f"MeshAxiData saved to {filename}")
+
+
 # add a wd args?
 def createMeshAxiData(prefix: str, Object, AirData: tuple, filename: str, algo2d: str):
     import os
-    from python_magnetgeo.utils import ObjectLoadError 
+    from python_magnetgeo.utils import ObjectLoadError
 
     print(f"createMeshAxiData: cwd: {os.getcwd()}, filename={filename}", flush=True)
 
     try:
         _MeshData = MeshAxiData.from_yaml(f"{filename}.yaml")
-    
+
     # Catch all I/O and parsing errors raised by the library
     except ObjectLoadError as e:
         # Determine the specific cause based on the error message
         is_file_missing = "YAML file not found" in str(e)
-        
+
         if is_file_missing:
             print(f"*** File missing: {filename}.yaml", flush=True)
         else:
             # Catches the converted YAMLError (Failed to parse YAML)
             raise RuntimeError(f"*** Failed to parse YAML in {filename}: {e}")
-            
+
         print("*** trying to generate default gmshaxidata", flush=True)
 
         _MeshData = MeshAxiData(filename, algo2d)
@@ -300,7 +318,6 @@ def createMeshAxiData(prefix: str, Object, AirData: tuple, filename: str, algo2d
         print("meshdata default")
         _MeshData.dump()
         print("mesh dump")
-        
 
     except Exception as e:
         # Catch any *other* unexpected, non-loading errors

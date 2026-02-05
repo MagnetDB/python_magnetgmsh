@@ -254,14 +254,14 @@ def main():
     gmsh.logger.start()
 
     import_dict = {
-        Helix.Helix: ".Helix",
-        Insert.Insert: ".Insert",
-        Bitter.Bitter: ".Bitter",
-        Supra.Supra: ".Supra",
-        Screen.Screen: ".Screen",
-        Supras.Supras: ".Supras",
-        Bitters.Bitters: ".Bitters",
-        MSite.MSite: ".MSite",
+        Helix.Helix: ".axi.Helix",
+        Insert.Insert: ".axi.Insert",
+        Bitter.Bitter: ".axi.Bitter",
+        Supra.Supra: ".axi.Supra",
+        Screen.Screen: ".axi.Screen",
+        Supras.Supras: ".axi.Supras",
+        Bitters.Bitters: ".axi.Bitters",
+        MSite.MSite: ".axi.MSite",
     }
     from importlib import import_module
 
