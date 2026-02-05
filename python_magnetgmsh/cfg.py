@@ -42,12 +42,15 @@ See Also:
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Union, Optional
+import logging
 
 
 # Lazy loading import - automatically detects geometry type
 from python_magnetgeo.utils import getObject
 from python_magnetgeo.validation import ValidationError
 from python_magnetgeo import Insert, Helix, Bitter, Bitters, Supra, Supras, Screen, MSite  # For type checking only
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class GeometryLoadResult:
@@ -136,13 +139,14 @@ def Supra_Gmsh(
         Supras_Gmsh: For loading collections of superconducting coils
         python_magnetgeo.Supra: Source geometry class definition
     """
-    print(f"Supra_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
+    logger.info(f"Loading Supra geometry: {cad.name}")
+    logger.debug(f"Supra_Gmsh: mname={mname}, gname={gname}, is2D={is2D}")
     prefix = ""
     if mname:
         prefix = mname
     
     solid_names=cad.get_names(prefix, is2D, verbose)
-    print('supra: solid_names:', solid_names, flush=True)
+    logger.debug(f"Created {len(solid_names)} solid objects: {solid_names}")
     channels = cad.get_channels(mname)
     isolants = cad.get_isolants(mname)
     return GeometryLoadResult(solid_names=solid_names, channels=channels, isolants=isolants)
@@ -209,7 +213,8 @@ def Bitter_Gmsh(
         Bitters_Gmsh: For loading multiple Bitter plates
         python_magnetgeo.Bitter: Source geometry class
     """
-    print(f"Bitter_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
+    logger.info(f"Loading Bitter geometry: {cad.name}")
+    logger.debug(f"Bitter_Gmsh: mname={mname}, gname={gname}, is2D={is2D}")
     prefix = ""
     if mname:
         prefix = mname
@@ -273,7 +278,8 @@ def Helix_Gmsh(
     See Also:
         python_magnetgeo.Helix: Source geometry class
     """
-    print(f"Helix_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
+    logger.info(f"Loading Helix geometry: {cad.name}")
+    logger.debug(f"Helix_Gmsh: mname={mname}, gname={gname}, is2D={is2D}")
     prefix = ""
     if mname:
         prefix = mname
@@ -332,8 +338,9 @@ def Insert_Gmsh(
         python_magnetgeo.Insert: Source assembly class
         Helix_Gmsh: Individual helix processing
     """
-    print(f"Insert_Gmsh: mname={mname}, cad={cad.name}, gname={gname}")
-    print('cad.get_names: ', cad.get_names(mname, is2D, verbose))
+    logger.info(f"Loading Insert geometry: {cad.name}")
+    logger.debug(f"Insert_Gmsh: mname={mname}, gname={gname}, is2D={is2D}")
+    logger.debug(f"cad.get_names: {cad.get_names(mname, is2D, verbose)}")
     
     solid_names=cad.get_names(mname, is2D, verbose)
     channels = cad.get_channels(mname)
@@ -384,7 +391,8 @@ def Bitters_Gmsh(
         Bitter_Gmsh: Individual plate processing
         python_magnetgeo.Bitters: Source collection class
     """
-    print(f"Bitters_Gmsh: mname={mname}, gname={gname}")
+    logger.info(f"Loading Bitters geometry collection")
+    logger.debug(f"Bitters_Gmsh: mname={mname}, gname={gname}, is2D={is2D}")
     solid_names = []
     prefix = ""
     if mname:
@@ -392,7 +400,7 @@ def Bitters_Gmsh(
 
     for magnet in cad.magnets:
         _res = Bitter_Gmsh(f"{prefix}{magnet.name}", magnet, gname, is2D, verbose)
-        print(f"Bitter_Gmsh: _names={_res.solid_names}")
+        logger.debug(f"Bitter_Gmsh result: {len(_res.solid_names)} solids")
         solid_names += _res.solid_names
         
     channels = cad.get_channels(mname)
@@ -430,7 +438,8 @@ def Supras_Gmsh(
     See Also:
         Supra_Gmsh: Individual coil processing
     """
-    print(f"Supras_Gmsh: mname={mname}, gname={gname}")
+    logger.info(f"Loading Supras geometry collection")
+    logger.debug(f"Supras_Gmsh: mname={mname}, gname={gname}, is2D={is2D}")
     solid_names = []
     channels = []
     isolants = []
@@ -487,18 +496,18 @@ def Magnet_Gmsh(
     """
         
     pname = cad.name
-    print(f"Magnet_Gmsh: mname={mname}, cad={pname}, gname={gname}")
+    logger.info(f"Loading magnet: {pname}")
+    logger.debug(f"Magnet_Gmsh: mname={mname}, gname={gname}, type={type(cad).__name__}")
     solid_names = []
     channels = []
     isolants = []
 
-    # print('pcad: {pcad} type={type(pcad)}')
+    # logger.debug(f'cad: {cad}, type={type(cad)}')
     _res = action_dict[type(cad)]["run"](mname, cad, pname, is2D, verbose)
     solid_names += _res.solid_names
     channels += _res.channels
     isolants += _res.isolants
-    if verbose:
-        print(f"Magnet_Gmsh: {cad} Done [solids {len(solid_names)}]")
+    logger.debug(f"Magnet_Gmsh: {cad.name} processed [{len(solid_names)} solids]")
     return GeometryLoadResult(name=pname, solid_names=solid_names, channels=channels, isolants=isolants)
 
 
@@ -553,8 +562,9 @@ def MSite_Gmsh(
         python_magnetgeo.MSite: Source site class
     """
 
-    print(f"MSite_Gmsh: gname={gname}, cad={cad}")
-    # print("MSite_Gmsh Channels:", cad.get_channels())
+    logger.info(f"Loading MSite geometry: {cad.name}")
+    logger.debug(f"MSite_Gmsh: gname={gname}, is2D={is2D}")
+    # logger.debug("MSite Channels:", cad.get_channels())
 
     solid_names = []
     Channels = cad.get_channels("")
@@ -564,9 +574,8 @@ def MSite_Gmsh(
         _res = Magnet_Gmsh("", magnet, solid_names, is2D, verbose)
         solid_names += _res.solid_names
 
-    print(f"Channels: {Channels}")
-    if verbose:
-        print(f"MSite_Gmsh: {cad} Done [solids {len(solid_names)}]")
+    logger.debug(f"Channels: {Channels}")
+    logger.debug(f"MSite_Gmsh: {cad.name} processed [{len(solid_names)} solids]")
     return GeometryLoadResult(solid_names=solid_names, channels=Channels, isolants=Isolants)
 
 action_dict = {
@@ -648,20 +657,21 @@ def loadcfg(
         - 0.1.0: Added ValidationError handling and improved error messages
         - 0.0.x: Initial implementation with basic type dispatch
     """
-    print(f"loadcfg: cfgfile={cfgfile}, gname={gname}, is2D={is2D}")
+    logger.info(f"Loading configuration: {cfgfile}")
+    logger.debug(f"loadcfg: gname={gname}, is2D={is2D}")
 
     solid_names = []
     Channels = None
 
     try:
         cad = getObject(cfgfile)
+        logger.info(f"Loaded {type(cad).__name__}: {cad.name}")
     except ValidationError as e:
         # Handle validation errors from python_magnetgeo
-        print(f"Validation error: {e}")
+        logger.error(f"Validation error in {cfgfile}: {e}")
+        raise
     
-    print(f"cfgfile: {cad.name} type={type(cad)}", flush=True)
-    if verbose:
-        print("load cfg {type(cad)}")
+    logger.debug(f"Geometry type: {type(cad).__name__}")
 
     mname = ""
     if type(cad) not in action_dict:
@@ -670,10 +680,10 @@ def loadcfg(
             f"Supported types: {', '.join(cls.__name__ for cls in action_dict.keys())}"
         )
     result = action_dict[type(cad)]["run"](mname, cad, gname, is2D, verbose)
-    print("results:", result, flush=True)
+    logger.debug(f"Loader results: {len(result.solid_names)} solids, {len(result.channels) if result.channels else 0} channels")
     
     # Extract channels, handle None case
     channels = result.channels if result.channels is not None else []
     
-    print(f"cfg: solid_names={result.solid_names}, Channels={channels}", flush=True)
+    logger.info(f"Configuration loaded: {len(result.solid_names)} solids, {len(channels) if isinstance(channels, list) else 'dict'} channels")
     return (result.solid_names, channels)

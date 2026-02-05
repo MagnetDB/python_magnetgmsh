@@ -1,9 +1,12 @@
 import os
+import logging
 
 import gmsh
 
 import xmltodict
 from collections import OrderedDict
+
+logger = logging.getLogger(__name__)
 
 
 def load_Xao_groups(xml_dict: dict, debug: bool = False) -> tuple:
@@ -18,28 +21,24 @@ def load_Xao_groups(xml_dict: dict, debug: bool = False) -> tuple:
 
     # load group name definition
     for key, value in xml_dict["XAO"]["groups"].items():
-        # print(f"key={key}, value={value}")
+        # logger.debug(f"key={key}, value={value}")
         if key == "group":
             for i, item in enumerate(value):
                 name = item["@name"]
                 dimension = item["@dimension"]
                 count = item["@count"]
-                if debug:
-                    print("item[element]: ", item["element"], type(item["element"]))
+                logger.debug(f"Processing group: {name}, dimension: {dimension}, count: {count}")
                 elements = []
                 if isinstance(item["element"], list):
                     for evalue in item["element"]:
-                        # print(f'evalue={list(evalue.values())}')
+                        # logger.debug(f'evalue={list(evalue.values())}')
                         elements += [int(v) + 1 for v in list(evalue.values())]
                 elif isinstance(item["element"], dict) or isinstance(
                     item["element"], OrderedDict
                 ):
-                    # print(f"evalue={list(item['element'].values())}")
+                    # logger.debug(f"evalue={list(item['element'].values())}")
                     elements += [int(v) + 1 for v in list(item["element"].values())]
-                if debug:
-                    print(
-                        f"item[{i}]: name={name}, dim={dimension}, count={count}, elements={elements} ({len(elements)}))"
-                    )
+                logger.debug(f"Group {name}: {len(elements)} elements")
 
                 if dimension == "solid":
                     vtags[name] = elements
@@ -63,23 +62,23 @@ def load_Xao(file: str, GeomParams: dict, debug=False):
     cleanup = False
 
     # try to load file with xmltodict
-    print("xmltodict:")
+    logger.info(f"Loading XAO file with xmltodict: {file}")
     with open(file, "r") as f:
         xml_content = f.read()
-        # print(xml_content)
+        # logger.debug(xml_content)
 
         # change xml format to ordered dict
         my_ordered_dict = xmltodict.parse(xml_content)
-        # print("Ordered Dictionary is:")
-        # print(my_ordered_dict)
+        # logger.debug("Ordered Dictionary is:")
+        # logger.debug(my_ordered_dict)
 
         # load group name definition
         if debug:
             for key, value in my_ordered_dict["XAO"]["geometry"].items():
-                print(f"key={key}, value={value} (type={type(value)})")
+                logger.debug(f"key={key}, value type={type(value)}")
                 if isinstance(value, OrderedDict):
                     for skey, svalue in value.items():
-                        print(f"skey={skey}, svalue={svalue}")
+                        logger.debug(f"  skey={skey}, svalue={svalue}")
 
         # look for shape if BREP is not embedded and store the value in  tmp file
         cad = my_ordered_dict["XAO"]["geometry"]
@@ -89,7 +88,7 @@ def load_Xao(file: str, GeomParams: dict, debug=False):
         if "@file" in cad["shape"]:
             ffile = cad["shape"]["@file"]
         else:
-            print("CAD is embedded into xao file")
+            logger.info("CAD geometry is embedded in XAO file")
             cad_data = cad["shape"]["#text"]
 
             ffile = f"tmp.{fformat.lower()}"
@@ -142,19 +141,20 @@ def load_Xao(file: str, GeomParams: dict, debug=False):
     """
 
     gmsh.model.add(gname)
+    logger.info(f"Importing CAD shapes from {ffile}")
     volumes = gmsh.model.occ.importShapes(ffile)
     gmsh.model.occ.synchronize()
 
     if len(gmsh.model.getEntities(GeomParams["Solid"][0])) == 0:
-        print(f"Pb loaging {ffile}:")
-        print(f"Solids: {len(volumes)}")
+        logger.error(f"Failed to load solids from {ffile}")
+        logger.error(f"Volumes imported: {len(volumes)}")
         exit(1)
 
     if debug:
         # get all model entities
         ent = gmsh.model.getEntities()
         for e in ent:
-            print(e)
+            logger.debug(f"Entity: {e}")
     if cleanup:
         os.remove(ffile)
 

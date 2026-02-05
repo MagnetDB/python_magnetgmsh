@@ -3,6 +3,7 @@
 
 """Enable to define mesh hypothesis (aka params) for Gmsh surfacic and volumic meshes"""
 import re
+import logging
 
 # Load Modules for geometrical Objects
 from python_magnetgeo.Insert import Insert
@@ -15,6 +16,8 @@ from python_magnetgeo.Screen import Screen
 from python_magnetgeo.Ring import Ring
 from python_magnetgeo.Helix import Helix
 from python_magnetgeo.base import YAMLObjectBase
+
+logger = logging.getLogger(__name__)
 
 ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix | Ring
 
@@ -76,10 +79,10 @@ class MeshData(YAMLObjectBase):
         )
 
     def algo2d(self, algosurf):
-        print("set surfacic mesh algo - not implemented yet")
+        logger.warning("Setting surfacic mesh algorithm not implemented yet")
 
     def algo3d(self, algo):
-        print("set volumic mesh algo - not implemented yet")
+        logger.warning("Setting volumic mesh algorithm not implemented yet")
 
     def part_default(
         self, H: Helix | Bitter | Supra | Screen | Ring, addname: str = ""
@@ -87,7 +90,7 @@ class MeshData(YAMLObjectBase):
         """
         Define default mesh params for Helix
         """
-        print(f"part_default: name={H.name}, lc={H.get_lc}")
+        logger.debug(f"part_default: name={H.name}, lc={H.get_lc}")
         return H.get_lc()
 
     def air_default(self, Data: tuple):
@@ -119,14 +122,13 @@ class MeshData(YAMLObjectBase):
         Define default mesh params
         """
 
-        print(
-            f"{__name__}: creating default MeshData,  mname={mname}, Object.name={Object.name}, Air={Air}, wd={workingDir}"
-        )
+        logger.info(f"Creating default MeshData for {Object.name}")
+        logger.debug(f"mname={mname}, Air={Air}, workingDir={workingDir}")
         mesh_dict = {}
         hypoths = []
 
         if isinstance(Object, MSite):
-            print(f"Creating MeshData for MSite {Object.name}, mname={mname}")
+            logger.debug(f"Creating MeshData for MSite {Object.name}")
             for j, mObject in enumerate(Object.magnets):
                 prefix = ""
                 if mname:
@@ -137,7 +139,7 @@ class MeshData(YAMLObjectBase):
                 mesh_dict.update(_tmp)
 
         elif isinstance(Object, Bitters):
-            print(f"Creating MeshData for Bitters {Object.name}, (mname={mname})")
+            logger.debug(f"Creating MeshData for Bitters {Object.name}")
             for mObject in Object.magnets:
                 prefix = ""
                 if mname:
@@ -148,7 +150,7 @@ class MeshData(YAMLObjectBase):
                 mesh_dict.update(_tmp)
 
         elif isinstance(Object, Supras):
-            print(f"Creating MeshData for Supras {Object.name}, mname={mname}")
+            logger.debug(f"Creating MeshData for Supras {Object.name}")
             for mObject in Object.magnets:
                 prefix = ""
                 if mname:
@@ -162,9 +164,7 @@ class MeshData(YAMLObjectBase):
             hypname = ""
             if mname:
                 hypname = f"{mname}_"
-            print(
-                f"Creating MeshData for Screen {Object.name}, mname={mname}, hypname={hypname}"
-            )
+            logger.debug(f"Creating MeshData for Screen {Object.name}, hypname={hypname}")
             surfhypoth =self.part_default(Object, f"{hypname}{Object.name}_Screen")
             mesh_dict[f"{hypname}{Object.name}_Screen"] = {"lc": hypoths}
 
@@ -172,24 +172,22 @@ class MeshData(YAMLObjectBase):
             hypname = ""
             if mname:
                 hypname = f"{mname}"
-            print(
-                f"Creating MeshData for Bitter {Object.name}, mname={mname}, hypname={hypname}"
-            )
+            logger.debug(f"Creating MeshData for Bitter {Object.name}, hypname={hypname}")
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
-            print(f"psnames={psnames}")
+            logger.debug(f"Bitter parts: {psnames}")
             hypoths_names = [re.sub(r"_Slit\d+", "", psname) for psname in psnames]
             hypoths_names = list(set(hypoths_names))
             surfhypoth = self.part_default(Object, hypoths_names[0])
             for psname in hypoths_names:
-                print(f"\tpsname={psname}")
+                logger.debug(f"  Setting mesh params for: {psname}")
                 mesh_dict[psname] = {"lc": surfhypoth}
 
         elif isinstance(Object, Supra):
-            print(f"Creating MeshData for Supra {Object.name}, mname={mname}")
+            logger.debug(f"Creating MeshData for Supra {Object.name}")
             hypname = ""
             if mname:
                 hypname = f"{mname}_"
-            print(f"hypname/Object.name={hypname}{Object.name}")
+            logger.debug(f"Supra hypname: {hypname}{Object.name}")
 
             if Object.detail == "None":
                 surfhypoth = self.part_default(Object, f"{hypname}{Object.name}")
@@ -252,18 +250,12 @@ class MeshData(YAMLObjectBase):
             hypname = ""
             if mname:
                 hypname = f"{mname}"
-            print(
-                f"Creating MeshData for Insert {Object.name}, mname={mname}, hypname={hypname}"
-            )
+            logger.debug(f"Creating MeshData for Insert {Object.name}, hypname={hypname}")
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
-            print(
-                f"Creating MeshData for Insert {Object.name}, mname={mname}, psnames={psnames}"
-            )
+            logger.debug(f"Insert parts: {psnames}")
             num = 0
             for i, H in enumerate(Object.helices):
-                print(
-                    f"MeshData for H: {H.name}, nturns={len(H.modelaxi.turns)}, psname[{num}]={psnames[num]}"
-                )
+                logger.debug(f"MeshData for Helix: {H.name}, nturns={len(H.modelaxi.turns)}")
 
                 psname = re.sub(r"_Cu\d+", "", psnames[num])
                 for n in range(len(H.modelaxi.turns) + 2):
@@ -275,13 +267,12 @@ class MeshData(YAMLObjectBase):
                 num += 1
 
         if Air:
-            print("MeshData for Air")
+            logger.debug("Creating MeshData for Air domain")
             [Air_, Biot_] = self.air_default(Air)
             mesh_dict["Air"] = {"lc": Air_}
             mesh_dict["Biot"] = {"lc": Biot_}
-            # print "Creating MeshData for Air... done"
         else:
-            print("No Air defined")
+            logger.debug("No Air domain defined")
 
         self.mesh_dict = mesh_dict
         return mesh_dict
@@ -304,23 +295,24 @@ def createMeshData(prefix: str, Object, filename: str, AirData: tuple, algo2d: s
     import os
     from python_magnetgeo.utils import ObjectLoadError 
 
-    print(f"createMeshData: cwd: {os.getcwd()}, filename={filename}", flush=True)
+    logger.info(f"Loading/creating MeshData: {filename}")
+    logger.debug(f"Working directory: {os.getcwd()}")
 
     try:
         _MeshData = MeshData.from_yaml(f"{filename}.yaml")
+        logger.info(f"Loaded existing MeshData from {filename}.yaml")
     # Catch all I/O and parsing errors raised by the library
     except ObjectLoadError as e:
         # Determine the specific cause based on the error message
         is_file_missing = "YAML file not found" in str(e)
         
         if is_file_missing:
-            print(f"*** File missing: {filename}.yaml", flush=True)
+            logger.info(f"MeshData file not found, creating default: {filename}.yaml")
         else:
             # Catches the converted YAMLError (Failed to parse YAML)
             raise RuntimeError(f"*** Failed to parse YAML in {filename}: {e}")
             
-        print("*** failed to load meshdata")
-        print("*** trying to generate default gmshdata")
+        logger.debug("Generating default meshdata")
         _MeshData = MeshData(filename)
         _MeshData.default(prefix, Object, AirData)
         _MeshData.dump()

@@ -2,6 +2,8 @@ import os
 import sys
 import gmsh
 
+from ..argparse_utils import add_common_args, add_wd_arg, add_show_arg
+
 
 def main():
     import argparse
@@ -16,11 +18,9 @@ def main():
         metavar="filenames",
         type=str,
     )
-    parser.add_argument("--wd", help="set a working directory", type=str, default="")
-
-    parser.add_argument("--show", help="display gmsh windows", action="store_true")
-    parser.add_argument("--verbose", help="activate debug mode", action="store_true")
-    parser.add_argument("--debug", help="activate debug mode", action="store_true")
+    add_wd_arg(parser)
+    add_show_arg(parser)
+    add_common_args(parser)
     args = parser.parse_args()
     print(f"Arguments: {args}")
 

@@ -70,19 +70,21 @@ See Also:
     - python_magnetgmsh.cli: Direct
 """
 
-import os
-
 import argparse
+import logging
+import os
 
 import gmsh
 
-
-from .utils.files import load_Xao
-from .mesh.groups import create_physicalbcs, create_physicalgroups
-from .mesh.axi import get_allowed_algo as get_allowed_algo2D
-
-from .mesh.m3d import get_allowed_algo as get_allowed_algo3D
+from .argparse_utils import add_common_args, add_wd_arg
 from .cfg import loadcfg
+from .logging_config import setup_logging
+from .mesh.axi import get_allowed_algo as get_allowed_algo2D
+from .mesh.groups import create_physicalbcs, create_physicalgroups
+from .mesh.m3d import get_allowed_algo as get_allowed_algo3D
+from .utils.files import load_Xao
+
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -90,10 +92,9 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("input_file")
-    parser.add_argument("--debug", help="activate debug", action="store_true")
-    parser.add_argument("--verbose", help="activate verbose", action="store_true")
+    add_common_args(parser)
     parser.add_argument("--env", help="load settings.env", action="store_true")
-    parser.add_argument("--wd", help="set a working directory", type=str, default="")
+    add_wd_arg(parser)
     parser.add_argument(
         "--geo",
         help="specifiy geometry yaml file (use Auto to automatically retreive yaml filename fro xao, default is None)",
@@ -107,24 +108,14 @@ def main():
     parser_mesh = subparsers.add_parser("mesh", help="mesh help")
     parser_adapt = subparsers.add_parser("adapt", help="adapt help")
 
-    parser_mesh.add_argument(
-        "--algo2d",
-        help="select an algorithm for 2d mesh",
-        type=str,
-        choices=get_allowed_algo2D(),
-        default="Delaunay",
-    )
-    parser_mesh.add_argument(
-        "--algo3d",
-        help="select an algorithm for 3d mesh",
-        type=str,
-        choices=get_allowed_algo3D(),
-        default="HXT",
-    )
-    parser_mesh.add_argument("--lc", help="load mesh size from file", action="store_true")
-    parser_mesh.add_argument(
-        "--scaling", help="scale to m (default unit is mm)", action="store_true"
-    )
+    # Import after creating parser to avoid circular imports
+    from .argparse_utils import add_algo2d_arg, add_algo3d_arg, add_scaling_arg, add_lc_arg, add_show_arg
+    
+    add_algo2d_arg(parser_mesh, get_allowed_algo2D())
+    add_algo3d_arg(parser_mesh, get_allowed_algo3D())
+    add_lc_arg(parser_mesh)
+    add_scaling_arg(parser_mesh)
+    add_show_arg(parser_mesh)
     parser_mesh.add_argument(
         "--dry-run",
         help="mimic mesh operation without actually meshing",
@@ -153,11 +144,19 @@ def main():
     )
 
     args = parser.parse_args()
-    if args.debug:
-        print(args)
+
+    # Setup logging based on command-line arguments
+    setup_logging(
+        verbose=args.verbose,
+        debug=args.debug,
+        log_file=args.log,  # Only log to file if explicitly specified
+    )
+
+    logger.debug(f"Command-line arguments: {args}")
 
     cwd = os.getcwd()
     if args.wd:
+        logger.info(f"Working directory: {args.wd}")
         os.chdir(args.wd)
 
     hideIsolant = False
@@ -170,7 +169,7 @@ def main():
 
     # check if Axi is in input_file to see wether we are working with a 2D or 3D geometry
     if "Axi" in args.input_file:
-        print("2D geometry detected")
+        logger.info("2D axisymmetric geometry detected")
         is2D = True
         GeomParams["Solid"] = (2, "faces")
         GeomParams["Face"] = (1, "edge")
@@ -183,33 +182,32 @@ def main():
             groupLeads = "Leads" in args.group
             groupCoolingChannels = "CoolingChannels" in args.group
 
-    print("hideIsolant:", hideIsolant)
-    print("groupIsolant:", groupIsolant)
-    print("groupLeads:", groupLeads)
-    print("groupCoolingChannels:", groupCoolingChannels)
+    logger.debug(f"hideIsolant: {hideIsolant}")
+    logger.debug(f"groupIsolant: {groupIsolant}")
+    logger.debug(f"groupLeads: {groupLeads}")
+    logger.debug(f"groupCoolingChannels: {groupCoolingChannels}")
 
     # init gmsh
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
 
-    # gmsh verbosity:
-    # 0: silent except for fatal errors,
-    # 1: +errors,
-    # 2: +warnings,
-    # 3: +direct,
-    # 4: +information,
-    # 5: +status,
-    # 99: +debug
-    gmsh.option.setNumber("General.Verbosity", 0)
-    if args.debug or args.verbose:
+    # Coordinate Gmsh verbosity with our logging level
+    if args.debug:
         gmsh.option.setNumber("General.Verbosity", 2)
+        logger.debug("Gmsh verbosity: warnings (2)")
+    elif args.verbose:
+        gmsh.option.setNumber("General.Verbosity", 1)
+        logger.debug("Gmsh verbosity: errors (1)")
+    else:
+        gmsh.option.setNumber("General.Verbosity", 0)
+        logger.debug("Gmsh verbosity: silent (0)")
 
     # inspect Xao
+    logger.info(f"Loading XAO file: {args.input_file}")
     file = args.input_file  # r"HL-31_H1.xao"
     (gname, tags) = load_Xao(file, GeomParams, args.debug)
     (vtags, stags, ltags) = tags
-    print(f"stags={stags.keys()}")
-    print(f"vtags={vtags.keys()}")
+    logger.debug(f"Loaded {len(stags)} surface tags, {len(vtags)} volume tags")
 
     # Loading yaml file to get infos on volumes
     cfgfile = ""
@@ -218,12 +216,11 @@ def main():
         cfgfile = args.geo
     if args.geo == "Auto":
         cfgfile = gname + ".yaml"
-    print("cfgfile:", cfgfile)
+    logger.info(f"Loading geometry configuration: {cfgfile}")
 
     (solid_names, Channels) = loadcfg(cfgfile, gname, is2D, args.verbose)
-    print(f"input_file: {args.input_file}")
-    print(f"solid_names: {solid_names}")
-    print(f"Channels: {Channels}")
+    logger.debug(f"Loaded {len(solid_names)} solids")
+    logger.debug(f"Channels: {Channels}")
     mdict = {}
     for name in solid_names:
         mdict[name] = ""
@@ -231,7 +228,7 @@ def main():
     excluded_tags = []
     if is2D:
         excluded_tags = [name for name in stags if name not in mdict and not name == "Air"]
-    print(f"excluded_tags: {excluded_tags}")
+    logger.debug(f"Excluded tags: {excluded_tags}")
     # remove exclude_tags from stags
 
     if "Air" in args.input_file:
@@ -244,7 +241,9 @@ def main():
         len(solid_names) == nsolids
     ), f"Wrong number of solids: in yaml {len(solid_names)} in gmsh {nsolids}"
 
-    print(f"hideIsolant={hideIsolant}, groupIsolant={groupIsolant}, is2D={is2D}")
+    logger.debug(
+        f"Creating physical groups: hideIsolant={hideIsolant}, groupIsolant={groupIsolant}, is2D={is2D}"
+    )
     create_physicalgroups(
         vtags,
         stags,
@@ -256,7 +255,9 @@ def main():
         args.debug,
     )
 
-    print(f"Channels = {Channels}")
+    logger.debug(
+        f"Creating physical boundary conditions for {len(Channels) if Channels else 0} channels"
+    )
     create_physicalbcs(
         ltags,
         GeomParams,
@@ -268,17 +269,19 @@ def main():
     )
 
     if args.command == "mesh" and not args.dry_run:
+        logger.info("Generating mesh...")
         refinedboxes = []
 
         air = False
         AirData = ()
         if "Air" in args.input_file:
             air = True
+            logger.info("Air domain detected")
 
         from python_magnetgeo.utils import getObject
 
         Object = getObject(cfgfile)
-        print(f"Object={Object}, type={type(Object)}")
+        logger.debug(f"Loaded object: {Object.name}, type={type(Object).__name__}")
 
         if is2D:
             from .axi.MeshAxiData import createMeshAxiData
@@ -309,15 +312,25 @@ def main():
             meshData = createMeshData("", Object, yamlfile, AirData, args.algo2d, args.algo3d)
 
             msh3D(args.algo2d, args.algo3d, meshData, refinedboxes, air, args.scaling)
-            print("xao2msh: gmsh_msh for 3D not implemented")
+            logger.warning("3D meshing from XAO not fully implemented")
 
         meshname = file.replace(".xao", ".msh")
-        print(f"Save mesh {meshname} to {os.getcwd()}")
         gmsh.write(f"{meshname}")
+        logger.info(f"Mesh saved: {meshname}")
 
     if args.command == "adapt":
-        print("adapt mesh not implemented yet")
+        logger.warning("Mesh adaptation not implemented yet")
+    
+    # Display Gmsh GUI if requested (only for mesh command)
+    if args.command == "mesh" and hasattr(args, 'show') and args.show:
+        logger.info("Launching Gmsh GUI...")
+        gmsh.fltk.run()
+    
     gmsh.finalize()
+
+    if args.wd:
+        os.chdir(cwd)
+
     return 0
 
 

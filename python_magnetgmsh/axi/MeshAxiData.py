@@ -5,6 +5,8 @@
 import os
 import re
 import yaml
+import logging
+from pathlib import Path
 
 # Load Modules for geometrical Objects
 from python_magnetgeo.Insert import Insert
@@ -19,6 +21,8 @@ from python_magnetgeo.Helix import Helix
 
 from python_magnetgeo.enums import DetailLevel
 from python_magnetgeo.base import YAMLObjectBase
+
+logger = logging.getLogger(__name__)
 
 ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix | Ring
 
@@ -77,13 +81,13 @@ class MeshAxiData(YAMLObjectBase):
         )
 
     def algo2d(self, algosurf):
-        print("set surfacic mesh algo - not implemented yet")
+        logger.warning("Setting surfacic mesh algorithm not implemented yet")
 
     def part_default(self, H: Helix | Bitter | Supra | Screen | Ring, addname: str = ""):
         """
         Define default mesh params for Helix
         """
-        print(f"part_default: name={H.name}, lc={H.get_lc}")
+        logger.debug(f"part_default: name={H.name}, lc={H.get_lc}")
         return H.get_lc()
 
     def air_default(self, Data: tuple):
@@ -115,23 +119,22 @@ class MeshAxiData(YAMLObjectBase):
         Define default mesh params
         """
 
-        print(
-            f"{__name__}: creating default MeshAxiData,  mname={mname}, Object.name={Object.name}, Air={Air}, wd={workingDir}"
-        )
+        logger.info(f"Creating default MeshAxiData for {Object.name}")
+        logger.debug(f"mname={mname}, Air={Air}, workingDir={workingDir}")
         mesh_dict = {}
 
         if isinstance(Object, MSite):
-            print(f"Creating MeshAxiData for MSite {Object.name}, mname={mname}")
+            logger.debug(f"Creating MeshAxiData for MSite {Object.name}")
             for magnet in Object.magnets:
                 _tmp = self.default(magnet.name, magnet, (), workingDir)
                 mesh_dict.update(_tmp)
         elif isinstance(Object, Bitters):
-            print(f"Creating MeshAxiData for Bitters {Object.name}, (mname={mname})")
+            logger.debug(f"Creating MeshAxiData for Bitters {Object.name}")
             for magnet in Object.magnets:
                 _tmp = self.default(magnet.name, magnet, (), workingDir)
                 mesh_dict.update(_tmp)
         elif isinstance(Object, Supras):
-            print(f"Creating MeshAxiData for Supras {Object.name}, mname={mname}")
+            logger.debug(f"Creating MeshAxiData for Supras {Object.name}")
             for magnet in Object.magnets:
                 _tmp = self.default(magnet.name, magnet, (), workingDir)
                 mesh_dict.update(_tmp)
@@ -139,9 +142,7 @@ class MeshAxiData(YAMLObjectBase):
             hypname = ""
             if mname:
                 hypname = f"{mname}_"
-            print(
-                f"Creating MeshAxiData for Screen {Object.name}, mname={mname}, hypname={hypname}"
-            )
+            logger.debug(f"Creating MeshAxiData for Screen {Object.name}, hypname={hypname}")
             hypoths = self.part_default(Object, f"{hypname}{Object.name}_Screen")
             mesh_dict[f"{hypname}{Object.name}_Screen"] = {"lc": hypoths}
 
@@ -149,24 +150,22 @@ class MeshAxiData(YAMLObjectBase):
             hypname = ""
             if mname:
                 hypname = f"{mname}"
-            print(
-                f"Creating MeshAxiData for Bitter {Object.name}, mname={mname}, hypname={hypname}"
-            )
+            logger.debug(f"Creating MeshAxiData for Bitter {Object.name}, hypname={hypname}")
             psnames = Object.get_names(hypname, is2D=True, verbose=debug)
-            print(f"psnames={psnames}")
+            logger.debug(f"Bitter parts: {psnames}")
             hypoths_names = [re.sub(r"_Slit\d+", "", psname) for psname in psnames]
             hypoths_names = list(set(hypoths_names))
             hypoths = self.part_default(Object, hypoths_names[0])
             for psname in hypoths_names:
-                print(f"\tpsname={psname}")
+                logger.debug(f"  Setting mesh params for: {psname}")
                 mesh_dict[psname] = {"lc": hypoths}
 
         elif isinstance(Object, Supra):
-            print(f"Creating MeshAxiData for Supra {Object.name}, mname={mname}")
+            logger.debug(f"Creating MeshAxiData for Supra {Object.name}")
             hypname = ""
             if mname:
                 hypname = f"{mname}_"
-            print(f"hypname/Object.name={hypname}{Object.name}")
+            logger.debug(f"Supra hypname: {hypname}{Object.name}")
 
             if Object.detail == DetailLevel.NONE:
                 hypoths = self.part_default(Object, f"{hypname}{Object.name}")
@@ -226,14 +225,12 @@ class MeshAxiData(YAMLObjectBase):
                 )
 
         elif isinstance(Object, Insert):
-            print(f"Creating MeshAxiData for Insert {Object.name}, mname={mname}")
+            logger.debug(f"Creating MeshAxiData for Insert {Object.name}")
             psnames = Object.get_names(mname, is2D=True, verbose=debug)
-            print(f"psnames={psnames}")
+            logger.debug(f"Insert parts: {psnames}")
             num = 0
             for i, H in enumerate(Object.helices):
-                print(
-                    f"MeshAxiData for H: {H.name}, nturns={len(H.modelaxi.turns)}, psname[{num}]={psnames[num]}"
-                )
+                logger.debug(f"MeshAxiData for Helix: {H.name}, nturns={len(H.modelaxi.turns)}")
 
                 psname = re.sub(r"_Cu\d+", "", psnames[num])
                 hypoths = self.part_default(H, psname)
@@ -242,18 +239,17 @@ class MeshAxiData(YAMLObjectBase):
                     num += 1
 
             for i, R in enumerate(Object.rings):
-                print(f"MeshAxiData for R: {R.name}")
+                logger.debug(f"MeshAxiData for Ring: {R.name}")
                 hypoths = self.part_default(R, psnames[i + num])
                 mesh_dict[psnames[i + num]] = {"lc": hypoths}
 
         if Air:
-            print("MeshAxiData for Air")
+            logger.debug("Creating MeshAxiData for Air domain")
             [Air_, Biot_] = self.air_default(Air)
             mesh_dict["Air"] = {"lc": Air_}
             mesh_dict["Biot"] = {"lc": Biot_}
-            # print "Creating MeshAxiData for Air... done"
         else:
-            print("No Air defined")
+            logger.debug("No Air domain defined")
 
         self.mesh_dict = mesh_dict
         return mesh_dict
@@ -269,12 +265,12 @@ class MeshAxiData(YAMLObjectBase):
             mesh_dict,
         )
 
-    def dump(self, filename: str = None):
+    def dump(self, filename: str | None = None):
         """
         Save mesh_dict to YAML file
         """
         if filename is None:
-            filename = f"{self.name}_gmshaxidata.yaml"
+            filename = f"{self.name}.yaml"
 
         data = {
             "name": self.name,
@@ -282,21 +278,24 @@ class MeshAxiData(YAMLObjectBase):
             "mesh_dict": self.mesh_dict,
         }
 
-        with open(filename, "w") as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+        path = Path(filename)
+        if path.exists():
+            raise FileExistsError(f"{filename} already exists")
+        path.write_text(yaml.dump(data, default_flow_style=False, sort_keys=False))
 
-        print(f"MeshAxiData saved to {filename}")
+        logger.info(f"MeshAxiData saved: {filename}")
 
 
 # add a wd args?
 def createMeshAxiData(prefix: str, Object, AirData: tuple, filename: str, algo2d: str):
-    import os
     from python_magnetgeo.utils import ObjectLoadError
 
-    print(f"createMeshAxiData: cwd: {os.getcwd()}, filename={filename}", flush=True)
+    logger.info(f"Loading/creating MeshAxiData: {filename}")
+    logger.debug(f"Working directory: {os.getcwd()}")
 
     try:
         _MeshData = MeshAxiData.from_yaml(f"{filename}.yaml")
+        logger.info(f"Loaded existing MeshAxiData from {filename}.yaml")
 
     # Catch all I/O and parsing errors raised by the library
     except ObjectLoadError as e:
@@ -304,20 +303,20 @@ def createMeshAxiData(prefix: str, Object, AirData: tuple, filename: str, algo2d
         is_file_missing = "YAML file not found" in str(e)
 
         if is_file_missing:
-            print(f"*** File missing: {filename}.yaml", flush=True)
+            logger.info(f"MeshAxiData file not found, creating default: {filename}.yaml")
         else:
             # Catches the converted YAMLError (Failed to parse YAML)
             raise RuntimeError(f"*** Failed to parse YAML in {filename}: {e}")
 
-        print("*** trying to generate default gmshaxidata", flush=True)
+        logger.debug("Generating default gmshaxidata")
 
         _MeshData = MeshAxiData(filename, algo2d)
-        print("Meshdata created")
+        logger.debug("MeshAxiData instance created")
 
         _MeshData.default(prefix, Object, AirData)
-        print("meshdata default")
+        logger.debug("MeshAxiData defaults set")
         _MeshData.dump()
-        print("mesh dump")
+        logger.debug("MeshAxiData saved")
 
     except Exception as e:
         # Catch any *other* unexpected, non-loading errors

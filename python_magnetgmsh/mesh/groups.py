@@ -3,10 +3,13 @@
 """
 
 from typing import Union
+import logging
 
 import re
 import gmsh
 from ..utils.lists import flatten
+
+logger = logging.getLogger(__name__)
 
 
 def create_physicalgroups(
@@ -23,10 +26,10 @@ def create_physicalgroups(
     creates PhysicalVolumes
     """
 
-    print(f"create_physicalgroups: is2D={is2D}")
-    print(f"stags={stags.keys()}")
-    print(f"vtags={vtags.keys()}")
-    print(f"excluded_tags={excluded_tags}")
+    logger.info(f"Creating physical groups (2D mode: {is2D})")
+    logger.debug(f"Surface tags: {list(stags.keys())}")
+    logger.debug(f"Volume tags: {list(vtags.keys())}")
+    logger.debug(f"Excluded tags: {excluded_tags}")
 
     dict_tags = {}
 
@@ -46,7 +49,7 @@ def create_physicalgroups(
         ]
         for regexp in regexp_stags:
             match = [solid for solid in list(stags.keys()) if re.search(regexp, solid)]
-            print(f"looking for regexp={regexp} (found: {match})")
+            logger.debug(f"Searching regexp={regexp}, found {len(match)} matches")
             if match:
                 SGroups = [re.sub(regexp, "", solid) for solid in match]
                 SGroups.sort()
@@ -54,26 +57,22 @@ def create_physicalgroups(
                 for group in SGroups:
                     r = re.compile(f"^{group}")
                     newlist = list(filter(r.match, list(stags.keys())))
-                    print(f"{group}: {newlist}")
+                    logger.debug(f"Group {group}: {len(newlist)} items")
                     dict_tags[group] = newlist
                     excluded_tags += newlist
 
-        print(f"excluded_tags={excluded_tags}")
-        print("set physical for dict_stags")
+        logger.debug(f"Total excluded tags: {len(excluded_tags)}")
+        logger.debug("Setting physical groups for dict_stags")
         for sname, values in dict_tags.items():
             if not sname in excluded_tags:
                 _ids = flatten([stags[s] for s in values])
-                print(f"sname={sname}, _ids={_ids}")
+                logger.debug(f"Creating physical group: {sname} with {len(_ids)} elements")
                 pgrp = gmsh.model.addPhysicalGroup(
                     GeomParams["Solid"][0], _ids, name=sname
                 )
-                # gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, sname)
-                # if debug:
-                print(
-                    f"{sname}: _ids={len(_ids)} items, pgrp={pgrp}, dim={GeomParams['Solid'][0]}"
-                )
+                logger.debug(f"  Physical group {sname}: {len(_ids)} elements, pgrp={pgrp}")
 
-    print("set physical for vtags")
+    logger.debug("Setting physical groups for volume tags")
     vdim = GeomParams["Solid"][0]
     sdim = GeomParams["Face"][0]
 
@@ -82,25 +81,21 @@ def create_physicalgroups(
 
     for vname in vtags:
         pgrp = gmsh.model.addPhysicalGroup(vdim, vtags[vname], name=vname)
-        # gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, sname)
-        # if debug:
-        print(f"{vname}: {len(vtags[vname])}, pgrp={pgrp}, dim={vdim}")
+        logger.debug(f"Volume group {vname}: {len(vtags[vname])} elements, pgrp={pgrp}")
 
-    print("set physical for stags - ignore exclude_tags")
+    logger.debug("Setting physical groups for surface tags (excluding excluded tags)")
     for sname in stags:
         if not sname in excluded_tags:
             pgrp = gmsh.model.addPhysicalGroup(sdim, stags[sname], name=sname)
-            # gmsh.model.setPhysicalName(GeomParams["Solid"][0], pgrp, sname)
-            # if debug:
-            print(f"{sname}: {len(stags[sname])}, pgrp={pgrp}, dim={sdim}")
+            logger.debug(f"Surface group {sname}: {len(stags[sname])} elements, pgrp={pgrp}")
 
-    print("PhysicalGroups:")
+    logger.info("Physical groups created:")
     vGroups = gmsh.model.getPhysicalGroups()
     for iGroup in vGroups:
         dimGroup = iGroup[0]  # 1D, 2D or 3D
         tagGroup = iGroup[1]
         namGroup = gmsh.model.getPhysicalName(dimGroup, tagGroup)
-        print(f"namGroup: {namGroup}, dim: {dimGroup}")
+        logger.debug(f"  {namGroup} (dim={dimGroup})")
 
     pass
 
@@ -114,9 +109,8 @@ def create_physicalbcs(
     groupIsolant: bool,
     debug: bool = False,
 ) -> None:
-    print(
-        f"create_physicalbcs: groupCoolingChannels={groupCoolingChannels}, Channels={Channels}, bctags={bctags}"
-    )
+    logger.info("Creating physical boundary conditions")
+    logger.debug(f"groupCoolingChannels={groupCoolingChannels}, Channels={type(Channels).__name__ if Channels else None}")
 
     exclude_tags = {}
     if hideIsolant:
@@ -136,14 +130,14 @@ def create_physicalbcs(
         return re.search(regexp, name)
 
     if groupCoolingChannels:
-        print(f"group cooling channels: {Channels}")
+        logger.debug(f"Grouping cooling channels")
         if isinstance(Channels, dict):
-            print(f"Channels (dict): {Channels}")
+            logger.debug(f"Processing channels from dict with {len(Channels)} keys")
             for key in Channels:
-                print(f"Channels[{key}]]: {Channels[key]}")
+                logger.debug(f"Processing channel group: {key}")
                 for i, channel in enumerate(Channels[key]):
                     if isinstance(channel[0], str):
-                        print(f"{channel} strcase")
+                        logger.debug(f"Processing string-based channel: {channel}")
                         for bc in channel:
                             tags = []
                             for bc in channel:
@@ -151,40 +145,37 @@ def create_physicalbcs(
                                     tags += bctags[bc]
                                     del bctags[bc]
                             if tags:
-                                print(f"{key}_Channel{i}: tags={tags}")
+                                logger.debug(f"Created channel group {key}_Channel{i}: {len(tags)} tags")
                                 bctags[f"{key}_Channel{i}"] = tags
 
                     elif isinstance(channel[0], list):
                         for schannel in channel:
-                            print(f"{schannel}, listcase")
+                            logger.debug(f"Processing list-based sub-channel: {schannel}")
 
         elif isinstance(Channels, list):
-            print(f"Channels (list): {Channels}")
+            logger.debug(f"Processing channels from list with {len(Channels)} items")
             for i, channel in enumerate(Channels):
-                print(f"Channel[{i}]: {channel}")
+                logger.debug(f"Processing channel {i}: {channel}")
                 tags = []
                 for bc in channel:
                     if bc in bctags:
                         tags += bctags[bc]
                         del bctags[bc]
                 if tags:
-                    print(f"Channel{i}: tags={tags}")
+                    logger.debug(f"Created Channel{i}: {len(tags)} tags")
                     bctags[f"Channel{i}"] = tags
 
-        print(f"registered bctags: {bctags.keys()}")
+        logger.debug(f"Registered boundary condition tags: {list(bctags.keys())}")
 
     # Physical Surfaces
-    if debug:
-        print("BCtags:")
-    print(f"bctags={bctags}")
-    print(f"exlude_tags={exclude_tags}")
-    print("create physcicalgroups")
+    logger.debug("Creating physical groups for boundary conditions")
+    logger.debug(f"BC tags: {list(bctags.keys())}")
+    logger.debug(f"Excluded tags: {exclude_tags}")
+    logger.debug("Creating physical groups...")
     for bctag in bctags:
         if not bctag in exclude_tags:
             pgrp = gmsh.model.addPhysicalGroup(GeomParams["Face"][0], bctags[bctag])
             gmsh.model.setPhysicalName(GeomParams["Face"][0], pgrp, bctag)
-            print(bctag, bctags[bctag], pgrp)
-            if debug:
-                print(bctag, bctags[bctag], pgrp)
+            logger.debug(f"BC group {bctag}: {len(bctags[bctag])} elements, pgrp={pgrp}")
 
-    print("create_physicalbcs done")
+    logger.info("Physical boundary conditions created")

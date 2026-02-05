@@ -58,6 +58,7 @@ Author: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
 import argparse
 import sys
 import os
+import logging
 
 import gmsh
 
@@ -75,7 +76,18 @@ from python_magnetgeo import (
     MSite,
 )  # For type checking only
 
+from .argparse_utils import (
+    add_common_args,
+    add_wd_arg,
+    add_show_arg,
+    add_algo2d_arg,
+    add_scaling_arg,
+    add_lc_arg,
+)
+from .logging_config import setup_logging
 from .mesh.axi import get_allowed_algo, gmsh_msh, gmsh_cracks
+
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -196,7 +208,7 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("filename", help="name of the model to be loaded (yaml file)", type=str)
-    parser.add_argument("--wd", help="set a working directory", type=str, default="")
+    add_wd_arg(parser)
     parser.add_argument(
         "--air",
         help="activate air generation",
@@ -206,25 +218,27 @@ def main():
     )
     parser.add_argument("--thickslit", help="model thick cooling slits", action="store_true")
     parser.add_argument("--mesh", help="activate mesh", action="store_true")
-    parser.add_argument(
-        "--algo2d",
-        help="select an algorithm for 2d mesh",
-        type=str,
-        choices=get_allowed_algo(),
-        default="Delaunay",
-    )
-    parser.add_argument("--scaling", help="scale to m (default unit is mm)", action="store_true")
-    parser.add_argument("--lc", help="load mesh size from file", action="store_true")
+    add_algo2d_arg(parser, get_allowed_algo())
+    add_scaling_arg(parser)
+    add_lc_arg(parser)
 
-    parser.add_argument("--show", help="display gmsh windows", action="store_true")
-    parser.add_argument("--verbose", help="activate debug mode", action="store_true")
-    parser.add_argument("--debug", help="activate debug mode", action="store_true")
+    add_show_arg(parser)
+    add_common_args(parser)
 
     args = parser.parse_args()
-    print(f"Arguments: {args}, type={type(args)}")
+
+    # Setup logging based on command-line arguments
+    setup_logging(
+        verbose=args.verbose,
+        debug=args.debug,
+        log_file=args.log,  # Only log to file if explicitly specified
+    )
+
+    logger.debug(f"Command-line arguments: {args}")
 
     cwd = os.getcwd()
     if args.wd:
+        logger.info(f"Working directory: {args.wd}")
         os.chdir(args.wd)
 
     AirData = ()
@@ -236,19 +250,30 @@ def main():
         if infty_Zratio < 1:
             raise RuntimeError(f"Infty_Zratio={infty_Zratio} should be greater than 1")
         AirData = (infty_Rratio, infty_Zratio)
-    print(f"AirData={AirData}, args.air={args.air}")
+    logger.debug(f"Air domain configuration: AirData={AirData}")
 
     try:
+        logger.info(f"Loading geometry: {args.filename}")
         Object = getObject(args.filename)
+        logger.info(f"Loaded {type(Object).__name__}: {Object.name}")
     except ValidationError as e:
         # Handle validation errors from python_magnetgeo
-        print(f"Validation error: {e}")
+        logger.error(f"Validation error in {args.filename}: {e}")
+        return 1
 
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
-    gmsh.option.setNumber("General.Verbosity", 0)
-    if args.debug or args.verbose:
+
+    # Coordinate Gmsh verbosity with our logging level
+    if args.debug:
         gmsh.option.setNumber("General.Verbosity", 5)
+        logger.debug("Gmsh verbosity: maximum (5)")
+    elif args.verbose:
+        gmsh.option.setNumber("General.Verbosity", 3)
+        logger.debug("Gmsh verbosity: normal (3)")
+    else:
+        gmsh.option.setNumber("General.Verbosity", 0)
+        logger.debug("Gmsh verbosity: minimal (0)")
 
     gmsh.model.add(args.filename)
     gmsh.logger.start()
@@ -270,22 +295,27 @@ def main():
     # get BoudingBox for slit/channel
     boxes = []
     if args.thickslit:
-        print("gmsh_box")
+        logger.info("Generating bounding boxes for thick slits")
         boxes = MyObject.gmsh_box(Object, args.debug)
+        logger.debug(f"Created {len(boxes)} bounding boxes")
 
     # TODO: add args.thickness as optional param
     # or only for Bitter(s)
+    logger.info("Generating CAD geometry...")
     ids = MyObject.gmsh_ids(Object, AirData, args.thickslit, args.debug)
-    # print(f"ids[{Object.name}]: {ids}")
+    logger.debug(f"Generated geometry IDs for {Object.name}")
 
     prefix = ""
     bcs = MyObject.gmsh_bcs(Object, prefix, ids, args.thickslit, args.debug)
+    logger.debug("Generated boundary conditions")
 
     # TODO set mesh characteristics here
     if args.mesh:
+        logger.info("Generating mesh...")
         air = False
         if AirData:
             air = True
+            logger.debug("Including air domain in mesh")
             # lcs["Air"] = 30
 
         from .axi.MeshAxiData import createMeshAxiData
@@ -311,14 +341,20 @@ def main():
         if air:
             meshfilename += "_withAir"
         gmsh.write(meshfilename + ".msh")
+        logger.info(f"Mesh saved: {meshfilename}.msh")
 
     log = gmsh.logger.get()
-    print("Logger has recorded " + str(len(log)) + " lines")
+    logger.debug(f"Gmsh logger recorded {len(log)} lines")
+    if log:
+        logger.debug(f"Gmsh log (first 5 lines): {log[:5]}")
     gmsh.logger.stop()
     # Launch the GUI to see the results:
     if args.show:
+        logger.info("Launching Gmsh GUI...")
         gmsh.fltk.run()
     gmsh.finalize()
+
+    logger.info("Processing complete!")
 
     if args.wd:
         os.chdir(cwd)

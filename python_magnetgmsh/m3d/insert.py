@@ -7,17 +7,23 @@ The Insert class reads a JSON configuration and creates all components.
 
 import gmsh
 import argparse
-from typing import List, Any, Optional
+import logging
+import sys
+from typing import List, Any
 
 # Lazy loading import - automatically detects geometry type
 from python_magnetgeo.utils import getObject
 from python_magnetgeo.validation import ValidationError
+
+from ..argparse_utils import add_wd_arg, add_algo2d_arg, add_algo3d_arg, add_show_arg
 
 # For type checking only
 from python_magnetgeo.Insert import Insert as InsertConfig
 
 from .helix import Helix
 from .ring import Ring
+
+logger = logging.getLogger(__name__)
 
 
 def flatten_list(nested_list: List[List[Any]]) -> List[Any]:
@@ -46,7 +52,7 @@ class Insert:
         self.hangles = config.hangles
         self.rangles = config.rangles
 
-        print(f"\nTotal components: {len(self.helices)} helices, {len(self.rings)} rings")
+        logger.info(f"\nTotal components: {len(self.helices)} helices, {len(self.rings)} rings")
 
     def generate_geometry(self):
         """Generate geometry for all components."""
@@ -60,19 +66,19 @@ class Insert:
         for i, helix in enumerate(self.helices):
             helix_ids = helix.generate(ignore_ids)
             ignore_ids.extend(helix_ids)
-            # print(f'H[{i+1}]: {helix_ids}')
+            # logger.debug(f'H[{i+1}]: {helix_ids}')
             # eventually rotate: hangle
             # if hangles and hangles[i] != 0:
             #     gmsh.model.occ.rotate([(3, helix_ids[0])], 0, 0, 0, 0, 0, 1, math.radians(hangles[i]))
             #     gmsh.model.occ.synchronize()
             helices_ids.append(helix_ids)
-        # print(f'helices_ids: {helices_ids}')
+        # logger.debug(f'helices_ids: {helices_ids}')
 
         # Generate all rings
         rings_ids = []
         for i, ring in enumerate(self.rings):
             ring_id = ring.generate()
-            # print(f'R[{i+1}]: {ring_id}')
+            # logger.debug(f'R[{i+1}]: {ring_id}')
 
             # position ring on z (ring(i): Helix(i) to Helix(i+1) )
             h = self.helices[i].config.nturns * self.helices[i].config.pitch
@@ -80,11 +86,11 @@ class Insert:
             if i % 2 == 0:
                 _z = self.helices[i].config.z2
             else:
-                _z = -(self.helices[i].config.z1 + self.ring[i].config.h)
+                _z = -(self.helices[i].config.z1 + self.rings[i].config.h)
 
             _z += +self.helices[i].config.z_offset
 
-            print(f"  Translating ring R[{i+1}] to z={_z}")
+            logger.debug(f"  Translating ring R[{i+1}] to z={_z}")
             gmsh.model.occ.translate([(3, ring_id[0])], 0, 0, _z)
             gmsh.model.occ.synchronize()
 
@@ -94,55 +100,55 @@ class Insert:
             #     gmsh.model.occ.synchronize()
 
             rings_ids.append(ring_id)
-        # print(f'rings_ids: {rings_ids}')
+        # logger.debug(f'rings_ids: {rings_ids}')
 
         # TODO assembly
         print("\n=== Assembling Helices and Rings ===")
         # Fragment geometry to create separate volumes
         helices_dimtags = [(3, id) for id in flatten_list(helices_ids)]
         rings_dimtags = [(3, id) for id in flatten_list(rings_ids)]
-        # print(f'helices_dimtags: {helices_dimtags},  rings_dimtags: {rings_dimtags}')
+        # logger.debug(f'helices_dimtags: {helices_dimtags},  rings_dimtags: {rings_dimtags}')
         outDimTags, outDimTagsMap = gmsh.model.occ.fragment(
             helices_dimtags, rings_dimtags, removeObject=False, removeTool=False
         )
-        # print(f"fragment: outDimTags={outDimTags}, outDimTagsMap={outDimTagsMap}")
+        # logger.debug(f"fragment: outDimTags={outDimTags}, outDimTagsMap={outDimTagsMap}")
         gmsh.model.occ.synchronize()
 
         # Display parent-child relationships
-        print("Parent-child fragment relations:")
+        logger.debug("Parent-child fragment relations:")
         children_dict = {}
         for parent, children in zip(helices_dimtags + rings_dimtags, outDimTagsMap):
-            # print(f"  Parent {parent} -> Children {children}")
+            # logger.debug(f"  Parent {parent} -> Children {children}")
             for child in children:
                 if parent[1] not in children_dict:
                     children_dict[parent[1]] = [child[1]]
                 else:
                     children_dict[parent[1]].append(child[1])
-        print(f"children_dict: {children_dict}")
+        logger.debug(f"children_dict: {children_dict}")
 
         cyl_children_id = [dimtag[1] for dimtag in outDimTagsMap[0]]
         # get volume ids - see fragment_geometry in helix_restructured
-        # print('done')
+        # logger.debug('done')
 
         for j, helix_id in enumerate(helices_ids):
             old_ids = helix_id.copy()
             helices_ids[j] = flatten_list([children_dict[id] for id in old_ids])
-            print(f"helix_id old: {old_ids} --> new: {helices_ids[j]}")
+            logger.debug(f"helix_id old: {old_ids} --> new: {helices_ids[j]}")
             for i, id in enumerate(old_ids):
                 if id != helices_ids[j][i]:
-                    print("remove helix volume id:", id)
+                    logger.debug(f"remove helix volume id: {id}")
                     gmsh.model.occ.remove([(3, id)], False)
-        print(f"helices_ids: {helices_ids}")
+        logger.debug(f"helices_ids: {helices_ids}")
 
         for j, ring_id in enumerate(rings_ids):
             old_ids = ring_id.copy()
             rings_ids[j] = flatten_list([children_dict[id] for id in old_ids])
-            print(f"ring_id old: {old_ids} --> new: {rings_ids[j]}")
+            logger.debug(f"ring_id old: {old_ids} --> new: {rings_ids[j]}")
             for i, id in enumerate(old_ids):
                 if id != rings_ids[j][i]:
-                    print("remove ring volume id:", id)
+                    logger.debug(f"remove ring volume id: {id}")
                     gmsh.model.occ.remove([(3, id)], False)
-        print(f"rings_ids: {rings_ids}")
+        logger.debug(f"rings_ids: {rings_ids}")
 
         gmsh.model.occ.synchronize()
 
@@ -156,17 +162,17 @@ class Insert:
 
         bcs_names = {}
         for i, helix in enumerate(self.helices):
-            # print(f'Creating physical groups for helix {i+1}: {helix.config.name}, IDs: {helices_ids[i]}', end=" --> ")
+            # logger.debug(f'Creating physical groups for helix {i+1}: {helix.config.name}, IDs: {helices_ids[i]}', end=" --> ")
             # new_ids = [children_dict[id] for id in helices_ids[i]]
-            # print(f'New IDs: {flatten_list(new_ids)}')
+            # logger.debug(f'New IDs: {flatten_list(new_ids)}')
             # _names = helix.create_physical_groups(flatten_list(new_ids), helix.config.name)
             _names = helix.create_physical_groups(helices_ids[i], helix.config.name)
             bcs_names.update(_names)
 
         for i, ring in enumerate(self.rings):
-            # print(f'Creating physical groups for ring {i+1}: {ring.config.name}, IDs: {rings_ids[i]}', end=" --> ")
+            # logger.debug(f'Creating physical groups for ring {i+1}: {ring.config.name}, IDs: {rings_ids[i]}', end=" --> ")
             # new_ids = [children_dict[id] for id in rings_ids[i]]
-            # print(f'New IDs: {flatten_list(new_ids)}')
+            # logger.debug(f'New IDs: {flatten_list(new_ids)}')
             # ring.create_physical_groups(flatten_list(new_ids), ring.config.name)
             ring.create_physical_groups(rings_ids[i], ring.config.name)
 
@@ -223,25 +229,13 @@ def parse_arguments() -> argparse.Namespace:
         description="Generate insert geometry with multiple helix and ring components",
         add_help=True,
     )
-    parser.add_argument("--wd", help="set a working directory", type=str, default="")
+    add_wd_arg(parser)
     parser.add_argument("-config", type=str, required=True, help="Path to YAML configuration file")
     parser.add_argument("-start_hole", action="store_true", help="Add start hole to helices")
     parser.add_argument("-mesh", action="store_true", help="Generate mesh after geometry creation")
-    parser.add_argument(
-        "--algo2d",
-        help="select an algorithm for 2d mesh",
-        type=str,
-        choices=get_allowed_algo2D(),
-        default="Delaunay",
-    )
-    parser.add_argument(
-        "--algo3d",
-        help="select an algorithm for 3d mesh",
-        type=str,
-        choices=get_allowed_algo3D(),
-        default="Hxt",
-    )
-    parser.add_argument("-nopopup", action="store_true", help="Do not show Gmsh GUI")
+    add_algo2d_arg(parser, get_allowed_algo2D())
+    add_algo3d_arg(parser, get_allowed_algo3D(), default="Hxt")
+    add_show_arg(parser)
     parser.add_argument(
         "-clscale", type=float, default=1.0, help="Mesh characteristic length scale factor"
     )
@@ -258,7 +252,7 @@ def parse_arguments() -> argparse.Namespace:
         "-rand", type=float, default=1.0e-12, help="Random seed for mesh generation"
     )
     args = parser.parse_args()
-    print(f"Arguments: {args}")
+    logger.debug(f"Arguments: {args}")
     return args
 
 
@@ -277,7 +271,7 @@ def main():
 
     # Parse command line arguments
     args = parse_arguments()
-    print("args:", args)
+    logger.debug(f"args: {args}")
 
     cwd = os.getcwd()
     if args.wd:
@@ -288,7 +282,8 @@ def main():
         insertconfig = getObject(args.config)
     except ValidationError as e:
         # Handle validation errors from python_magnetgeo
-        print(f"Validation error: {e}")
+        logger.error(f"Validation error: {e}")
+        sys.exit(1)
 
     insert = Insert(insertconfig, add_start_hole=args.start_hole)
 
@@ -320,18 +315,10 @@ def main():
     print("Insert generation completed successfully")
     print("=" * 60)
 
-    # Show GUI if not suppressed
-    if not args.nopopup:
+    # Show GUI if requested
+    if args.show:
         gmsh.fltk.run()
 
-    """
-    except Exception as e:
-        print(f"\nError during insert generation: {e}")
-        import traceback
-        traceback.print_exc()
-        raise
-    finally:
-    """
     if args.wd:
         os.chdir(cwd)
 
