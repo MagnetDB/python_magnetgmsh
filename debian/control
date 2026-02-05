@@ -8,7 +8,7 @@ Build-Depends: debhelper-compat (= 13),
                python3-setuptools,
                python3-wheel,
                pybuild-plugin-pyproject
-Standards-Version: 4.6.2
+Standards-Version: 4.7.0
 Homepage: https://github.com/Trophime/python_magnetgmsh
 Vcs-Browser: https://github.com/Trophime/python_magnetgmsh
 Vcs-Git: https://github.com/Trophime/python_magnetgmsh.git
@@ -18,10 +18,10 @@ Package: python3-magnetgmsh
 Architecture: all
 Depends: ${python3:Depends},
          ${misc:Depends},
-         python3-xmltodict (>= 0.14.2),
+         python3-xmltodict (>= 0.13.0),
          python3-gmsh (>= 4.13.1),
          python3-yaml (>= 6.0),
-         python3-magnetgeo (>= 0.8.0),
+         python3-magnetgeo (>= 1.0.0),
          python3-numpy (>= 1.24.0)
 Suggests: python3-pytest
 Description: Python helpers to create HiFiMagnet cads and meshes with Gmsh
