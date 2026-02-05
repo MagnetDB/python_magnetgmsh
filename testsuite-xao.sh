@@ -6,6 +6,54 @@
 
 TestYAML="/data/geometries"
 TestWD="/data/cad"
+DEBUG=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --yaml)
+            TestYAML="$2"
+            shift 2
+            ;;
+        --cad)
+            TestWD="$2"
+            shift 2
+            ;;
+        --debug)
+            DEBUG="--debug"
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: $0 [OPTIONS]"
+            echo "Options:"
+            echo "  --yaml PATH   Path to YAML directory (default: /data/geometries)"
+            echo "  --wd PATH     Working directory (default: /data/cad)"
+            echo "  --debug       Enable debug mode"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Enable verbose mode if debug is set
+if [ -n "$DEBUG" ]; then
+    set -x
+fi
+
+# Check if TestWD directory exists
+if [ ! -d "$TestWD" ]; then
+    echo "Error: Directory '$TestWD' does not exist"
+    exit 1
+fi
+
+# Check if TestWD directory exists
+if [ ! -d "$TestYAML" ]; then
+    echo "Error: Directory '$TestYAML' does not exist"
+    exit 1
+fi
+
 TestsAxi="test M9_Be M9Bitters M9_HLtest Oxford1 Oxford HTS-dblpancake-test2 HTS-pancake-test2 HTS-tape-test2 Nougat MNougat"
 
 echo_success() {
