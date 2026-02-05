@@ -156,5 +156,5 @@ dev-dependencies = [
 ]
 
 [tool.uv.sources]
-python-magnetgeo = { git = "https://github.com/Trophime/python_magnetgeo.git" }
+python-magnetgeo = { git = "https://github.com/MagnetDB/python_magnetgeo.git" }
 
