@@ -17,6 +17,9 @@ from python_magnetgeo.enums import DetailLevel
 
 from ..mesh.bcs import create_bcs
 from .SupraStructure import insert_ids, insert_bcs
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def gmsh_box(Supra: Supra, debug: bool = False) -> list:
@@ -118,8 +121,8 @@ def gmsh_bcs(
             # TODO: Axis, Inf
             gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-            bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
-            bcs_defs[f"Infty"] = [
+            bcs_defs["ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
+            bcs_defs["Infty"] = [
                 [0, z0_air, dr_air, z0_air],
                 [dr_air, z0_air, dr_air, z0_air + dz_air],
                 [0, z0_air + dz_air, dr_air, z0_air + dz_air],

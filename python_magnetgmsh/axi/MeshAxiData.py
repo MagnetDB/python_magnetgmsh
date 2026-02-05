@@ -5,7 +5,7 @@
 import os
 import re
 import yaml
-import logging
+
 from pathlib import Path
 
 # Load Modules for geometrical Objects
@@ -22,7 +22,10 @@ from python_magnetgeo.Helix import Helix
 from python_magnetgeo.enums import DetailLevel
 from python_magnetgeo.base import YAMLObjectBase
 
-logger = logging.getLogger(__name__)
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
+
 
 ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix | Ring
 
@@ -270,7 +273,7 @@ class MeshAxiData(YAMLObjectBase):
         path = Path(filename)
         if path.exists():
             raise FileExistsError(f"{filename} already exists")
-        
+
         # Use yaml.dump(self) to include the YAML tag for proper deserialization
         path.write_text(yaml.dump(self, default_flow_style=False, sort_keys=False))
 

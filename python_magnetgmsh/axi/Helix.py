@@ -15,13 +15,16 @@ from python_magnetgeo.Helix import Helix
 import gmsh
 
 from ..mesh.bcs import create_bcs
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def gmsh_box(Helix: Helix, debug: bool = False) -> list:
     """
     get (boundingbox,size) for each slit
     """
-    
+
     boxes = []
     boxes.append([Helix.r[0], Helix.z[0], Helix.r[1], Helix.z[1]])
     return boxes
@@ -31,12 +34,12 @@ def gmsh_chamfer(r: float, z: float, chamfer: Chamfer, debug: bool = False) -> i
     """
     create gmsh chamfer
 
-    *___ *   *____*
-    |   /     \   |
-    |  /       \  |
-    | /         \ |
-    |/           \|
-    *             *
+    *___ *
+    |   /
+    |  /
+    | /
+    |/
+    *
     """
 
     side = chamfer.side  # HP/BP
@@ -44,7 +47,9 @@ def gmsh_chamfer(r: float, z: float, chamfer: Chamfer, debug: bool = False) -> i
     alpha = chamfer.alpha
     L = float(chamfer.l)
     cradius = chamfer.getDr()
-    print(side, rside, alpha, L, cradius, r, z)
+    logger.debug(
+        f"gmsh_chamfer: side={side}, rside={rside}, alpha={alpha}, L={L}, cradius={cradius}, r={r}, z={z}"
+    )
 
     contour = None
     if side == "BP":
@@ -81,7 +86,7 @@ def gmsh_chamfer(r: float, z: float, chamfer: Chamfer, debug: bool = False) -> i
 
     gmsh.model.occ.synchronize()
     surf = gmsh.model.occ.addPlaneSurface([contour])
-    print(f"gmsh_chamfer surf: {surf}", flush=True)
+    logger.debug(f"gmsh_chamfer surf: {surf}")
     return surf
 
 
@@ -99,8 +104,8 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
     # from Chamfers get HPChamfer and BPChamfer
     HPChamfers = [chamfer for chamfer in Helix.chamfers if chamfer.side == "HP"]
     BPChamfers = [chamfer for chamfer in Helix.chamfers if chamfer.side == "BP"]
-    print(f"{Helix.name}: HPChamfers: {HPChamfers}")
-    print(f"{Helix.name}: BPChamfers: {BPChamfers}")
+    logger.debug(f"{Helix.name}: HPChamfers: {HPChamfers}")
+    logger.debug(f"{Helix.name}: BPChamfers: {BPChamfers}")
     # Add chamfer on HP here
     if abs(y - Helix.z[0]) >= 0:
         _id = gmsh.model.occ.addRectangle(x, Helix.z[0], 0, dr, abs(y - Helix.z[0]))
@@ -150,8 +155,7 @@ def gmsh_ids(Helix: Helix, AirData: tuple, debug: bool = False) -> tuple:
         gmsh.model.occ.synchronize()
         return (gmsh_ids, (_id, dr_air, z0_air, dz_air))
 
-    if debug:
-        print(f"Helix/gmsh_ids: {gmsh_ids} ({len(gmsh_ids)})")
+    logger.debug(f"Helix/gmsh_ids: {gmsh_ids} ({len(gmsh_ids)})")
 
     # need to account for changes
     gmsh.model.occ.synchronize()
@@ -196,8 +200,8 @@ def gmsh_bcs(Helix: Helix, mname: str, ids: tuple, debug: bool = False) -> dict:
             for chamfer in Helix.chamfers
             if chamfer.rside == "rext"
         ]
-        print(f"{Helix.name}: chamfer_rint: {chamfer_rint}")
-        print(f"{Helix.name}: chamfer_rext: {chamfer_rext}")
+        logger.debug(f"{Helix.name}: chamfer_rint: {chamfer_rint}")
+        logger.debug(f"{Helix.name}: chamfer_rext: {chamfer_rext}")
 
         if chamfer_rint:
             rint_range = [Helix.r[0], max(chamfer_rint)]

@@ -3,13 +3,13 @@
 
 """defines Supra Insert structure"""
 import yaml
-import logging
 
 from python_magnetgeo.Supra import Supra
 from python_magnetgeo.Supras import Supras
 from ..utils.lists import flatten
+from ..logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 import_dict = {Supra: ".axi.Supra"}
 

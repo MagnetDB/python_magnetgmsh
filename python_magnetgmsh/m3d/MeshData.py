@@ -3,7 +3,6 @@
 
 """Enable to define mesh hypothesis (aka params) for Gmsh surfacic and volumic meshes"""
 import re
-import logging
 
 # Load Modules for geometrical Objects
 from python_magnetgeo.Insert import Insert
@@ -17,7 +16,9 @@ from python_magnetgeo.Ring import Ring
 from python_magnetgeo.Helix import Helix
 from python_magnetgeo.base import YAMLObjectBase
 
-logger = logging.getLogger(__name__)
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix | Ring
 
@@ -78,9 +79,7 @@ class MeshData(YAMLObjectBase):
     def algo3d(self, algo):
         logger.warning("Setting volumic mesh algorithm not implemented yet")
 
-    def part_default(
-        self, H: Helix | Bitter | Supra | Screen | Ring, addname: str = ""
-    ):
+    def part_default(self, H: Helix | Bitter | Supra | Screen | Ring, addname: str = ""):
         """
         Define default mesh params for Helix
         """
@@ -127,9 +126,7 @@ class MeshData(YAMLObjectBase):
                 prefix = ""
                 if mname:
                     prefix = f"{mname}_"
-                _tmp = self.default(
-                    f"{prefix}{mObject.name}", mObject, (), workingDir
-                )
+                _tmp = self.default(f"{prefix}{mObject.name}", mObject, (), workingDir)
                 mesh_dict.update(_tmp)
 
         elif isinstance(Object, Bitters):
@@ -138,9 +135,7 @@ class MeshData(YAMLObjectBase):
                 prefix = ""
                 if mname:
                     prefix = f"{mname}_"
-                _tmp = self.default(
-                    f"{prefix}{mObject.name}", mObject, (), workingDir
-                )
+                _tmp = self.default(f"{prefix}{mObject.name}", mObject, (), workingDir)
                 mesh_dict.update(_tmp)
 
         elif isinstance(Object, Supras):
@@ -149,9 +144,7 @@ class MeshData(YAMLObjectBase):
                 prefix = ""
                 if mname:
                     prefix = f"{mname}_"
-                _tmp = self.default(
-                    f"{prefix}{mObject.name}", mObject, (), workingDir
-                )
+                _tmp = self.default(f"{prefix}{mObject.name}", mObject, (), workingDir)
                 mesh_dict.update(_tmp)
 
         elif isinstance(Object, Screen):
@@ -159,7 +152,7 @@ class MeshData(YAMLObjectBase):
             if mname:
                 hypname = f"{mname}_"
             logger.debug(f"Creating MeshData for Screen {Object.name}, hypname={hypname}")
-            surfhypoth =self.part_default(Object, f"{hypname}{Object.name}_Screen")
+            surfhypoth = self.part_default(Object, f"{hypname}{Object.name}_Screen")
             mesh_dict[f"{hypname}{Object.name}_Screen"] = {"lc": hypoths}
 
         elif isinstance(Object, Bitter):
@@ -190,51 +183,49 @@ class MeshData(YAMLObjectBase):
             # (_i, _dp, _p, _i_dp, _Mandrin, _Sc, _Du)
             elif Object.detail == "dblpancake":
                 hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp")
-                for i in range(Object.get_magnet_struct().getN()):
+                for i in range(Object.get_magnet_struct().getNdbpancakes()):
                     mesh_dict[f"{hypname}{Object.name}_dp{i}"] = {"lc": hypoths}
                 hypoths = self.part_default(Object, f"{hypname}{Object.name}_i")
-                for i in range(Object.get_magnet_struct().getN() - 1):
+                for i in range(Object.get_magnet_struct().getNisolations() - 1):
                     mesh_dict[f"{hypname}{Object.name}_i{i}"] = {"lc": hypoths}
 
             elif Object.detail == "pancake":
-                n_dp = Object.get_magnet_struct().getN()
+                n_dp = Object.get_magnet_struct().getNdbpancakes()
                 hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp_p")
                 for i in range(n_dp):
                     mesh_dict[f"{hypname}{Object.name}_dp{i}_p0"] = {"lc": hypoths}
                     mesh_dict[f"{hypname}{Object.name}_dp{i}_p1"] = {"lc": hypoths}
-                hypoths.append(
-                    self.part_default(Object, f"{hypname}{Object.name}_dp_i")
-                )
+                hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp_i")
                 for i in range(n_dp):
                     mesh_dict[f"{hypname}{Object.name}_dp{i}_i"] = {"lc": hypoths}
-                hypoths =self.part_default(Object, f"{hypname}{Object.name}_i")
+                hypoths = self.part_default(Object, f"{hypname}{Object.name}_i")
                 for i in range(n_dp - 1):
                     mesh_dict[f"{hypname}{Object.name}_i{i}"] = {"lc": hypoths}
 
             elif Object.detail == "tape":
-                n_dp = Object.get_magnet_struct().getN()
+                n_dp = Object.get_magnet_struct().getNdbpancakes()
                 hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp_p_Mandrin")
                 for i in range(n_dp):
-                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_Mandrin"] =  {"lc": hypoths}
-                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_Mandrin"] =  {"lc": hypoths}
+                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_Mandrin"] = {"lc": hypoths}
+                    mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_Mandrin"] = {"lc": hypoths}
                 hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp_p_t_SC")
                 for i in range(n_dp):
                     n_dp_tape = Object.get_magnet_struct().dblpancakes[i].pancake.getN()
                     for j in range(n_dp_tape):
-                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_t{j}_SC"] =  {"lc": hypoths}
-                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_t{j}_SC"] =  {"lc": hypoths}
-                hypoths =self.part_default(Object, f"{hypname}{Object.name}_dp_p_t_Duromag")
+                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_t{j}_SC"] = {"lc": hypoths}
+                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_t{j}_SC"] = {"lc": hypoths}
+                hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp_p_t_Duromag")
                 for i in range(n_dp):
                     n_dp_tape = Object.get_magnet_struct().dblpancakes[i].pancake.getN()
                     for j in range(n_dp_tape):
-                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_t{j}_Duromag"] =  {"lc": hypoths}
-                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_t{j}_Duromag"] =  {"lc": hypoths}
-                hypoths= self.part_default(Object, f"{hypname}{Object.name}_dp_i")
+                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p0_t{j}_Duromag"] = {"lc": hypoths}
+                        mesh_dict[f"{hypname}{Object.name}_dp{i}_p1_t{j}_Duromag"] = {"lc": hypoths}
+                hypoths = self.part_default(Object, f"{hypname}{Object.name}_dp_i")
                 for i in range(n_dp):
-                    mesh_dict[f"{hypname}{Object.name}_dp{i}_i"] =  {"lc": hypoths}
+                    mesh_dict[f"{hypname}{Object.name}_dp{i}_i"] = {"lc": hypoths}
                 hypoths = self.part_default(Object, f"{hypname}{Object.name}_i")
                 for i in range(n_dp - 1):
-                    mesh_dict[f"{hypname}{Object.name}_i{i}"] =  {"lc": hypoths}
+                    mesh_dict[f"{hypname}{Object.name}_i{i}"] = {"lc": hypoths}
             else:
                 raise RuntimeError(
                     f"MeshData: Unknow detail level ({Object.detail}) for Supra {Object.name}"
@@ -290,14 +281,14 @@ class MeshData(YAMLObjectBase):
         """
         from pathlib import Path
         import yaml
-        
+
         if filename is None:
             filename = f"{self.name}.yaml"
 
         path = Path(filename)
         if path.exists():
             raise FileExistsError(f"{filename} already exists")
-        
+
         # Use yaml.dump(self) to include the YAML tag for proper deserialization
         path.write_text(yaml.dump(self, default_flow_style=False, sort_keys=False))
 
@@ -306,7 +297,7 @@ class MeshData(YAMLObjectBase):
 
 def createMeshData(prefix: str, Object, filename: str, AirData: tuple, algo2d: str, algo3d: str):
     import os
-    from python_magnetgeo.utils import ObjectLoadError 
+    from python_magnetgeo.utils import ObjectLoadError
 
     logger.info(f"Loading/creating MeshData: {filename}")
     logger.debug(f"Working directory: {os.getcwd()}")
@@ -318,13 +309,13 @@ def createMeshData(prefix: str, Object, filename: str, AirData: tuple, algo2d: s
     except ObjectLoadError as e:
         # Determine the specific cause based on the error message
         is_file_missing = "YAML file not found" in str(e)
-        
+
         if is_file_missing:
             logger.info(f"MeshData file not found, creating default: {filename}.yaml")
         else:
             # Catches the converted YAMLError (Failed to parse YAML)
             raise RuntimeError(f"*** Failed to parse YAML in {filename}: {e}")
-            
+
         logger.debug("Generating default meshdata")
         _MeshData = MeshData(filename)
         _MeshData.default(prefix, Object, AirData)

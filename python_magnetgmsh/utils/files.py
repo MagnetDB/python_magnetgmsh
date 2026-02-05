@@ -1,12 +1,12 @@
 import os
-import logging
 
 import gmsh
 
 import xmltodict
 from collections import OrderedDict
+from ..logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def load_Xao_groups(xml_dict: dict, debug: bool = False) -> tuple:
