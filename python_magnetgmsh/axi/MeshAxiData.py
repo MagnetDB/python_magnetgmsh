@@ -62,23 +62,18 @@ class MeshAxiData(YAMLObjectBase):
         self,
         name: str,
         algosurf: str = "BLSURF",
-        mesh_dict: dict = {},
+        mesh_dict: dict | None = None,
     ):
         """constructor"""
         self.name = name
         self.algosurf = algosurf
 
         # depending of geometry type
-        self.mesh_dict = mesh_dict
+        self.mesh_dict = mesh_dict if mesh_dict is not None else {}
 
     def __repr__(self):
         """representation"""
-        return "%s(name=%r, algosurf=%r, mesh_dict=%r)" % (
-            self.__class__.__name__,
-            self.name,
-            self.algosurf,
-            self.mesh_dict,
-        )
+        return f"{self.__class__.__name__}(name={self.name!r}, algosurf={self.algosurf!r}, mesh_dict={self.mesh_dict!r})"
 
     def algo2d(self, algosurf):
         logger.warning("Setting surfacic mesh algorithm not implemented yet")
@@ -256,9 +251,9 @@ class MeshAxiData(YAMLObjectBase):
 
     @classmethod
     def from_dict(cls, values: dict, debug: bool = False):
-        name = values["name"]
-        algosurf = values["algosurf"]
-        mesh_dict = values["mesh_dict"]
+        name = values.get("name", "")
+        algosurf = values.get("algosurf", "BLSURF")
+        mesh_dict = values.get("mesh_dict", {})
         return cls(
             name,
             algosurf,
@@ -267,21 +262,17 @@ class MeshAxiData(YAMLObjectBase):
 
     def dump(self, filename: str | None = None):
         """
-        Save mesh_dict to YAML file
+        Save mesh_dict to YAML file using proper YAML serialization with tags
         """
         if filename is None:
             filename = f"{self.name}.yaml"
 
-        data = {
-            "name": self.name,
-            "algosurf": self.algosurf,
-            "mesh_dict": self.mesh_dict,
-        }
-
         path = Path(filename)
         if path.exists():
             raise FileExistsError(f"{filename} already exists")
-        path.write_text(yaml.dump(data, default_flow_style=False, sort_keys=False))
+        
+        # Use yaml.dump(self) to include the YAML tag for proper deserialization
+        path.write_text(yaml.dump(self, default_flow_style=False, sort_keys=False))
 
         logger.info(f"MeshAxiData saved: {filename}")
 

@@ -58,7 +58,7 @@ class MeshData(YAMLObjectBase):
         name: str,
         algosurf: str = "BLSURF",
         algo3D: str = "BLSURF",
-        mesh_dict: dict = {},
+        mesh_dict: dict | None = None,
     ):
         """constructor"""
         self.name = name
@@ -66,17 +66,11 @@ class MeshData(YAMLObjectBase):
         self.algo3D = algo3D
 
         # depending of geometry type
-        self.mesh_dict = mesh_dict
+        self.mesh_dict = mesh_dict if mesh_dict is not None else {}
 
     def __repr__(self):
         """representation"""
-        return "%s(name=%r, algosurf=%r, algo3D=%r, hypoths=%r, mesh_dict=%r)" % (
-            self.__class__.__name__,
-            self.name,
-            self.algosurf,
-            self.hypoths,
-            self.mesh_dict,
-        )
+        return f"{self.__class__.__name__}(name={self.name!r}, algosurf={self.algosurf!r}, algo3D={self.algo3D!r}, mesh_dict={self.mesh_dict!r})"
 
     def algo2d(self, algosurf):
         logger.warning("Setting surfacic mesh algorithm not implemented yet")
@@ -279,16 +273,35 @@ class MeshData(YAMLObjectBase):
 
     @classmethod
     def from_dict(cls, values):
-        name = values["name"]
-        mesh_dict = values["mesh_dict"]
-        algosurf = values["algosurf"]
-        algo3D = values["algo3D"]
+        name = values.get("name", "")
+        mesh_dict = values.get("mesh_dict", {})
+        algosurf = values.get("algosurf", "BLSURF")
+        algo3D = values.get("algo3D", "BLSURF")
         return cls(
             name,
             algosurf,
             algo3D,
             mesh_dict,
         )
+
+    def dump(self, filename: str | None = None):
+        """
+        Save mesh_dict to YAML file using proper YAML serialization with tags
+        """
+        from pathlib import Path
+        import yaml
+        
+        if filename is None:
+            filename = f"{self.name}.yaml"
+
+        path = Path(filename)
+        if path.exists():
+            raise FileExistsError(f"{filename} already exists")
+        
+        # Use yaml.dump(self) to include the YAML tag for proper deserialization
+        path.write_text(yaml.dump(self, default_flow_style=False, sort_keys=False))
+
+        logger.info(f"MeshData saved: {filename}")
 
 
 def createMeshData(prefix: str, Object, filename: str, AirData: tuple, algo2d: str, algo3d: str):
