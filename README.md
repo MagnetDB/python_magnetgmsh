@@ -1,9 +1,11 @@
 # Python Magnet Gmsh
 
+<!--
 [![PyPI version](https://img.shields.io/pypi/v/python_magnetgmsh.svg)](https://pypi.python.org/pypi/python_magnetgmsh)
 [![Build Status](https://img.shields.io/travis/Trophime/python_magnetgmsh.svg)](https://travis-ci.com/Trophime/python_magnetgmsh)
 [![Documentation Status](https://readthedocs.org/projects/python-magnetgmsh/badge/?version=latest)](https://python-magnetgmsh.readthedocs.io/en/latest/?version=latest)
 [![Updates](https://pyup.io/repos/github/Trophime/python_magnetgmsh/shield.svg)](https://pyup.io/repos/github/Trophime/python_magnetgmsh/)
+-->
 
 Python Magnet Gmsh provides tools to create CAD and mesh files using Gmsh for high-field magnet geometries.
 
@@ -49,9 +51,6 @@ cd python_magnetgmsh
 # Create virtual environment
 python -m venv --system-site-packages magnetgmsh-env
 source ./magnetgmsh-env/bin/activate  # On Windows: magnetgmsh-env\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
 
 # Install in development mode
 pip install -e .
@@ -308,7 +307,6 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install development dependencies
-pip install -r requirements.txt
 pip install -e ".[dev]"
 ```
 
