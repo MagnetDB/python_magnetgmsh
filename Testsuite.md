@@ -8,6 +8,10 @@ run:
 
 # 2D testsuite
 
+```shell
+./testsuite2D.sh [/path/to/working/directory]
+```
+
 # 3D testsuite
 
 feature not implemented yet
