@@ -34,7 +34,7 @@ shift $((OPTIND - 1))
 
 # add parameters
 : ${VERSION:="0.1.0"}
-: ${DIST:="bookworm"}
+: ${DIST:="trixie"}
 
 # cleanup source
 find . -type d -name __pycache__ | xargs rm -rf
@@ -51,13 +51,15 @@ tar \
     --exclude=.pc \
     --exclude=.devcontainer \
     --exclude=.vscode \
+    --exclude=magnetgmsh-env* \
     --exclude=*.sif \
     --exclude=*.crt \
     --exclude=*.pem \
     --exclude=*.log \
+    --exclude=*.msh \
+    --exclude=*.deb \
     --exclude=*~ \
     --exclude=#*# \
-    --exclude=pyproject.toml \
     --exclude=poetry.lock \
     -zcvf ${PACKAGE}_${VERSION}.orig.tar.gz ${SRCDIR}
 
@@ -65,7 +67,7 @@ tar \
 # disable use of hooks in pbuilder
 mkdir -p tmp
 cd tmp
-cp ../${PACKAGE}_${VERSION}.orig.tar.gz .
+mv ../${PACKAGE}_${VERSION}.orig.tar.gz .
 tar zxvf ./${PACKAGE}_$VERSION.orig.tar.gz
 cp -r ../${SRCDIR}/debian ${SRCDIR}
 cd ${SRCDIR}
