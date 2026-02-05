@@ -18,6 +18,7 @@ def gmsh_box(Screen: Screen, debug: bool = False) -> list:
     """
 
     boxes = []
+    boxes.append([Screen.r[0], Screen.z[0], Screen.r[1], Screen.z[1]])
     return boxes
 
 

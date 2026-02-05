@@ -13,7 +13,18 @@ from python_magnetgeo.Chamfer import Chamfer
 from python_magnetgeo.Helix import Helix
 
 import gmsh
+
 from ..mesh.bcs import create_bcs
+
+
+def gmsh_box(Helix: Helix, debug: bool = False) -> list:
+    """
+    get (boundingbox,size) for each slit
+    """
+    
+    boxes = []
+    boxes.append([Helix.r[0], Helix.z[0], Helix.r[1], Helix.z[1]])
+    return boxes
 
 
 def gmsh_chamfer(r: float, z: float, chamfer: Chamfer, debug: bool = False) -> int:
