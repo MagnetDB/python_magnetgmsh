@@ -55,7 +55,7 @@ for test in ${Tests2D}; do
         echo -e "\033[33mSKIPPED\033[39m (file not found)"
         continue
     fi
-    python -m python_magnetgmsh.m2d.Bitter2D ${test}.yaml --wd ${TestWD} --mesh > ${test}_mesh2D_gmsh.log 2>&1
+    python -m python_magnetgmsh.m2d.Bitter2D "${test}.yaml" --wd "${TestWD}" --mesh > "${test}_mesh2D_gmsh.log" 2>&1
     status=$?
     if [ "$status" != "0" ]; then
 	    echo_failure
@@ -67,7 +67,7 @@ done
 
 for test in ${Tests2D}; do
     echo -en "${test} : " 
-    python -m python_magnetgmsh.m2d.Bitter2Dquarter ${test}.yaml --wd ${TestWD} --mesh > ${test}_mesh2D_gmsh.log 2>&1
+    python -m python_magnetgmsh.m2d.Bitter2Dquarter "${test}.yaml" --wd "${TestWD}" --mesh > "${test}_mesh2D_gmsh.log" 2>&1
     status=$?
     if [ "$status" != "0" ]; then
 	    echo_failure
