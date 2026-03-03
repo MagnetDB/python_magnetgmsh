@@ -3,6 +3,9 @@ import re
 from math import copysign
 import gmsh
 from ..axi.MeshAxiData import MeshAxiData
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 MeshAlgo2D = {
     "MeshAdapt": 1,

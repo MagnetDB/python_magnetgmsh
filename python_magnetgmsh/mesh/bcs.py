@@ -2,6 +2,9 @@
 # -*- coding:utf-8 -*-
 
 import gmsh
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def minmax(box: list[float], eps: float):

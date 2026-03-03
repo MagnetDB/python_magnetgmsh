@@ -18,6 +18,7 @@ def gmsh_box(Screen: Screen, debug: bool = False) -> list:
     """
 
     boxes = []
+    boxes.append([Screen.r[0], Screen.z[0], Screen.r[1], Screen.z[1]])
     return boxes
 
 
@@ -86,8 +87,8 @@ def gmsh_bcs(Screen: Screen, ids: tuple, debug: bool = False) -> dict:
         # TODO: Axis, Inf
         gmsh.option.setNumber("Geometry.OCCBoundsUseStl", 1)
 
-        bcs_defs[f"ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
-        bcs_defs[f"Infty"] = [
+        bcs_defs["ZAxis"] = [0, z0_air, 0, z0_air + dz_air]
+        bcs_defs["Infty"] = [
             [0, z0_air, dr_air, z0_air],
             [dr_air, z0_air, dr_air, z0_air + dz_air],
             [0, z0_air + dz_air, dr_air, z0_air + dz_air],

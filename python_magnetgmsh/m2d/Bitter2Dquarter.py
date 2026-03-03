@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 
 import gmsh
 
@@ -11,8 +12,17 @@ from python_magnetgeo import (
 )  # For type checking only
 from python_magnetgeo.Contour2D import Contour2D
 
+from ..argparse_utils import (
+    add_common_args,
+    add_wd_arg,
+    add_show_arg,
+    add_algo2d_arg,
+    add_scaling_arg,
+)
 from ..utils.lists import flatten
 from ..mesh.axi import get_allowed_algo, MeshAlgo2D
+
+logger = logging.getLogger(__name__)
 
 
 # TieRod
@@ -22,24 +32,24 @@ def create_contour2d(x: float, y: float, contour2d: Contour2D):
     """
 
     _cl = None
-    print(f"contour2d: {contour2d}, name={contour2d.name}, x={x}, y={y}", flush=True)
+    logger.debug(f"contour2d: {contour2d}, name={contour2d.name}, x={x}, y={y}")
     if contour2d.name.startswith("circle"):
         r = float(contour2d.name.split("-")[-1].replace("mm", "")) / 2.0
         curv = gmsh.model.occ.addCircle(x, y, 0, r)  # , angle1=, angle2 = )
         _cl = gmsh.model.occ.addCurveLoop([curv])
-        print(f"create a circle: C({x},{y}), r={r}, _cl={_cl}, curv={curv}")
+        logger.debug(f"create a circle: C({x},{y}), r={r}, _cl={_cl}, curv={curv}")
     else:
         curv = []
         points = []
         for i, pt in enumerate(contour2d.points):
-            print(f"pt[{i}]: {pt}")
+            logger.debug(f"pt[{i}]: {pt}")
             points.append(gmsh.model.occ.addPoint(x + pt[0], y + pt[1], 0))
-            print(f"addPoint({x + pt[0]}, {y+pt[1]})", flush=True)
+            logger.debug(f"addPoint({x + pt[0]}, {y+pt[1]})")
             if i >= 1:
                 curv.append(gmsh.model.occ.addLine(points[i - 1], points[i]))
         curv.append(gmsh.model.occ.addLine(points[-1], points[0]))
         _cl = gmsh.model.occ.addCurveLoop(curv)
-        print(f"create_contour2d: _cl={_cl}, {curv}")
+        logger.debug(f"create_contour2d: _cl={_cl}, {curv}")
         curv.clear()
         points.clear()
     return _cl
@@ -49,7 +59,7 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
     """
     create gmsh 2D geometry
     """
-    print("Bitter/gmsh2D_ids")
+    logger.info("Creating Bitter 2D quarter geometry")
 
     from math import pi, cos, sin
 
@@ -64,19 +74,19 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
     pt0_r0 = gmsh.model.occ.addPoint(Bitter.r[0] * cos(0), Bitter.r[0] * sin(0), 0)
     pt1_r0 = gmsh.model.occ.addPoint(Bitter.r[0] * cos(theta), Bitter.r[0] * sin(theta), 0)
     rint_id = gmsh.model.occ.addCircleArc(pt0_r0, Origin, pt1_r0)
-    print(f"rint_id={rint_id}")
+    logger.debug(f"rint_id={rint_id}")
     curv.append(rint_id)
 
     pt0_r1 = gmsh.model.occ.addPoint(Bitter.r[1] * cos(0), Bitter.r[1] * sin(0), 0)
     pt1_r1 = gmsh.model.occ.addPoint(Bitter.r[1] * cos(theta), Bitter.r[1] * sin(theta), 0)
     curv.append(gmsh.model.occ.addLine(pt0_r0, pt0_r1))
     rext_id = gmsh.model.occ.addCircleArc(pt0_r1, Origin, pt1_r1)
-    print(f"rext_id={rext_id}")
+    logger.debug(f"rext_id={rext_id}")
     curv.append(rext_id)
     curv.append(gmsh.model.occ.addLine(pt1_r1, pt1_r0))
     cl = gmsh.model.occ.addCurveLoop(curv)
     sector = gmsh.model.occ.addPlaneSurface([cl])
-    print(f"Bitter sector: {cl} = {curv}")
+    logger.debug(f"Bitter sector: {cl} = {curv}")
     del curv
 
     holes = []
@@ -92,10 +102,10 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
 
         # create contour2d for slit
         _ltierod = create_contour2d(tierod.r, 0, tierod.contour2d)
-        print(f"_ltierod: {_ltierod}", flush=True)
+        logger.debug(f"_ltierod: {_ltierod}")
         tierod_id = gmsh.model.occ.addPlaneSurface([_ltierod])
         gmsh.model.occ.rotate([(2, tierod_id)], 0, 0, 0, 0, 0, 1, angle)
-        print(f"tierod[0]: rotate {angle} init")
+        logger.debug(f"tierod[0]: rotate {angle} init")
         tierods.append(tierod_id)
         tnames.append("tierod_0")
 
@@ -109,18 +119,17 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
                 tnames.append(f"tierod_{n}")
                 tierod_thetas.append(n * theta_t + angle)
 
-        print(tierod_thetas)
+        logger.debug(f"tierod_thetas: {tierod_thetas}")
 
         # gmsh.model.occ.rotate([(2, tierod_id)], 0, 0, 0, 0, 0, 1, theta/2.0)
-        print(f"tierod_id: {tierod_id}", flush=True)
+        logger.debug(f"tierod_id: {tierod_id}")
 
     # CoolingSlits
     if Bitter.coolingslits:
         for j, slit in enumerate(Bitter.coolingslits):
             _names = []
-            print(
-                f"slit[{j+1}]: nslits={slit.n}, r={slit.r}",  # tierod={tierod.r* cos(theta/2.0)}",
-                flush=True,
+            logger.debug(
+                f"slit[{j+1}]: nslits={slit.n}, r={slit.r}",  # tierod={tierod.r* cos(theta/2.0)}"
             )
             nslits = slit.n
 
@@ -135,11 +144,11 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
             slit_id = gmsh.model.occ.addPlaneSurface([_lc])
             if angle != 0:
                 gmsh.model.occ.rotate([(2, slit_id)], 0, 0, 0, 0, 0, 1, angle)
-                print(f"slit[{j+1}][0]: rotate {angle} init")
+                logger.debug(f"slit[{j+1}][0]: rotate {angle} init")
 
-            if Bitter.tierod and slit.r == tierod.r and angle == theta / 2.0:
-                print(f"angle={angle}, tierod_thetas={tierod_thetas}")
-                print("skip slit")
+            if Bitter.tierod and (slit.r == tierod.r and angle in tierod_thetas):
+                logger.debug(f"angle={angle}, tierod_thetas={tierod_thetas}")
+                logger.debug("skip slit")
             else:
                 holes.append(slit_id)
                 _names.append(f"slit{j+1}_0")
@@ -151,7 +160,7 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
                         and slit.r == tierod.r
                         and n * theta_s + angle in tierod_thetas
                     ):
-                        print("skip slit")
+                        logger.debug("skip slit")
                     else:
                         res = gmsh.model.occ.copy([(2, slit_id)])
                         # print(f"res={res}")
@@ -170,26 +179,26 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
     if Bitter.tierod or Bitter.coolingslits:
         slit_tierod = flatten(holes) + flatten(tierods)
         name_slit_tierod = flatten(names) + flatten(tnames)
-        print(f"slits+tierods={slit_tierod}")
-        print(f"names={name_slit_tierod}")
+        logger.debug(f"slits+tierods={slit_tierod}")
+        logger.debug(f"names={name_slit_tierod}")
         cad = gmsh.model.occ.cut([(2, sector)], [(2, _id) for _id in slit_tierod], removeTool=False)
     else:
         cad = sector
     gmsh.model.occ.synchronize()
 
     if holes or tierods:
-        print(f"cad: {cad}")
-        print(f"cad[1]: {cad[1]}")
-        print(f"cad[1][0]: {cad[1][0]}")
-        print(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}", flush=True)
+        logger.debug(f"cad: {cad}")
+        logger.debug(f"cad[1]: {cad[1]}")
+        logger.debug(f"cad[1][0]: {cad[1][0]}")
+        logger.info(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}")
         ps = gmsh.model.addPhysicalGroup(2, [cad[0][0][1]])
         gmsh.model.setPhysicalName(2, ps, Bitter.name)
-        print(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}", flush=True)
+        logger.info(f"PhysicalGroup[{Bitter.name}]: ids={[cad[0][0][1]]}")
     else:
-        print(f"cad: {cad}")
+        logger.debug(f"cad: {cad}")
         ps = gmsh.model.addPhysicalGroup(2, [cad])
         gmsh.model.setPhysicalName(2, ps, Bitter.name)
-        print(f"PhysicalGroup[{Bitter.name}]: ids={[cad]} (sector only)", flush=True)
+        logger.info(f"PhysicalGroup[{Bitter.name}]: ids={[cad]} (sector only)")
 
     # get BCs ids
     # use
@@ -208,7 +217,7 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
         )
 
         ids = [tag[1] for tag in interface]
-        print(f"interface[{name}]: ids={ids}, interface={interface}")
+        logger.debug(f"interface[{name}]: ids={ids}, interface={interface}")
         ps = gmsh.model.addPhysicalGroup(1, ids)
         gmsh.model.setPhysicalName(1, ps, name)
 
@@ -219,13 +228,13 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
     # tierod_ids = create_bcgroup(cad[0][0][1], tierod_id, "tierod")
 
     slit_names = flatten(names)
-    print(f"slit_names: {len(slit_names)} names, {len(holes)} slits")
+    logger.debug(f"slit_names: {len(slit_names)} names, {len(holes)} slits")
     hole_ids = []
     for i in range(0, len(holes)):
         _ids = create_bcgroup(cad[0][0][1], holes[i], slit_names[i])
         hole_ids.append(_ids)
 
-    print(f"tierod_names: {len(tnames)} names, {len(tierods)} tierods")
+    logger.debug(f"tierod_names: {len(tnames)} names, {len(tierods)} tierods")
     tierod_ids = []
     for i in range(0, len(tierods)):
         _ids = create_bcgroup(cad[0][0][1], tierods[i], tnames[i])
@@ -260,7 +269,9 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
         1,
     )
     candidate_rint_ids = [tag[1] for tag in candidate_rint]
-    print(f"candidate_rint={candidate_rint} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}")
+    logger.debug(
+        f"candidate_rint={candidate_rint} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}"
+    )
     xmin = Bitter.r[1] * cos(theta) - eps
     ymin = -eps
     xmax = Bitter.r[1] + eps
@@ -275,7 +286,9 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
         1,
     )
     candidate_rext_ids = [tag[1] for tag in candidate_rext]
-    print(f"candidate_rext={candidate_rext} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}")
+    logger.debug(
+        f"candidate_rext={candidate_rext} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}"
+    )
     xmin = Bitter.r[0] * cos(0) - eps
     ymin = Bitter.r[1] * sin(0) - eps
     xmax = Bitter.r[1] * cos(0) + eps
@@ -290,7 +303,7 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
         1,
     )
     candidate_V0_ids = [tag[1] for tag in candidate_V0]
-    print(f"candidate_V0={candidate_V0} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}")
+    logger.debug(f"candidate_V0={candidate_V0} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}")
     xmin = Bitter.r[0] * cos(theta) - eps
     ymin = Bitter.r[0] * sin(theta) - eps
     xmax = Bitter.r[1] * cos(theta) + eps
@@ -305,10 +318,10 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
         1,
     )
     candidate_V1_ids = [tag[1] for tag in candidate_V1]
-    print(f"candidate_V1={candidate_V1} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}")
+    logger.debug(f"candidate_V1={candidate_V1} xmin={xmin} ymin={ymin} xmax={xmax}, ymax={ymax}")
 
     _ids = flatten(hole_ids) + flatten(tierod_ids)
-    print(_ids)
+    logger.debug(f"_ids={_ids}")
     vEntities = gmsh.model.getEntities(1)
     rint_ids = []
     rext_ids = []
@@ -318,7 +331,7 @@ def gmsh2D_ids(Bitter: Bitter.Bitter, AirData: tuple, debug: bool = False) -> tu
         tag = entity[1]
         if entity[1] not in _ids:
             gtype = gmsh.model.getType(entity[0], entity[1])
-            print(f"Line[{i}]: id={tag}, type={gtype}")
+            logger.debug(f"Line[{i}]: id={tag}, type={gtype}")
             if gtype == "Circle":
                 if tag in candidate_rint_ids:
                     rint_ids.append(tag)
@@ -365,22 +378,15 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("filename", help="name of the model to be loaded (yaml file)", type=str)
-    parser.add_argument("--wd", help="set a working directory", type=str, default="")
+    add_wd_arg(parser)
     parser.add_argument("--mesh", help="activate mesh", action="store_true")
-    parser.add_argument(
-        "--algo2d",
-        help="select an algorithm for 2d mesh",
-        type=str,
-        choices=get_allowed_algo(),
-        default="Delaunay",
-    )
-    parser.add_argument("--scaling", help="scale to m (default unit is mm)", action="store_true")
+    add_algo2d_arg(parser, get_allowed_algo())
+    add_scaling_arg(parser)
     parser.add_argument("--lc", help="specify mesh size", type=float, default="10")
-    parser.add_argument("--show", help="display gmsh windows", action="store_true")
-    parser.add_argument("--verbose", help="activate debug mode", action="store_true")
-    parser.add_argument("--debug", help="activate debug mode", action="store_true")
+    add_show_arg(parser)
+    add_common_args(parser)
     args = parser.parse_args()
-    print(f"Arguments: {args}")
+    logger.info(f"Arguments: {args}")
 
     cwd = os.getcwd()
     if args.wd:
@@ -390,12 +396,12 @@ def main():
         Object = getObject(args.filename)
     except ValidationError as e:
         # Handle validation errors from python_magnetgeo
-        print(f"Validation error: {e}")
+        logger.error(f"Validation error: {e}")
 
     ncoolingslits = 0
     if Object.coolingslits:
         ncoolingslits += len(Object.coolingslits)
-    print(f"ncoolingslits={ncoolingslits}")
+    logger.info(f"ncoolingslits={ncoolingslits}")
 
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", 1)
@@ -407,11 +413,11 @@ def main():
 
     AirData = ()
     result = gmsh2D_ids(Object, AirData, args.debug)
-    print(f"gmsh2D_ids={result}")
+    logger.debug(f"gmsh2D_ids={result}")
     # Todo: create BCs
 
     if args.mesh:
-        print(f"create Axi Gmsh mesh ({args.algo2d})")
+        logger.info(f"create Axi Gmsh mesh ({args.algo2d})")
         gmsh.option.setNumber("Mesh.Algorithm", MeshAlgo2D[args.algo2d])
 
         # scaling
@@ -434,7 +440,7 @@ def main():
             nfield += 1
 
             # Field 2: Threshold that dictates the mesh size of the background field
-            print(f"Field[Thresold] for cooling holes: {nfield}")
+            logger.debug(f"Field[Thresold] for Rint/Rext: {nfield}")
             gmsh.model.mesh.field.add("Threshold", nfield)
             gmsh.model.mesh.field.setNumber(nfield, "IField", nfield - 1)
             gmsh.model.mesh.field.setNumber(nfield, "LcMin", args.lc / 10.0 * unit)
@@ -455,7 +461,7 @@ def main():
                 nfield += 1
 
                 # Field 2: Threshold that dictates the mesh size of the background field
-                print(f"Field[Thresold] for cooling holes: {nfield}")
+                logger.debug(f"Field[Thresold] for tierods: {nfield}")
                 gmsh.model.mesh.field.add("Threshold", nfield)
                 gmsh.model.mesh.field.setNumber(nfield, "IField", nfield - 1)
                 gmsh.model.mesh.field.setNumber(nfield, "LcMin", args.lc / 20.0 * unit)
@@ -479,7 +485,7 @@ def main():
             nfield += 1
 
             # Field 2: Threshold that dictates the mesh size of the background field
-            print(f"Field[Thresold] for cooling holes: {nfield}")
+            logger.debug(f"Field[Thresold] for cooling holes: {nfield}")
             gmsh.model.mesh.field.add("Threshold", nfield)
             gmsh.model.mesh.field.setNumber(nfield, "IField", nfield - 1)
             gmsh.model.mesh.field.setNumber(nfield, "LcMin", args.lc / 40.0 * unit)
@@ -493,9 +499,9 @@ def main():
         # Let's use the minimum of all the fields as the mesh size field:
         gmsh.model.mesh.field.add("Min", nfield)
         gmsh.model.mesh.field.setNumbers(nfield, "FieldsList", dfields)  # dfields
-        print(f"Field[Min] = {nfield}, Min=[{dfields[0]},...,{dfields[-1]}]")
+        logger.debug(f"Field[Min] = {nfield}, Min=[{dfields[0]},...,{dfields[-1]}]")
 
-        print(f"Apply background mesh {nfield}")
+        logger.info(f"Apply background mesh {nfield}")
         gmsh.model.mesh.field.setAsBackgroundMesh(nfield)
 
         gmsh.model.mesh.generate(2)
@@ -509,6 +515,9 @@ def main():
     if args.show:
         gmsh.fltk.run()
     gmsh.finalize()
+
+    if args.wd:
+        os.chdir(cwd)
 
 
 if __name__ == "__main__":

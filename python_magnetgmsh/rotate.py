@@ -12,10 +12,10 @@ mesh file is not modified; output is saved to a new file.
 Typical Usage:
     # Rotate mesh 45 degrees around X-axis
     python -m python_magnetgmsh.rotate mesh.msh --rotate 45 --show
-    
+
     # With working directory
     python -m python_magnetgmsh.rotate HL-31_H1.msh --wd /data/meshes --rotate 90
-    
+
     # Output: HL-31_H1-rotate-90.0deg.msh
 
 Mathematical Details:
@@ -25,7 +25,7 @@ Mathematical Details:
     │ y'│ = │ 0  sin(θ)  cos(θ) 0 │ │ z │
     │ z'│   │ 0    0       0    1 │ │ 1 │
     └   ┘   └                    ┘ └   ┘
-    
+
     This preserves distances and angles, making it suitable for mesh reuse
     in different orientations.
 
@@ -46,40 +46,81 @@ See Also:
 Author: Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>
 """
 
-import gmsh
+import argparse
+import logging
 import os
 from math import pi, cos, sin
 
+import gmsh
 
-import argparse
+from .argparse_utils import add_common_args, add_wd_arg, add_show_arg
+from .logging_config import setup_logging
+
+logger = logging.getLogger(__name__)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("input_meshfile")
-    parser.add_argument("--wd", help="set a working directory", type=str, default="")
+    add_wd_arg(parser)
     parser.add_argument("--rotate", help="rotation angle vs Ox (deg)", default="10", type=float)
-    parser.add_argument("--show", help="display mesh (requires X11)", action="store_true")
+    add_show_arg(parser)
+    add_common_args(parser)
 
     args = parser.parse_args()
-    print(args)
+
+    # Setup logging based on command-line arguments
+    setup_logging(
+        verbose=args.verbose,
+        debug=args.debug,
+        log_file=args.log,  # Only log to file if explicitly specified
+    )
+
+    logger.debug(f"Command-line arguments: {args}")
 
     cwd = os.getcwd()
     if args.wd:
+        logger.info(f"Working directory: {args.wd}")
         os.chdir(args.wd)
 
-    basename = args.input_meshfile.split('.msh')[0]
-    
+    basename = args.input_meshfile.split(".msh")[0]
+
+    logger.info(f"Loading mesh: {args.input_meshfile}")
     gmsh.initialize()
     gmsh.open(args.input_meshfile)
 
-    gmsh.model.mesh.affineTransform([1, 0,                         0,                        0,
-                                     0, cos(pi/180.*args.rotate), -sin(pi/180.*args.rotate), 0,
-                                     0, sin(pi/180.*args.rotate),  cos(pi/180.*args.rotate), 0])
+    logger.info(f"Rotating mesh by {args.rotate}° around X-axis")
+    gmsh.model.mesh.affineTransform(
+        [
+            1,
+            0,
+            0,
+            0,
+            0,
+            cos(pi / 180.0 * args.rotate),
+            -sin(pi / 180.0 * args.rotate),
+            0,
+            0,
+            sin(pi / 180.0 * args.rotate),
+            cos(pi / 180.0 * args.rotate),
+            0,
+        ]
+    )
+
+    output_file = f"{basename}-rotate-{args.rotate:.1f}deg.msh"
 
     if args.show:
+        logger.info("Launching Gmsh GUI...")
         gmsh.fltk.run()
-    gmsh.write(f'{basename}-rotate-{args.rotate:.1f}deg.msh')
+
+    gmsh.write(output_file)
+    logger.info(f"Rotated mesh saved: {output_file}")
 
     gmsh.finalize()
+
+    if args.wd:
+        os.chdir(cwd)
+
     return 0
 
 

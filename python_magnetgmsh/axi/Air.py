@@ -7,6 +7,9 @@ from python_magnetgeo.Bitters import Bitters
 from python_magnetgeo.Supras import Supras
 from python_magnetgeo.Screen import Screen
 from python_magnetgeo.Helix import Helix
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 ObjectType = MSite | Bitters | Supras | Insert | Bitter | Supra | Screen | Helix
 

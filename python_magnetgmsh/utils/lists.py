@@ -1,3 +1,8 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def flatten(S: list) -> list:
     """
     flatten list of list
@@ -9,6 +14,6 @@ def flatten(S: list) -> list:
     # Check for duplicates
     if len(flattened) != len(set(flattened)):
         duplicates = [item for item in set(flattened) if flattened.count(item) > 1]
-        print(f"Duplicates found in flattened list: {duplicates}", flush=True)
+        logger.warning(f"Duplicates found in flattened list: {duplicates}")
 
     return flattened

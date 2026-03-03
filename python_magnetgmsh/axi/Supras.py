@@ -7,6 +7,9 @@ import yaml
 from python_magnetgeo.Supra import Supra
 from python_magnetgeo.Supras import Supras
 from ..utils.lists import flatten
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 import_dict = {Supra: ".axi.Supra"}
 
@@ -15,7 +18,7 @@ def gmsh_box(Supras: Supras, debug: bool = False) -> list:
     """
     get boundingbox for each slit
     """
-    print("Supras.gmsh_box")
+    logger.debug("Creating bounding boxes for Supras")
     from importlib import import_module
 
     boxes = []
@@ -23,7 +26,7 @@ def gmsh_box(Supras: Supras, debug: bool = False) -> list:
     for magnet in Supras.magnets:
         MyMagnet = import_module(import_dict[type(magnet)], package="python_magnetgmsh")
         box = MyMagnet.gmsh_box(magnet, debug)
-        print(f"Supras/gmsh/{magnet.name} box={box}")
+        logger.debug(f"Supras {magnet.name} bounding box: {box}")
         boxes.append(box)
 
     return boxes
@@ -92,9 +95,9 @@ def gmsh_bcs(Supras, mname: str, ids: tuple, thickslit: bool = False, debug: boo
     import gmsh
     from importlib import import_module
 
-    print(f"gmsh_bcs: Supras={Supras.name}, mname={mname}, thickslit={thickslit}")
+    logger.debug(f"Creating boundary conditions for Supras: {Supras.name}")
     (gmsh_ids, gmsh_bc_ids, Air_data) = ids
-    # print("Supras/gmsh_bcs:", ids)
+    # logger.debug("Supras/gmsh_bcs:", ids)
 
     defs = {}
     bcs_defs = {}

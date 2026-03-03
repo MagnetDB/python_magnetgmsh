@@ -17,6 +17,9 @@ from python_magnetgeo import Supras
 from python_magnetgeo import Screen
 from ..mesh.bcs import create_bcs
 from ..utils.lists import flatten
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 import_dict = {
     Insert.Insert: ".axi.Insert",

@@ -1,6 +1,9 @@
 import gmsh
 from ..m3d.MeshData import MeshData
 from ..mesh.axi import MeshAlgo2D
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 MeshAlgo3D = {
     "Delaunay": 1,

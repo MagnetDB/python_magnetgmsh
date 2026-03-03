@@ -1,5 +1,7 @@
+import sys
 import gmsh
 import math
+import logging
 from typing import Dict, List, Tuple, Optional
 
 # Lazy loading import - automatically detects geometry type
@@ -8,6 +10,8 @@ from python_magnetgeo.validation import ValidationError
 
 # For type checking only
 from python_magnetgeo.Helix import Helix as HelixConfig
+
+logger = logging.getLogger(__name__)
 
 """
 Configuration for helix geometry parameters.
@@ -84,41 +88,40 @@ class Helix:
         for turn, pitch in zip(new_turns, new_pitchs):
             npts_turn = max(3, int(self.npts * turn))
             dtheta = 2 * math.pi * turn / npts_turn
-            print(
-                f"  Creating helix turn [{self.config.get_Nturns()}]: turn={turn}, pitch={pitch} mm, npts_turn={npts_turn}, dtheta={dtheta*180/math.pi} deg, theta={theta*180/math.pi} deg, z={z} mm",
-                flush=True,
+            logger.debug(
+                f"  Creating helix turn [{self.config.get_Nturns()}]: turn={turn}, pitch={pitch} mm, npts_turn={npts_turn}, dtheta={dtheta*180/math.pi} deg, theta={theta*180/math.pi} deg, z={z} mm"
             )
             for i in range(npts_turn):
                 # Copy, rotate and translate section
                 ov = gmsh.model.occ.copy([(2, s)])
-                # print('ov:', ov, end=" --> ")
+                # logger.debug(f'ov: {ov}')
                 gmsh.model.occ.rotate(ov, 0, 0, 0, 0, 0, 1, sens * theta)
                 gmsh.model.occ.translate(ov, 0, 0, z)
                 gmsh.model.occ.synchronize()
 
                 curvelooptags, curvetags = gmsh.model.occ.getCurveLoops(ov[0][1])
-                # print('curvetags:', curvetags, len(curvetags), end=" --> ", flush=True)
+                # logger.debug(f'curvetags: {curvetags}, count: {len(curvetags)}')
                 wire = gmsh.model.occ.addCurveLoop(curvetags[0])
-                print(f"\twire: {wire}, theta={theta*180/math.pi} deg, z={z} mm", flush=True)
+                logger.debug(f"\twire: {wire}, theta={theta*180/math.pi} deg, z={z} mm")
 
                 sections.append(wire)
                 gmsh.model.occ.remove(ov, False)
 
                 theta += dtheta
                 z += pitch * dtheta / (2 * math.pi)
-            print(f"theta={(theta)*180/math.pi} deg, z={z} mm, wire={wire}", flush=True)
+            logger.debug(f"theta={(theta)*180/math.pi} deg, z={z} mm, wire={wire}")
 
         # last section
         ov = gmsh.model.occ.copy([(2, s)])
-        # print('ov:', ov, end=" --> ")
+        # logger.debug(f'ov: {ov}')
         gmsh.model.occ.rotate(ov, 0, 0, 0, 0, 0, 1, sens * theta)
         gmsh.model.occ.translate(ov, 0, 0, z)
         gmsh.model.occ.synchronize()
 
         curvelooptags, curvetags = gmsh.model.occ.getCurveLoops(ov[0][1])
-        # print('curvetags:', curvetags, len(curvetags), end=" --> ", flush=True)
+        # logger.debug(f'curvetags: {curvetags}, count: {len(curvetags)}')
         wire = gmsh.model.occ.addCurveLoop(curvetags[0])
-        # print('wire:', wire, flush=True)
+        # logger.debug(f'wire: {wire}')
 
         sections.append(wire)
         gmsh.model.occ.remove(ov, False)
@@ -138,7 +141,7 @@ class Helix:
         Returns:
             Tuple of (modified hcut, bounding box)
         """
-        print(f"  Adding EDM wire start hole to {self.config.name}", flush=True)
+        logger.info(f"  Adding EDM wire start hole to {self.config.name}")
 
         r1 = self.config.r[0]
         r2 = self.config.r[-1]
@@ -187,7 +190,7 @@ class Helix:
         Returns:
             Tuple of (modified hcut, bounding box)
         """
-        print(f"  Adding EDM wire hole to {self.config.name}", flush=True)
+        logger.info(f"  Adding EDM wire hole to {self.config.name}")
 
         r1 = self.config.r[0]
         r2 = self.config.r[-1]
@@ -271,13 +274,13 @@ class Helix:
         # Add EDM wire start hole if requested
         if self.add_start_hole:
             hcut, _ = self.add_edm_start_hole(hcut)
-            # print(f"hcut={hcut}", flush=True)
+            # logger.debug(f"hcut={hcut}")
             hcut, _ = self.add_edm_hole(hcut)
-            # print(f"hcut={hcut}", flush=True)
+            # logger.debug(f"hcut={hcut}")
 
         # TODO if self.config.vdble duplicate hcut and rotate by 180 deg
         if self.config.dble:
-            print(f"  Creating double helix for {self.config.name}", flush=True)
+            logger.info(f"  Creating double helix for {self.config.name}")
             # Rotate hcut by 180 deg around z-axis
             hcut_rotated = []
             for dimtag in hcut:
@@ -290,15 +293,15 @@ class Helix:
             gmsh.model.occ.synchronize()
 
         # Fragment geometry to create separate volumes
-        print(f"cyl={cyl}, hcut={hcut}", flush=True)
+        logger.debug(f"cyl={cyl}, hcut={hcut}")
         outDimTags, outDimTagsMap = gmsh.model.occ.fragment(
             [cyl], hcut, removeObject=True, removeTool=True
         )
-        # print(f"fragment: outDimTags={outDimTags}, outDimTagsMap={outDimTagsMap}")
+        # logger.debug(f"fragment: outDimTags={outDimTags}, outDimTagsMap={outDimTagsMap}")
         gmsh.model.occ.synchronize()
 
         cyl_children_id = [dimtag[1] for dimtag in outDimTagsMap[0]]
-        # print(f'  Cylinder children IDs: {cyl_children_id}', flush=True)
+        # logger.debug(f'  Cylinder children IDs: {cyl_children_id}')
 
         # Remove entities not belonging to cylinder
         volume_ids = []
@@ -306,7 +309,7 @@ class Helix:
         for entity in entities:
             if entity[1] not in ignore_ids:
                 if entity[1] not in cyl_children_id:
-                    # print(f'  Removing entity not in cylinder: {entity}', flush=True)
+                    # logger.debug(f'  Removing entity not in cylinder: {entity}')
                     gmsh.model.occ.remove([entity], True)
                 else:
                     volume_ids.append(entity[1])
@@ -316,14 +319,14 @@ class Helix:
         # gmsh.model.occ.synchronize()
 
         gmsh.model.occ.synchronize()
-        # print(f'  Created volumes: {volume_ids}', flush=True)
+        # logger.debug(f'  Created volumes: {volume_ids}')
 
         return volume_ids
 
     def create_physical_groups(self, volume_ids: List[int], prefix=""):
         """Create physical groups for the helix."""
         if len(volume_ids) < 2:
-            print(
+            logger.warning(
                 f"  Warning: Expected 2 volumes for {self.config.name}, got {len(self.volume_ids)}"
             )
             return
@@ -340,7 +343,7 @@ class Helix:
                 [(3, vol_id)], combined=False, oriented=False, recursive=False
             )
             bcs[vol_id] = sorted([e[1] for e in boundaries])
-            print(f"Volume {vol_id}: {len(boundaries)} boundaries")
+            logger.debug(f"Volume {vol_id}: {len(boundaries)} boundaries")
 
         # Find interface between Cu and Glue
         # TODO if self.config.dble there are 2 interfaces
@@ -348,7 +351,7 @@ class Helix:
         interface = list(set(bcs[volume_ids[0]]) & set(bcs[volume_ids[1]]))
         if self.config.dble:
             interface.extend(list(set(bcs[volume_ids[0]]) & set(bcs[volume_ids[2]])))
-        print(f"Interface boundaries: {len(interface)}")
+        logger.debug(f"Interface boundaries: {len(interface)}")
 
         # Classify boundary types
         bcs_type = self.classify_boundaries(volume_ids, bcs, interface)
@@ -358,11 +361,11 @@ class Helix:
         # Create volume physical groups
         gmsh.model.addPhysicalGroup(3, [volume_ids[0]], name=f"{prefix}Cu")
         gmsh.model.addPhysicalGroup(3, [volume_ids[1]], name=f"{prefix}Glue")
-        print("Created volume physical groups: Cu, Glue")
+        logger.info("Created volume physical groups: Cu, Glue")
 
         # Create interface physical group
         gmsh.model.addPhysicalGroup(2, interface, name=f"{prefix}Interface")
-        print("Created interface physical group")
+        logger.info("Created interface physical group")
 
         # Create boundary physical groups
         bcs_names = self.create_boundary_groups(volume_ids, bcs, bcs_type, interface, prefix)
@@ -391,9 +394,9 @@ class Helix:
                     else:
                         bcs_type[vol][btype] = [bc_id]
 
-        print("Boundary classification:")
+        logger.debug("Boundary classification:")
         for vol, types in bcs_type.items():
-            print(f"  Volume {vol}: {dict(types)}")
+            logger.debug(f"  Volume {vol}: {dict(types)}")
 
         return bcs_type
 
@@ -422,14 +425,14 @@ class Helix:
             -r2 - eps, -r2 - eps, zmin - eps, r2 + eps, r2 + eps, zmin + eps, 2
         )
         _id = gmsh.model.addPhysicalGroup(2, [tag for (dim, tag) in V0], name=f"{prefix}V0")
-        print(f"Created V0 group: {len(V0)} surfaces")
+        logger.info(f"Created V0 group: {len(V0)} surfaces")
         bc_names[f"{prefix}V0"] = _id
 
         V1 = gmsh.model.getEntitiesInBoundingBox(
             -r2 - eps, -r2 - eps, zmax - eps, r2 + eps, r2 + eps, zmax + eps, 2
         )
         _id = gmsh.model.addPhysicalGroup(2, [tag for (dim, tag) in V1], name=f"{prefix}V1")
-        print(f"Created V1 group: {len(V1)} surfaces")
+        logger.info(f"Created V1 group: {len(V1)} surfaces")
         bc_names[f"{prefix}V1"] = _id
 
         # Rint (inner radius surfaces)
@@ -443,7 +446,7 @@ class Helix:
             if tag in bcs[volume_ids[0]] and tag in bcs_type[volume_ids[0]]["Cylinder"]
         ]
         gmsh.model.addPhysicalGroup(2, rint_cu, name=f"{prefix}Rint")
-        print(f"Created Rint group (Cu): {len(rint_cu)} surfaces")
+        logger.info(f"Created Rint group (Cu): {len(rint_cu)} surfaces")
 
         rint_glue = [
             tag
@@ -451,7 +454,7 @@ class Helix:
             if tag in bcs[volume_ids[1]] and tag in bcs_type[volume_ids[1]]["Cylinder"]
         ]
         gmsh.model.addPhysicalGroup(2, rint_glue, name=f"{prefix}iRint")
-        print(f"Created iRint group (Glue): {len(rint_glue)} surfaces")
+        logger.info(f"Created iRint group (Glue): {len(rint_glue)} surfaces")
 
         # Rext (outer radius surfaces)
         rext_cu = [
@@ -460,7 +463,7 @@ class Helix:
             if (2, tag) not in rint and (2, tag) not in V0 + V1 and tag not in interface
         ]
         gmsh.model.addPhysicalGroup(2, rext_cu, name=f"{prefix}Rext")
-        print(f"Created Rext group (Cu): {len(rext_cu)} surfaces")
+        logger.info(f"Created Rext group (Cu): {len(rext_cu)} surfaces")
 
         rext_glue = [
             tag
@@ -468,7 +471,7 @@ class Helix:
             if (2, tag) not in rint and (2, tag) not in V0 + V1 and tag not in interface
         ]
         gmsh.model.addPhysicalGroup(2, rext_glue, name=f"{prefix}iRext")
-        print(f"Created iRext group (Glue): {len(rext_glue)} surfaces")
+        logger.info(f"Created iRext group (Glue): {len(rext_glue)} surfaces")
 
         return bc_names
 
@@ -513,7 +516,8 @@ def main():
             helixconfig = getObject(args.config)
         except ValidationError as e:
             # Handle validation errors from python_magnetgeo
-            print(f"Validation error: {e}")
+            logger.error(f"Validation error: {e}")
+            sys.exit(1)
 
         # Parse components
         helix = Helix(helixconfig, add_start_hole=args.start_hole)
@@ -543,12 +547,12 @@ def main():
         print("Helix generation completed successfully")
         print("=" * 60)
 
-        # Show GUI if not suppressed
-        if not args.nopopup:
+        # Show GUI if requested
+        if args.show:
             gmsh.fltk.run()
 
     except Exception as e:
-        print(f"\nError during helix generation: {e}")
+        logger.error(f"\nError during helix generation: {e}")
         raise
     finally:
         gmsh.finalize()  # Uncomment if you want to finalize Gmsh

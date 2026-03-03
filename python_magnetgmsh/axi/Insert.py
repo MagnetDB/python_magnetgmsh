@@ -16,6 +16,10 @@ from ..utils.lists import flatten
 
 from numpy import ndarray
 
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
+
 
 def gmsh_box(Insert: Insert, debug: bool = False) -> list:
     """

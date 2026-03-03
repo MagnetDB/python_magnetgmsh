@@ -6,8 +6,10 @@ import gmsh
 from python_magnetgeo.Bitter import Bitter
 from ..mesh.bcs import create_bcs
 
-
 from ..utils.lists import flatten
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def gmsh_box(Bitter: Bitter, debug: bool = False) -> list:

@@ -1,6 +1,8 @@
+import sys
 import gmsh
 import math
-from typing import List, Tuple, Optional
+import logging
+from typing import List, Tuple
 
 # Lazy loading import - automatically detects geometry type
 from python_magnetgeo.utils import getObject
@@ -8,6 +10,8 @@ from python_magnetgeo.validation import ValidationError
 
 # For type checking only
 from python_magnetgeo.Ring import Ring as RingConfig
+
+logger = logging.getLogger(__name__)
 
 """
 Configuration for ring geometry parameters.
@@ -319,7 +323,8 @@ def main():
             ringconfig = getObject(args.config)
         except ValidationError as e:
             # Handle validation errors from python_magnetgeo
-            print(f"Validation error: {e}")
+            logger.error(f"Validation error: {e}")
+            sys.exit(1)
 
         ring = Ring(ringconfig)
 
@@ -348,8 +353,8 @@ def main():
         print("Ring generation completed successfully")
         print("=" * 60)
 
-        # Show GUI if not suppressed
-        if not args.nopopup:
+        # Show GUI if requested
+        if args.show:
             gmsh.fltk.run()
 
     except Exception as e:
